@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 - 2026-06-19
+
+- Add MCP Registry package metadata and align `server.json` with the GitHub OIDC namespace.
+- Refresh package discoverability metadata for Shipmail's AI-agent inbox and REST API use cases.
+
 ## 0.1.6 - 2026-06-19
 
 - Keep `server.json` version fields aligned with the published npm package.
