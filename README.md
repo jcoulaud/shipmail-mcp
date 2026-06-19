@@ -7,6 +7,7 @@
 [![source](https://img.shields.io/badge/source-GitHub-black.svg)](https://github.com/jcoulaud/shipmail-mcp)
 
 Official Model Context Protocol server for [Shipmail](https://shipmail.to). Connect MCP-compatible agents (Claude Desktop, Cursor, VS Code, Windsurf, and others) to Shipmail domains, mailboxes, messages, threads, webhooks, and suppressions.
+The public source repository is [jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp), which is also the npm package metadata target.
 
 > [Model Context Protocol](https://modelcontextprotocol.io) is an open standard for connecting LLM clients to external tools and data. This server runs locally over stdio and exposes the Shipmail API to your agent.
 
@@ -237,6 +238,9 @@ The per-session circuit breaker tripped. Restart the MCP server (in most hosts: 
 URLs must be public https. Localhost, RFC1918, `.local`, and `.internal` are blocked at input time. Use a public tunnel (ngrok, cloudflared) for local testing.
 
 ## Development
+
+For public source, tests, and issue tracking, use the standalone repository:
+[github.com/jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp).
 
 Install dependencies with Bun:
 

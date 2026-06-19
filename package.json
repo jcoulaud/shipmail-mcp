@@ -1,6 +1,6 @@
 {
   "name": "shipmail-mcp",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "Official Model Context Protocol (MCP) server for Shipmail. Manage business email (domains, mailboxes, messages, threads, webhooks, suppressions) from Claude, Cursor, and other MCP agents.",
   "type": "module",
   "packageManager": "bun@1.3.10",

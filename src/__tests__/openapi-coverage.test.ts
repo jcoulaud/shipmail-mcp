@@ -16,7 +16,9 @@ import { registerTools } from "../tools.js";
 // Updating this file is the explicit "I considered the MCP surface" gate that
 // the MCP package's reviewers were asking for.
 
-const OPENAPI_PATH = fileURLToPath(new URL("../../fixtures/openapi.json", import.meta.url));
+const OPENAPI_PATH = fileURLToPath(
+  new URL("../../fixtures/openapi.json", import.meta.url),
+);
 
 const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   getStatus: "shipmail_status",
@@ -86,7 +88,10 @@ const INTENTIONALLY_EXCLUDED: Readonly<Record<string, string>> = {
 };
 
 type OpenApiDoc = {
-  readonly paths: Record<string, Record<string, { readonly operationId?: string } | unknown>>;
+  readonly paths: Record<
+    string,
+    Record<string, { readonly operationId?: string } | unknown>
+  >;
 };
 
 function readOpenApi(): OpenApiDoc {

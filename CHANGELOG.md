@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6 - 2026-06-19
+
+- Keep `server.json` version fields aligned with the published npm package.
+
+## 0.1.5 - 2026-06-19
+
+- Point package metadata and MCP server metadata at this public source repo.
+
 ## 0.1.4 - 2026-06-14
 
 - Expose inbox message bodies through the MCP tools that read mailbox inbox messages.

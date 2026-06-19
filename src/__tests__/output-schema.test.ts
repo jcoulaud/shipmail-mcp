@@ -88,7 +88,7 @@ describe("runtime outputSchema enforcement", () => {
     // Defense-in-depth: even when the upstream returns secret-looking content
     // mixed with a wrong shape, the error path must not echo the payload back.
     const malformed = {
-      api_key: "shipmail_test_key_should_never_leak",
+      api_key: "sm_live_should_never_leak",
       database_url: "postgres://user:pw@private.host/db",
       stack: "Error: ...",
     };
@@ -98,7 +98,7 @@ describe("runtime outputSchema enforcement", () => {
     const result = await client.callTool({ name: "shipmail_status", arguments: {} });
     const text = getTextContent(result.content);
 
-    expect(text).not.toContain("shipmail_test_key_should_never_leak");
+    expect(text).not.toContain("sm_live_should_never_leak");
     expect(text).not.toContain("postgres://");
     expect(text).not.toContain("user:pw");
   });
