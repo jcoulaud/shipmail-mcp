@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "to.shipmail/mcp",
-  "description": "Manage Shipmail business email from an AI agent: domains, mailboxes, messages, threads, webhooks, and suppressions.",
+  "description": "Official MCP server for Shipmail, a business email provider with REST API, webhooks, and custom-domain inboxes for AI agents. Agents can send, read, and reply to email from their own mailbox.",
   "repository": {
     "url": "https://github.com/jcoulaud/shipmail-mcp",
     "source": "github"
