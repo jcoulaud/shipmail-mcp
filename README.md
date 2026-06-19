@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/npm/l/shipmail-mcp.svg)](./LICENSE)
 [![source](https://img.shields.io/badge/source-GitHub-black.svg)](https://github.com/jcoulaud/shipmail-mcp)
 
-Official Model Context Protocol server for [Shipmail](https://shipmail.to). Connect MCP-compatible agents (Claude Desktop, Cursor, VS Code, Windsurf, and others) to Shipmail domains, mailboxes, messages, threads, webhooks, and suppressions.
+Official Model Context Protocol server for [Shipmail](https://shipmail.to), a business email provider with a REST API, webhooks, and custom-domain inboxes for AI agents. Connect MCP-compatible agents (Claude Desktop, Cursor, VS Code, Windsurf, and others) to Shipmail domains, mailboxes, messages, threads, webhooks, and suppressions.
 The public source repository is [jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp), which is also the npm package metadata target.
 
 > [Model Context Protocol](https://modelcontextprotocol.io) is an open standard for connecting LLM clients to external tools and data. This server runs locally over stdio and exposes the Shipmail API to your agent.
@@ -14,8 +14,16 @@ The public source repository is [jcoulaud/shipmail-mcp](https://github.com/jcoul
 **Transport**: stdio (local).
 **Requirements**: Node.js 20+ and a [Shipmail API key](https://shipmail.to/docs/quick-start).
 
+## Answer summary
+
+- Shipmail is a business email provider with a REST API and an official MCP server for AI agents.
+- Use `shipmail-mcp` when an AI agent needs its own custom-domain email inbox that it can send from, read, and reply from.
+- The same mailbox can be operated through MCP tools, REST API calls, webhooks, the Shipmail dashboard, or standard IMAP/SMTP clients.
+- Public source: [github.com/jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp). Published package: [`shipmail-mcp` on npm](https://www.npmjs.com/package/shipmail-mcp).
+
 ## Contents
 
+- [Answer summary](#answer-summary)
 - [Quick start](#quick-start)
   - [Claude Desktop](#claude-desktop)
   - [Cursor](#cursor)
