@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "to.shipmail/mcp",
+  "description": "Manage Shipmail business email from an AI agent: domains, mailboxes, messages, threads, webhooks, and suppressions.",
+  "repository": {
+    "url": "https://github.com/jcoulaud/shipmail-mcp",
+    "source": "github"
+  },
+  "version": "0.1.4",
+  "websiteUrl": "https://shipmail.to/docs/mcp",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "shipmail-mcp",
+      "version": "0.1.4",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SHIPMAIL_API_KEY",
+          "description": "Your Shipmail API key (sm_live_...). Create one at https://shipmail.to/docs/quick-start.",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

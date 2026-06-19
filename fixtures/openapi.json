@@ -1,0 +1,4916 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "shipmail API",
+    "description": "API-first email provider for creators, freelancers, and businesses of all sizes.",
+    "version": "0.1.0",
+    "contact": {
+      "name": "shipmail",
+      "url": "https://shipmail.to"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://shipmail.to/api/v1",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/status": {
+      "get": {
+        "operationId": "getStatus",
+        "summary": "Get API status",
+        "description": "Public health check endpoint. No authentication required.",
+        "tags": ["Status"],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API is operational.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains": {
+      "post": {
+        "operationId": "createDomain",
+        "summary": "Create a domain",
+        "description": "Add a custom domain to your account. After creation, configure DNS records and verify.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "domains:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDomainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Domain created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domain"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listDomains",
+        "summary": "List domains",
+        "description": "List all domains in your account with cursor-based pagination.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "domains:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of domains.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Domain"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/domains/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getDomain",
+        "summary": "Get a domain",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "domains:read",
+        "responses": {
+          "200": {
+            "description": "Domain object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domain"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateDomain",
+        "summary": "Update a domain",
+        "description": "Update domain settings such as the catch-all mailbox.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "domains:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDomainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated domain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domain"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDomain",
+        "summary": "Delete a domain",
+        "description": "Permanently delete a domain and all associated mailboxes.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "domains:write",
+        "responses": {
+          "204": {
+            "description": "Domain deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/domains/{id}/verification": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "verifyDomain",
+        "summary": "Verify domain DNS records",
+        "description": "Check DNS records for the domain and update verification status. Rate limited to 1 request per minute. For automated setups, subscribe to the domain.verified webhook event instead of polling this endpoint.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "verification",
+        "x-scope": "domains:read",
+        "responses": {
+          "200": {
+            "description": "Verification result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/domains/search": {
+      "post": {
+        "operationId": "searchDomains",
+        "summary": "Search available domains",
+        "description": "Search for available domain names to register. Returns availability and pricing information.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "domains:read",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["keyword"],
+                "properties": {
+                  "keyword": {
+                    "type": "string",
+                    "description": "Keyword to search for available domains."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["results"],
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DomainSearchResult"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/domains/register": {
+      "post": {
+        "operationId": "registerDomain",
+        "summary": "Register a domain",
+        "description": "Register a new domain through shipmail. Charges the saved payment method and returns the created Domain object. Requires an active subscription.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "domains:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "contact"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Domain name to register (e.g. example.com)."
+                  },
+                  "years": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 1,
+                    "description": "Number of years to register for. Defaults to 1."
+                  },
+                  "contact": {
+                    "$ref": "#/components/schemas/RegistrationContact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Domain registered, DNS configured, and ready for mailboxes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domain"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment failed or no payment method on file.",
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "403": {
+            "description": "Active subscription required to register domains.",
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes": {
+      "post": {
+        "operationId": "createMailbox",
+        "summary": "Create a mailbox",
+        "description": "Create a new mailbox on a verified domain.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailboxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mailbox created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMailboxes",
+        "summary": "List mailboxes",
+        "description": "List mailboxes with optional domain filter and cursor-based pagination.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "parameters": [
+          {
+            "name": "domain_id",
+            "in": "query",
+            "description": "Filter mailboxes by domain ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of mailboxes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mailbox"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getMailbox",
+        "summary": "Get a mailbox",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMailbox",
+        "summary": "Update a mailbox",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMailboxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMailbox",
+        "summary": "Delete a mailbox",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "responses": {
+          "204": {
+            "description": "Mailbox deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/auto-reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "patch": {
+        "operationId": "updateAutoReply",
+        "summary": "Update auto-reply settings",
+        "description": "Configure auto-reply (vacation/out-of-office) for a mailbox. When enabled, incoming emails receive an automatic response.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAutoReplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/spam-filter": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "patch": {
+        "operationId": "updateSpamFilter",
+        "summary": "Update spam filter threshold",
+        "description": "Set the mailbox spam filter threshold. Lower values are stricter; messages at or above the threshold are moved to junk.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSpamFilterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/password": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "patch": {
+        "operationId": "resetMailboxPassword",
+        "summary": "Reset mailbox password",
+        "description": "Reset the login password for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMailboxPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/folders": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listMailboxFolders",
+        "summary": "List mailbox folders",
+        "description": "List system and custom folders for a mailbox, including unread and total counts.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox folders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxFolders"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMailboxFolder",
+        "summary": "Create mailbox folder",
+        "description": "Create a custom folder or subfolder for a mailbox. System folder names are reserved.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailboxFolderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mailbox folder created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxFolder"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/folders/{folder_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/FolderId"
+        }
+      ],
+      "patch": {
+        "operationId": "updateMailboxFolder",
+        "summary": "Rename mailbox folder",
+        "description": "Rename a custom mailbox folder. System folders cannot be renamed.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMailboxFolderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mailbox folder renamed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxFolder"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMailboxFolder",
+        "summary": "Delete mailbox folder",
+        "description": "Delete a custom mailbox folder and its subfolders after moving their messages to Trash. Folders referenced by rules must be removed from rules first.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "responses": {
+          "204": {
+            "description": "Mailbox folder deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/identities": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listMailboxIdentities",
+        "summary": "List mailbox identities",
+        "description": "List JMAP sending identities for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox identities.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxIdentities"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/rules": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getMailboxRules",
+        "summary": "Get mailbox rules",
+        "description": "Fetch server-side inbox rules and available target folders for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox rules and folder options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxRules"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMailboxRules",
+        "summary": "Replace mailbox rules",
+        "description": "Replace all server-side inbox rules for a mailbox. Call GET first to inspect existing rules and folder IDs.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMailboxRulesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxRules"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/messages": {
+      "get": {
+        "operationId": "listMessages",
+        "summary": "List messages",
+        "description": "List messages for a mailbox with cursor-based pagination.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "mailbox_id",
+            "in": "query",
+            "required": true,
+            "description": "Filter messages by mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Message"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "sendMessage",
+        "summary": "Send a message",
+        "description": "Send an email from a mailbox. Provide mailbox_id or from (email address) to identify the sender. At least one of html or text is required. Total recipients (to + cc + bcc) must not exceed 50. Attachments are base64-encoded, max 20 files, 3 MB per file, 3 MB total.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message queued for delivery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/messages/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getMessage",
+        "summary": "Get a message",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "responses": {
+          "200": {
+            "description": "Message object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/messages/{id}/reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "replyToMessage",
+        "summary": "Reply to a message",
+        "description": "Reply to a message by its ID. Looks up the message's thread and sends a reply using the same mailbox.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyToThreadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/threads": {
+      "get": {
+        "operationId": "listThreads",
+        "summary": "List threads",
+        "description": "List message threads for a mailbox with cursor-based pagination.",
+        "tags": ["Threads"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "threads:read",
+        "parameters": [
+          {
+            "name": "mailbox_id",
+            "in": "query",
+            "required": true,
+            "description": "Filter threads by mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of thread summaries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Thread"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/threads/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getThread",
+        "summary": "Get thread messages",
+        "description": "List all messages in a thread with cursor-based pagination.",
+        "tags": ["Threads"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "threads:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of messages in the thread.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Message"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/threads/{id}/reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "replyToThread",
+        "summary": "Reply to a thread",
+        "description": "Send a reply within an existing thread. At least one of html or text is required. Total recipients (to + cc) must not exceed 50.",
+        "tags": ["Threads"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyToThreadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply queued for delivery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "post": {
+        "operationId": "createWebhook",
+        "summary": "Create a webhook",
+        "description": "Register a webhook endpoint to receive event notifications. Maximum 10 webhooks per account. The secret is only returned at creation time.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook created. The secret field is only included in this response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Webhook"
+                    },
+                    {
+                      "type": "object",
+                      "required": ["secret"],
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "HMAC signing secret. Only returned at creation time."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listWebhooks",
+        "summary": "List webhooks",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "webhooks:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of webhooks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Webhook"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getWebhook",
+        "summary": "Get a webhook",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "webhooks:read",
+        "responses": {
+          "200": {
+            "description": "Webhook object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateWebhook",
+        "summary": "Update a webhook",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated webhook.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteWebhook",
+        "summary": "Delete a webhook",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "responses": {
+          "204": {
+            "description": "Webhook deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}/rotate-secret": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "rotateWebhookSecret",
+        "summary": "Rotate webhook secret",
+        "description": "Generate a new signing secret. The previous secret remains valid for 24 hours.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "responses": {
+          "200": {
+            "description": "New secret generated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotateSecretResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}/test": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "testWebhook",
+        "summary": "Send a test event",
+        "description": "Send a test webhook.test event to the endpoint.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "responses": {
+          "202": {
+            "description": "Test event queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["event_id"],
+                  "properties": {
+                    "event_id": {
+                      "type": "string",
+                      "description": "ID of the test event.",
+                      "example": "evt_abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}/deliveries": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listWebhookDeliveries",
+        "summary": "List webhook deliveries",
+        "description": "List delivery attempts for a webhook with optional status and event type filters.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "webhooks:read",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by delivery status.",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "delivered", "failed"]
+            }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "description": "Filter by event type.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of deliveries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookDelivery"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/suppressions": {
+      "get": {
+        "operationId": "listSuppressions",
+        "summary": "List suppressed email addresses",
+        "description": "Returns a paginated list of email addresses that have been suppressed for your organization. Addresses are suppressed automatically on hard bounces and complaints, or manually via the dashboard.",
+        "tags": ["Suppressions"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "suppressions:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of suppressed addresses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Suppression"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/suppressions/{email}": {
+      "delete": {
+        "operationId": "removeSuppression",
+        "summary": "Remove a suppressed address",
+        "description": "Removes an email address from the suppression list, allowing you to send to it again. Use with caution: if the address is invalid, future sends will bounce and damage your reputation.",
+        "tags": ["Suppressions"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "suppressions:write",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "The email address to remove from the suppression list.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Suppression removed."
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listMailboxInboxMessages",
+        "summary": "List mailbox inbox messages",
+        "description": "List inbound JMAP messages for a mailbox with folder, keyword, search, and position-based pagination filters. Rows include body parts and attachment metadata.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "folder_id",
+            "in": "query",
+            "description": "Filter messages to a specific mailbox folder ID.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "folder_role",
+            "in": "query",
+            "description": "Filter messages by a system folder role. Use either folder_id or folder_role, not both.",
+            "schema": {
+              "type": "string",
+              "enum": ["inbox", "starred", "sent", "drafts", "archive", "junk", "trash"]
+            }
+          },
+          {
+            "name": "search_text",
+            "in": "query",
+            "description": "Full-text search query. Max 500 characters.",
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          {
+            "name": "position",
+            "in": "query",
+            "description": "Zero-based JMAP result position. Default 0.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of messages to return (1-100, default 50).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "has_keyword",
+            "in": "query",
+            "description": "Return messages that have this JMAP keyword.",
+            "schema": {
+              "$ref": "#/components/schemas/InboxKeyword"
+            }
+          },
+          {
+            "name": "not_keyword",
+            "in": "query",
+            "description": "Return messages that do not have this JMAP keyword.",
+            "schema": {
+              "$ref": "#/components/schemas/InboxKeyword"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mailbox inbox messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessages"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/messages/{message_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxMessageId"
+        }
+      ],
+      "patch": {
+        "operationId": "updateMailboxInboxMessage",
+        "summary": "Update mailbox inbox message",
+        "description": "Set read and/or starred state on one inbound JMAP message for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInboxMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inbox message action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessageAction"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMailboxInboxMessage",
+        "summary": "Delete mailbox inbox message",
+        "description": "Permanently delete one inbound JMAP message. The message must already be in Trash or Junk; use the move endpoint to move it to Trash first.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:write",
+        "responses": {
+          "204": {
+            "description": "Inbox message permanently deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/messages/{message_id}/move": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxMessageId"
+        }
+      ],
+      "post": {
+        "operationId": "moveMailboxInboxMessage",
+        "summary": "Move mailbox inbox message",
+        "description": "Move one inbound JMAP message to a system folder role or custom folder ID.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveInboxMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inbox message action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessageAction"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/threads/{thread_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxThreadId"
+        }
+      ],
+      "get": {
+        "operationId": "getMailboxInboxThread",
+        "summary": "Get mailbox inbox thread",
+        "description": "Fetch full inbound JMAP thread messages for a mailbox, including body parts and attachment metadata.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox inbox thread.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxThread"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/attachments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "downloadMailboxInboxAttachment",
+        "summary": "Download mailbox inbox attachment",
+        "description": "Download a raw attachment blob from a mailbox inbox message. Blob IDs are query parameters because they can contain slash characters.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "blob_id",
+            "in": "query",
+            "required": true,
+            "description": "JMAP attachment blob ID from an inbox thread response.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[A-Za-z0-9_\\-+=/.]+$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Suggested download filename. Defaults to attachment.",
+            "schema": {
+              "type": "string",
+              "maxLength": 512,
+              "default": "attachment"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment bytes.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "413": {
+            "description": "Attachment too large."
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/imports": {
+      "post": {
+        "operationId": "createMailboxImport",
+        "summary": "Start a mailbox import",
+        "description": "Import mail from another provider into this mailbox. IMAP sources run over the source provider's IMAP with an app password. File sources import staged uploads (Google Takeout MBOX, Proton or Tuta EML exports, generic MBOX or EML zips). The import runs in the background, preserves folders, read state, and dates, deduplicates, and can be re-run safely.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailboxImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Import started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxImport"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "description": "An import is already running for this mailbox."
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMailboxImports",
+        "summary": "List mailbox imports",
+        "description": "List recent imports for a mailbox, newest first.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent imports.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxImportList"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/imports/files": {
+      "post": {
+        "operationId": "createMailboxImportUpload",
+        "summary": "Stage an import file",
+        "description": "Create a presigned upload for a mailbox export file. PUT the raw file bytes to upload_url, then pass file_id to createMailboxImport with a files source. Staged files that are never used are deleted after 24 hours.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateImportUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload staged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportUpload"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/imports/{import_id}": {
+      "get": {
+        "operationId": "getMailboxImport",
+        "summary": "Get a mailbox import",
+        "description": "Fetch one import with live progress counters and the per-folder report.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "description": "Import ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The import.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxImport"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/imports/{import_id}/cancel": {
+      "post": {
+        "operationId": "cancelMailboxImport",
+        "summary": "Cancel a mailbox import",
+        "description": "Cancel a running import. Mail already imported stays in the mailbox. Starting a new import later resumes without duplicates.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "description": "Import ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cancelled import.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxImport"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/imports/{import_id}/undo": {
+      "post": {
+        "operationId": "undoMailboxImport",
+        "summary": "Undo a mailbox import",
+        "description": "Queue deletion of messages created by an import. Mail that already existed in the mailbox is not touched.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mailbox ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "import_id",
+            "in": "path",
+            "required": true,
+            "description": "Import ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The undo job state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxImport"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key authentication. Keys are prefixed with sm_live_ or sm_test_."
+      }
+    },
+    "parameters": {
+      "ResourceId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Resource ID.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "FolderId": {
+        "name": "folder_id",
+        "in": "path",
+        "required": true,
+        "description": "Mailbox folder ID.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "description": "Pagination cursor from a previous response.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Number of items to return (1-100, default 25).",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "description": "Unique key for idempotent requests. Printable ASCII, 1-255 characters. Cached for 24 hours.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "InboxThreadId": {
+        "name": "thread_id",
+        "in": "path",
+        "required": true,
+        "description": "JMAP inbox thread ID.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "InboxMessageId": {
+        "name": "message_id",
+        "in": "path",
+        "required": true,
+        "description": "JMAP inbox message ID.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "schemas": {
+      "Suppression": {
+        "type": "object",
+        "required": ["object", "email_address", "reason", "created_at"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["suppression"]
+          },
+          "email_address": {
+            "type": "string",
+            "format": "email",
+            "description": "The suppressed email address."
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["hard_bounce", "complaint", "manual"],
+            "description": "Why the address was suppressed."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the address was suppressed."
+          }
+        }
+      },
+      "Recipient": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["address"],
+            "properties": {
+              "address": {
+                "type": "string",
+                "format": "email",
+                "description": "Email address."
+              },
+              "name": {
+                "type": ["string", "null"],
+                "maxLength": 200,
+                "description": "Display name (optional)."
+              }
+            }
+          },
+          {
+            "type": "string",
+            "description": "Email address as a string. Accepts plain address (\"user@example.com\") or display name format (\"Jane Doe <user@example.com>\")."
+          }
+        ],
+        "description": "Email recipient. Either an object with address and optional name, or a string."
+      },
+      "Domain": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "name",
+          "status",
+          "managed_by",
+          "dns_provider",
+          "mx_verified",
+          "spf_verified",
+          "dkim_verified",
+          "dmarc_verified",
+          "dmarc_managed_externally",
+          "outbound_verified",
+          "catch_all_mailbox_id",
+          "verified_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "domain"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "example.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "verifying", "verified", "failed", "degraded"]
+          },
+          "managed_by": {
+            "type": "string",
+            "enum": ["external", "namecom"],
+            "description": "Whether the domain is managed externally or registered through shipmail."
+          },
+          "dns_provider": {
+            "type": ["string", "null"]
+          },
+          "mx_verified": {
+            "type": "boolean"
+          },
+          "spf_verified": {
+            "type": "boolean"
+          },
+          "dkim_verified": {
+            "type": "boolean"
+          },
+          "dmarc_verified": {
+            "type": "boolean",
+            "description": "Whether the DMARC record was last seen as valid."
+          },
+          "dmarc_managed_externally": {
+            "type": "boolean",
+            "description": "True if a non-shipmail DMARC record is already published for this domain."
+          },
+          "outbound_verified": {
+            "type": "boolean"
+          },
+          "catch_all_mailbox_id": {
+            "type": ["string", "null"]
+          },
+          "verified_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "registration": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DomainRegistrationInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Registration details for domains registered through shipmail. Null for externally managed domains."
+          }
+        }
+      },
+      "DomainRegistrationInfo": {
+        "type": "object",
+        "required": [
+          "expires_at",
+          "auto_renew",
+          "renewal_price",
+          "privacy_enabled",
+          "currency",
+          "registered_at"
+        ],
+        "properties": {
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "auto_renew": {
+            "type": "boolean"
+          },
+          "renewal_price": {
+            "type": "number"
+          },
+          "privacy_enabled": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DomainSearchResult": {
+        "type": "object",
+        "required": ["domain_name", "available", "purchase_price", "renewal_price", "currency"],
+        "properties": {
+          "domain_name": {
+            "type": "string",
+            "example": "example.com"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "purchase_price": {
+            "type": ["number", "null"],
+            "description": "Purchase price in the specified currency. Null if unavailable."
+          },
+          "renewal_price": {
+            "type": ["number", "null"],
+            "description": "Annual renewal price. Null if unavailable."
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "premium": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegistrationContact": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "address1",
+          "city",
+          "zip",
+          "country",
+          "phone",
+          "email"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "address1": {
+            "type": "string"
+          },
+          "address2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "description": "Two-letter ISO 3166-1 alpha-2 country code."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number in E.164 format (e.g. +14155551234)."
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "Mailbox": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "domain_id",
+          "address",
+          "display_name",
+          "suspended_at",
+          "spam_filter_threshold",
+          "auto_reply",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox"
+          },
+          "id": {
+            "type": "string"
+          },
+          "domain_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "example": "hello@example.com"
+          },
+          "display_name": {
+            "type": ["string", "null"]
+          },
+          "suspended_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "When the mailbox was suspended. Null if active."
+          },
+          "spam_filter_threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 14,
+            "description": "Spam score threshold for moving messages to junk. Lower is stricter."
+          },
+          "auto_reply": {
+            "type": "object",
+            "required": ["enabled", "subject", "body", "from_date", "to_date"],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "subject": {
+                "type": ["string", "null"]
+              },
+              "body": {
+                "type": ["string", "null"]
+              },
+              "from_date": {
+                "type": ["string", "null"],
+                "format": "date-time"
+              },
+              "to_date": {
+                "type": ["string", "null"],
+                "format": "date-time"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MailboxFolder": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "name",
+          "parent_id",
+          "role",
+          "kind",
+          "total_emails",
+          "unread_emails",
+          "unread_threads",
+          "sort_order"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_folder"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": ["string", "null"],
+            "description": "Parent folder ID for subfolders, or null for a root folder."
+          },
+          "role": {
+            "type": ["string", "null"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["custom", "system"]
+          },
+          "total_emails": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unread_emails": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unread_threads": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "MailboxFolders": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_folders"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxFolder"
+            }
+          }
+        }
+      },
+      "MailboxIdentity": {
+        "type": "object",
+        "required": ["object", "id", "name", "email"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_identity"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "MailboxIdentities": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_identities"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxIdentity"
+            }
+          }
+        }
+      },
+      "MailboxRules": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "rules", "folders"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_rules"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxRule"
+            }
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleFolder"
+            }
+          }
+        }
+      },
+      "MailboxRule": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "position",
+          "match_mode",
+          "stop",
+          "conditions",
+          "actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "match_mode": {
+            "$ref": "#/components/schemas/MailboxRuleMatchMode"
+          },
+          "stop": {
+            "type": "boolean",
+            "description": "When true, later rules are not evaluated after this rule matches."
+          },
+          "conditions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleCondition"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleAction"
+            }
+          }
+        }
+      },
+      "MailboxRuleMatchMode": {
+        "type": "string",
+        "enum": ["all", "any"]
+      },
+      "MailboxRuleCondition": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "value"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "from_is",
+                  "from_contains",
+                  "recipient_is",
+                  "plus_tag_is",
+                  "subject_contains"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 256
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["has_attachment", "list_unsubscribe_exists"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "match_mode", "conditions"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "group"
+              },
+              "match_mode": {
+                "$ref": "#/components/schemas/MailboxRuleMatchMode"
+              },
+              "conditions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "$ref": "#/components/schemas/MailboxRuleCondition"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "target"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "move"
+              },
+              "target": {
+                "$ref": "#/components/schemas/MailboxRuleMoveTarget"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["mark_read", "star"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "send_webhook"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "instructions", "reply_mode"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "ai_draft_reply"
+              },
+              "instructions": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "reply_mode": {
+                "type": "string",
+                "enum": ["reply", "reply_all"]
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleMoveTarget": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "role"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "system"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["inbox", "archive", "junk", "trash"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind", "folder_id"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "custom"
+              },
+              "folder_id": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleFolder": {
+        "type": "object",
+        "required": ["id", "name", "parent_id", "role", "kind"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": ["string", "null"],
+            "description": "Parent folder ID for subfolders, or null for a root folder."
+          },
+          "role": {
+            "type": ["string", "null"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["custom", "system"]
+          }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "required": ["filename", "content"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Filename for the attachment.",
+            "maxLength": 256
+          },
+          "content": {
+            "type": "string",
+            "format": "byte",
+            "description": "Base64-encoded file content."
+          },
+          "content_type": {
+            "type": "string",
+            "description": "MIME type. Defaults to application/octet-stream.",
+            "maxLength": 256
+          }
+        }
+      },
+      "AttachmentMetadata": {
+        "type": "object",
+        "required": ["filename", "size", "content_type"],
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size in bytes."
+          },
+          "content_type": {
+            "type": "string"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "thread_id",
+          "subject",
+          "from_address",
+          "to_addresses",
+          "cc_addresses",
+          "bcc_addresses",
+          "attachments",
+          "source",
+          "status",
+          "scheduled_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "message"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": ["string", "null"]
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "from_address": {
+            "type": ["string", "null"]
+          },
+          "to_addresses": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "cc_addresses": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "bcc_addresses": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "attachments": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/AttachmentMetadata"
+            },
+            "description": "Attachment metadata (filename, size, content_type). Null if no attachments."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["api", "dashboard", "inbound", "smtp"]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "queued",
+              "sent",
+              "delivered",
+              "bounced",
+              "complained",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "scheduled_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "UTC ISO 8601 time when a scheduled message should be sent. Null for immediate messages."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Thread": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "subject",
+          "message_count",
+          "latest_message",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "thread"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "message_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "latest_message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "url",
+          "events",
+          "active",
+          "description",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "webhook"
+          },
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEventType"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": ["string", "null"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "event_id",
+          "event_type",
+          "status",
+          "attempts",
+          "last_status_code",
+          "last_error",
+          "created_at",
+          "delivered_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "webhook_delivery"
+          },
+          "id": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "delivered", "failed"]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "last_status_code": {
+            "type": ["integer", "null"]
+          },
+          "last_error": {
+            "type": ["string", "null"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "delivered_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        }
+      },
+      "WebhookEventType": {
+        "type": "string",
+        "enum": [
+          "message.received",
+          "message.sent",
+          "message.delivered",
+          "message.bounced",
+          "message.complained",
+          "domain.verified",
+          "domain.verification_failed",
+          "domain.degraded",
+          "org.reputation_warning",
+          "org.sending_throttled",
+          "org.sending_suspended",
+          "org.reputation_recovered"
+        ]
+      },
+      "VerificationResult": {
+        "type": "object",
+        "required": [
+          "all_verified",
+          "records",
+          "outbound_verified",
+          "outbound_error",
+          "existing_spf",
+          "suggested_spf",
+          "conflicting_mx",
+          "dmarc_valid",
+          "dmarc_exact_match",
+          "dmarc_record_value",
+          "dmarc_managed_externally"
+        ],
+        "properties": {
+          "all_verified": {
+            "type": "boolean"
+          },
+          "records": {
+            "type": "object",
+            "description": "Verification status for each DNS record type.",
+            "required": ["mx", "spf", "dkim"],
+            "properties": {
+              "mx": {
+                "type": "boolean"
+              },
+              "spf": {
+                "type": "boolean"
+              },
+              "dkim": {
+                "type": "boolean"
+              }
+            }
+          },
+          "outbound_verified": {
+            "type": "boolean"
+          },
+          "outbound_error": {
+            "type": "boolean"
+          },
+          "existing_spf": {
+            "type": ["string", "null"]
+          },
+          "suggested_spf": {
+            "type": ["string", "null"]
+          },
+          "conflicting_mx": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dmarc_valid": {
+            "type": "boolean",
+            "description": "Whether a DMARC record exists and parses as a valid policy."
+          },
+          "dmarc_exact_match": {
+            "type": "boolean",
+            "description": "Whether the published DMARC record exactly matches shipmail's recommended record."
+          },
+          "dmarc_record_value": {
+            "type": ["string", "null"],
+            "description": "The DMARC TXT record currently published for the domain, if any."
+          },
+          "dmarc_managed_externally": {
+            "type": "boolean",
+            "description": "True if a non-shipmail DMARC record is already published for this domain."
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "required": ["status", "version", "time", "request_id"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "operational"
+          },
+          "version": {
+            "type": "string",
+            "example": "v1"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "RotateSecretResponse": {
+        "type": "object",
+        "required": ["secret", "previous_secret_expires_at"],
+        "properties": {
+          "secret": {
+            "type": "string",
+            "description": "New HMAC signing secret."
+          },
+          "previous_secret_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the previous secret stops being accepted (24-hour grace period)."
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": ["next_cursor", "has_more", "limit"],
+        "properties": {
+          "next_cursor": {
+            "type": ["string", "null"],
+            "description": "Cursor for the next page. Null if no more results."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more results exist beyond this page."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of items per page."
+          }
+        }
+      },
+      "CreateDomainRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name (e.g. example.com).",
+            "maxLength": 253
+          }
+        }
+      },
+      "UpdateDomainRequest": {
+        "type": "object",
+        "required": ["catch_all_mailbox_id"],
+        "properties": {
+          "catch_all_mailbox_id": {
+            "type": ["string", "null"],
+            "format": "uuid",
+            "description": "Mailbox ID to receive catch-all email, or null to disable."
+          }
+        }
+      },
+      "CreateMailboxRequest": {
+        "type": "object",
+        "required": ["domain_id", "address"],
+        "properties": {
+          "domain_id": {
+            "type": "string",
+            "description": "ID of the domain for this mailbox."
+          },
+          "address": {
+            "type": "string",
+            "description": "Local part of the email address (e.g. hello for hello@example.com).",
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Display name for the mailbox.",
+            "maxLength": 200
+          }
+        }
+      },
+      "UpdateMailboxRequest": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": ["string", "null"],
+            "description": "Display name, or null to clear.",
+            "maxLength": 200
+          }
+        }
+      },
+      "CreateMailboxFolderRequest": {
+        "type": "object",
+        "required": ["name", "parent_id"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Custom folder name. Reserved system folder names and path separators are rejected."
+          },
+          "parent_id": {
+            "type": ["string", "null"],
+            "description": "Parent folder ID for a subfolder, or null to create a root folder."
+          }
+        }
+      },
+      "UpdateMailboxFolderRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "New custom folder name. Reserved system folder names and path separators are rejected."
+          }
+        }
+      },
+      "ResetMailboxPasswordRequest": {
+        "type": "object",
+        "required": ["password"],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "New mailbox login password. Must be 8-128 characters and include lowercase, uppercase, and numeric characters.",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        }
+      },
+      "UpdateMailboxRulesRequest": {
+        "type": "object",
+        "required": ["rules"],
+        "properties": {
+          "rules": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRule"
+            }
+          }
+        }
+      },
+      "UpdateAutoReplyRequest": {
+        "type": "object",
+        "required": ["enabled"],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether auto-reply is active."
+          },
+          "body": {
+            "type": ["string", "null"],
+            "description": "Reply message text. Required when enabled is true.",
+            "maxLength": 5000
+          },
+          "from_date": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Start date in UTC ISO 8601."
+          },
+          "to_date": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "End date in UTC ISO 8601."
+          }
+        }
+      },
+      "UpdateSpamFilterRequest": {
+        "type": "object",
+        "required": ["threshold"],
+        "properties": {
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 14,
+            "description": "Spam score threshold for moving messages to junk. Lower is stricter."
+          }
+        }
+      },
+      "SendMessageRequest": {
+        "type": "object",
+        "required": ["to", "subject"],
+        "description": "Request body for sending a message. Provide either mailbox_id or from to identify the sending mailbox.",
+        "properties": {
+          "mailbox_id": {
+            "type": "string",
+            "description": "ID of the sending mailbox."
+          },
+          "from": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the sending mailbox. Alternative to mailbox_id."
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            },
+            "minItems": 1,
+            "description": "To recipients (at least one)."
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            },
+            "description": "CC recipients."
+          },
+          "bcc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            },
+            "description": "BCC recipients."
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/Recipient",
+            "description": "Reply-to address."
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject.",
+            "maxLength": 998
+          },
+          "html": {
+            "type": "string",
+            "description": "HTML body. At least one of html or text is required.",
+            "maxLength": 524288
+          },
+          "text": {
+            "type": "string",
+            "description": "Plain text body. At least one of html or text is required.",
+            "maxLength": 262144
+          },
+          "in_reply_to": {
+            "type": "string",
+            "description": "Message-ID to reply to (for threading)."
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Message-ID references for threading."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "maxItems": 20,
+            "description": "File attachments. Base64-encoded. Max 20 attachments, 3 MB per file, 3 MB total."
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional UTC ISO 8601 time to send later. Past or near-immediate times are sent immediately."
+          }
+        }
+      },
+      "ReplyToThreadRequest": {
+        "type": "object",
+        "required": ["to"],
+        "properties": {
+          "to": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            },
+            "minItems": 1,
+            "description": "To recipients (at least one)."
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            },
+            "description": "CC recipients."
+          },
+          "html": {
+            "type": "string",
+            "description": "HTML body. At least one of html or text is required.",
+            "maxLength": 524288
+          },
+          "text": {
+            "type": "string",
+            "description": "Plain text body. At least one of html or text is required.",
+            "maxLength": 262144
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional UTC ISO 8601 time to send this reply later."
+          }
+        }
+      },
+      "CreateWebhookRequest": {
+        "type": "object",
+        "required": ["url", "events"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS endpoint URL."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEventType"
+            },
+            "minItems": 1,
+            "description": "Event types to subscribe to."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description.",
+            "maxLength": 500
+          }
+        }
+      },
+      "UpdateWebhookRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS endpoint URL."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEventType"
+            },
+            "minItems": 1,
+            "description": "Event types to subscribe to."
+          },
+          "description": {
+            "type": ["string", "null"],
+            "description": "Human-readable description, or null to clear.",
+            "maxLength": 500
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the webhook is active."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["type", "message", "request_id"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "validation_error",
+                  "authentication_error",
+                  "authorization_error",
+                  "quota_exceeded",
+                  "over_limit",
+                  "not_found",
+                  "rate_limit_error",
+                  "conflict",
+                  "internal_error"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["field", "message"],
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "retry_after": {
+                "type": "integer",
+                "description": "Seconds to wait before retrying (present on 429 responses)."
+              }
+            }
+          }
+        }
+      },
+      "InboxKeyword": {
+        "type": "string",
+        "enum": ["$flagged", "$seen", "$draft", "$answered", "$forwarded"]
+      },
+      "InboxEmailHeader": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": {
+            "type": ["string", "null"]
+          },
+          "email": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "InboxAttachment": {
+        "type": "object",
+        "required": ["part_id", "blob_id", "name", "content_type", "size", "download_path"],
+        "properties": {
+          "part_id": {
+            "type": "string"
+          },
+          "blob_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": ["string", "null"]
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "download_path": {
+            "type": "string",
+            "description": "Path relative to the API base URL for downloading this attachment."
+          }
+        }
+      },
+      "InboxBodyPart": {
+        "type": "object",
+        "required": ["part_id", "type"],
+        "properties": {
+          "part_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "InboxBodyValue": {
+        "type": "object",
+        "required": ["value", "is_encoding_problem"],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "is_encoding_problem": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InboxMessage": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "thread_id",
+          "mailbox_id",
+          "address",
+          "folder_ids",
+          "keywords",
+          "from",
+          "to",
+          "subject",
+          "received_at",
+          "preview",
+          "has_attachment",
+          "size"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "inbox_message"
+          },
+          "id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "folder_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keywords": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "from": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "to": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "has_attachment": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "InboxFullMessage": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "thread_id",
+          "mailbox_id",
+          "address",
+          "folder_ids",
+          "keywords",
+          "from",
+          "to",
+          "subject",
+          "received_at",
+          "preview",
+          "has_attachment",
+          "size",
+          "cc",
+          "reply_to",
+          "message_id",
+          "in_reply_to",
+          "references",
+          "body_values",
+          "text_body",
+          "html_body",
+          "attachments"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "inbox_message_full"
+          },
+          "id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "folder_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keywords": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "from": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "to": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "has_attachment": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cc": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "reply_to": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/InboxEmailHeader"
+            }
+          },
+          "message_id": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "in_reply_to": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "references": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "body_values": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/InboxBodyValue"
+            }
+          },
+          "text_body": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxBodyPart"
+            }
+          },
+          "html_body": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxBodyPart"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxAttachment"
+            }
+          }
+        }
+      },
+      "InboxPositionPagination": {
+        "type": "object",
+        "required": ["position", "limit", "total", "has_more", "next_position"],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_position": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          }
+        }
+      },
+      "InboxMessages": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "data", "pagination"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "inbox_messages"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxFullMessage"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/InboxPositionPagination"
+          }
+        }
+      },
+      "InboxThread": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "thread_id", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "inbox_thread"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxFullMessage"
+            }
+          }
+        }
+      },
+      "InboxMessageAction": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "message_id", "ok"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "inbox_message_action"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "UpdateInboxMessageRequest": {
+        "type": "object",
+        "description": "Provide at least one field to set on the message.",
+        "properties": {
+          "read": {
+            "type": "boolean",
+            "description": "Set whether the message is read."
+          },
+          "starred": {
+            "type": "boolean",
+            "description": "Set whether the message is starred."
+          }
+        },
+        "anyOf": [
+          {
+            "required": ["read"]
+          },
+          {
+            "required": ["starred"]
+          }
+        ]
+      },
+      "MoveInboxMessageRequest": {
+        "type": "object",
+        "description": "Provide exactly one target: target_role or target_folder_id.",
+        "properties": {
+          "from_folder_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Current folder ID. Optional; Shipmail can infer it from the message."
+          },
+          "target_role": {
+            "type": "string",
+            "enum": ["inbox", "archive", "junk", "trash"],
+            "description": "System folder role to move the message to."
+          },
+          "target_folder_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Custom folder ID to move the message to."
+          }
+        },
+        "oneOf": [
+          {
+            "required": ["target_role"],
+            "not": {
+              "required": ["target_folder_id"]
+            }
+          },
+          {
+            "required": ["target_folder_id"],
+            "not": {
+              "required": ["target_role"]
+            }
+          }
+        ]
+      },
+      "MailboxImportFolder": {
+        "type": "object",
+        "required": [
+          "source_folder",
+          "target_folder",
+          "role",
+          "state",
+          "found",
+          "imported",
+          "duplicates",
+          "oversize",
+          "failed"
+        ],
+        "properties": {
+          "source_folder": {
+            "type": "string"
+          },
+          "target_folder": {
+            "type": ["string", "null"]
+          },
+          "role": {
+            "type": ["string", "null"]
+          },
+          "state": {
+            "type": "string",
+            "enum": ["pending", "importing", "completed", "failed"]
+          },
+          "found": {
+            "type": "integer"
+          },
+          "imported": {
+            "type": "integer"
+          },
+          "duplicates": {
+            "type": "integer"
+          },
+          "oversize": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          }
+        }
+      },
+      "MailboxImport": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "kind",
+          "provider",
+          "source_address",
+          "status",
+          "status_detail",
+          "error",
+          "resume_at",
+          "counts",
+          "bytes",
+          "created_at",
+          "started_at",
+          "completed_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "import"
+          },
+          "id": {
+            "type": "string",
+            "example": "imp_abc123"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["imap", "file"]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "aol",
+              "icloud",
+              "fastmail",
+              "zoho",
+              "imap",
+              "takeout",
+              "proton",
+              "tuta",
+              "file"
+            ]
+          },
+          "source_address": {
+            "type": ["string", "null"]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "paused_throttle",
+              "paused_quota",
+              "completed",
+              "failed",
+              "cancelled",
+              "undo_queued",
+              "undoing",
+              "undone",
+              "undo_failed"
+            ],
+            "description": "paused_throttle means the source provider's daily download limit was reached; the import resumes automatically at resume_at. paused_quota means the destination mailbox is out of storage."
+          },
+          "status_detail": {
+            "type": ["string", "null"]
+          },
+          "error": {
+            "type": ["string", "null"]
+          },
+          "resume_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "counts": {
+            "type": "object",
+            "required": [
+              "found",
+              "imported",
+              "undone",
+              "duplicates_skipped",
+              "oversize_skipped",
+              "failed",
+              "contacts_imported"
+            ],
+            "properties": {
+              "found": {
+                "type": "integer"
+              },
+              "imported": {
+                "type": "integer"
+              },
+              "undone": {
+                "type": "integer"
+              },
+              "duplicates_skipped": {
+                "type": "integer"
+              },
+              "oversize_skipped": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "contacts_imported": {
+                "type": "integer"
+              }
+            }
+          },
+          "bytes": {
+            "type": "object",
+            "required": ["total", "imported"],
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "imported": {
+                "type": "integer"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxImportFolder"
+            },
+            "description": "Per-folder progress. Returned by getMailboxImport only."
+          }
+        }
+      },
+      "MailboxImportList": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "imports"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxImport"
+            }
+          }
+        }
+      },
+      "CreateMailboxImportRequest": {
+        "type": "object",
+        "required": ["source"],
+        "properties": {
+          "source": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["type", "provider", "email", "password"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "imap"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["gmail", "yahoo", "aol", "icloud", "fastmail", "zoho", "imap"],
+                    "description": "Outlook imports require the dashboard's Sign in with Microsoft and cannot be started via the API."
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "App password (preferred) or IMAP password. Encrypted at rest, used only for this import, and deleted when it finishes."
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "Required for provider imap."
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "143 or 993. Defaults to 993."
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["type", "provider", "file_ids"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "files"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["takeout", "proton", "tuta", "file"]
+                  },
+                  "file_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "File IDs from POST /mailboxes/{id}/imports/files, uploaded first."
+                  }
+                }
+              }
+            ]
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "folders": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Source folder paths to import. Null or omitted imports everything."
+              },
+              "range": {
+                "type": "string",
+                "enum": ["all", "12m", "3m", "1m"],
+                "default": "all"
+              },
+              "include_spam": {
+                "type": "boolean",
+                "default": false
+              },
+              "include_trash": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          }
+        }
+      },
+      "CreateImportUploadRequest": {
+        "type": "object",
+        "required": ["file_name", "size_bytes"],
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "description": "Name of the export file (.mbox, .mbox.gz, .zip, or .eml)."
+          },
+          "size_bytes": {
+            "type": "integer",
+            "description": "File size in bytes. Up to 4 GB per file."
+          }
+        }
+      },
+      "ImportUpload": {
+        "type": "object",
+        "required": ["object", "file_id", "upload_url", "expires_in_seconds"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "import_upload"
+          },
+          "file_id": {
+            "type": "string",
+            "example": "impf_abc123"
+          },
+          "upload_url": {
+            "type": "string",
+            "description": "Presigned URL. PUT the raw file bytes to this URL, then create the import."
+          },
+          "expires_in_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Validation failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "QuotaExceededError": {
+        "description": "Plan quota exceeded.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimitError": {
+        "description": "Rate limit exceeded.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Seconds to wait before retrying."
+          },
+          "X-RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Maximum requests allowed in the window."
+          },
+          "X-RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Requests remaining in the current window."
+          },
+          "X-RateLimit-Reset": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Unix timestamp (seconds) when the window resets."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "AuthenticationError": {
+        "description": "Authentication failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "AuthorizationError": {
+        "description": "Insufficient permissions.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Status",
+      "description": "API health check."
+    },
+    {
+      "name": "Domains",
+      "description": "Manage custom email domains."
+    },
+    {
+      "name": "Mailboxes",
+      "description": "Create and manage mailboxes on your domains."
+    },
+    {
+      "name": "Messages",
+      "description": "Send email and retrieve messages."
+    },
+    {
+      "name": "Threads",
+      "description": "View and reply to email threads."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Subscribe to real-time event notifications."
+    }
+  ]
+}
