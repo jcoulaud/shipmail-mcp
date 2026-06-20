@@ -12,7 +12,9 @@
     "dist",
     "README.md",
     "LICENSE",
-    "server.json"
+    "server.json",
+    "glama.json",
+    "smithery.yaml"
   ],
   "scripts": {
     "build": "tsup",
