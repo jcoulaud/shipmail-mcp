@@ -11,8 +11,8 @@ startCommand:
         description: Shipmail API key. Create one at https://shipmail.to/docs/quick-start.
   commandFunction: |-
     (config) => ({
-      command: "node",
-      args: ["dist/index.js"],
+      command: "npx",
+      args: ["-y", "shipmail-mcp"],
       env: { SHIPMAIL_API_KEY: config.shipmailApiKey }
     })
   exampleConfig:
