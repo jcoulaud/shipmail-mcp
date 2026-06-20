@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## 0.1.9 - 2026-06-20
+
 - Add a manual npm trusted-publishing workflow for package releases.
 - Enrich Smithery metadata for directory discovery.
+- Align the runtime MCP server version with the published package and directory metadata.
 
 ## 0.1.7 - 2026-06-19
 
