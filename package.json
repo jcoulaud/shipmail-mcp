@@ -1,6 +1,6 @@
 {
   "name": "shipmail-mcp",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "mcpName": "io.github.jcoulaud/shipmail-mcp",
   "description": "Official Model Context Protocol (MCP) server for Shipmail, a business email provider with REST API, webhooks, and custom-domain inboxes for AI agents.",
   "type": "module",
