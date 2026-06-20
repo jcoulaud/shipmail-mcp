@@ -317,8 +317,10 @@ The OpenAPI coverage test uses `fixtures/openapi.json`, copied from
 The manual `Publish to npm` GitHub Actions workflow publishes this package through npm trusted publishing. Configure the package on npm with:
 
 - Provider: GitHub Actions
-- Repository: `jcoulaud/shipmail-mcp`
+- Organization or user: `jcoulaud`
+- Repository: `shipmail-mcp`
 - Workflow filename: `publish.yml`
+- Environment name: leave blank
 - Allowed action: npm publish
 
 With the default `dry_run=true`, the workflow runs install, typecheck, tests, build, and `npm pack --dry-run`. Before running the workflow with `dry_run=false`, bump both `package.json` and `server.json` to the new version. The publish path checks that the version is not already published, then publishes with provenance.
