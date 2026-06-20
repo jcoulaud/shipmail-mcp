@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a manual npm trusted-publishing workflow for package releases.
+
 ## 0.1.7 - 2026-06-19
 
 - Add MCP Registry package metadata and align `server.json` with the GitHub OIDC namespace.

@@ -1,0 +1,62 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm pack --dry-run instead of publishing"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Install current npm
+        run: npm install -g npm@latest
+
+      - name: Check package version is unpublished
+        if: ${{ !inputs.dry_run }}
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+            echo "::error title=Version already published::${package_name}@${package_version} already exists on npm. Bump package.json and server.json before publishing."
+            exit 1
+          fi
+
+      - name: Dry-run package pack
+        if: ${{ inputs.dry_run }}
+        run: npm pack --dry-run
+
+      - name: Publish package
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --access public --provenance
