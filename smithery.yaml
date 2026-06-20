@@ -1,4 +1,39 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config/smithery-yaml
+name: shipmail-mcp
+version: 0.1.7
+description: Official Shipmail MCP server for AI-agent custom-domain business email inboxes with REST API and webhooks.
+author: ShipMail
+repository: https://github.com/jcoulaud/shipmail-mcp
+homepage: https://shipmail.to/docs/mcp
+license: MIT
+category: productivity
+tags:
+  - shipmail
+  - mcp
+  - email
+  - business-email
+  - custom-domain-email
+  - email-api
+  - rest-api
+  - webhooks
+  - inbound-email
+  - agent-inbox
+  - ai-agents
+capabilities:
+  - create and manage custom-domain mailboxes
+  - send email and reply to threads
+  - read inbound mailbox messages and threads
+  - manage domains and DNS verification
+  - configure inbound webhooks
+  - manage suppressions
+requirements:
+  node: ">=20.0.0"
+installation:
+  npm: shipmail-mcp
+documentation:
+  getting_started: https://shipmail.to/docs/mcp
+  configuration: https://shipmail.to/docs/quick-start
+  api_reference: https://shipmail.to/docs/api
 startCommand:
   type: stdio
   configSchema:
