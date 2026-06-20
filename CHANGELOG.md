@@ -2,8 +2,6 @@
 
 ## Unreleased
 
-## 0.1.8 - 2026-06-20
-
 - Add a manual npm trusted-publishing workflow for package releases.
 - Enrich Smithery metadata for directory discovery.
 
