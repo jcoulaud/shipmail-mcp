@@ -319,7 +319,7 @@ release.
 ### Publishing
 
 Release Please versions the package in the ShipMail monorepo, syncs it into this public repository,
-and dispatches the `Publish to npm` workflow. npm trusted publishing must use:
+and sends a repository event to the `Publish to npm` workflow. npm trusted publishing must use:
 
 - Provider: GitHub Actions
 - Organization or user: `jcoulaud`
