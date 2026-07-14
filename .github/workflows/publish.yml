@@ -1,8 +1,10 @@
 name: Publish to npm
 
 on:
-  repository_dispatch:
-    types: [publish_shipmail_mcp]
+  push:
+    branches: [main]
+    paths:
+      - ".shipmail-source-revision"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -51,7 +53,7 @@ jobs:
 
       - name: Check package version is unpublished
         id: package
-        if: ${{ github.event_name == 'repository_dispatch' || !inputs.dry_run }}
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         run: |
           package_name="$(node -p "require('./package.json').name")"
           package_version="$(node -p "require('./package.json').version")"
@@ -67,18 +69,18 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish package
-        if: ${{ (github.event_name == 'repository_dispatch' || !inputs.dry_run) && steps.package.outputs.published != 'true' }}
+        if: ${{ (github.event_name == 'push' || !inputs.dry_run) && steps.package.outputs.published != 'true' }}
         run: npm publish --access public --provenance
 
       - name: Install MCP Registry publisher
-        if: ${{ github.event_name == 'repository_dispatch' || !inputs.dry_run }}
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Authenticate to MCP Registry
-        if: ${{ github.event_name == 'repository_dispatch' || !inputs.dry_run }}
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         run: ./mcp-publisher login github-oidc
 
       - name: Publish to MCP Registry
-        if: ${{ github.event_name == 'repository_dispatch' || !inputs.dry_run }}
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         run: ./mcp-publisher publish
