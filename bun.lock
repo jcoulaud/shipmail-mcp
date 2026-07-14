@@ -6,7 +6,7 @@
       "name": "shipmail-mcp",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.29.0",
-        "shipmail": "0.1.23",
+        "shipmail": "0.1.32",
         "zod": "4.4.3",
       },
       "devDependencies": {
@@ -348,7 +348,7 @@
 
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
 
-    "shipmail": ["shipmail@0.1.23", "", {}, "sha512-zDT+DYLd2Iiea/jPEOGUbx8YaMrJn9hFSTz4YpiIRvRTb9JaMFoHwI8XvoXION3nOLrp+NnqKDnatdlyHObe2g=="],
+    "shipmail": ["shipmail@0.1.32", "", {}, "sha512-K+Q9xhU+SJFZDKVXIBwLwAP49ndyYU8UbQrUsjR4Bg+FZS0OqoNvBE/Z4sATp7FKdTeFNEFlCDPhtfjQyPfrBw=="],
 
     "side-channel": ["side-channel@1.1.1", "", { "dependencies": { "es-errors": "^1.3.0", "object-inspect": "^1.13.4", "side-channel-list": "^1.0.1", "side-channel-map": "^1.0.1", "side-channel-weakmap": "^1.0.2" } }, "sha512-6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ=="],
 

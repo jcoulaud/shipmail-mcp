@@ -23,15 +23,24 @@ import type {
   InboxMessages,
   InboxThread,
   Mailbox,
+  MailboxExport,
   MailboxFolder,
   MailboxFolders,
   MailboxIdentities,
   MailboxIdentity,
   MailboxRules,
   Message,
+  Newsletter,
+  NewsletterAsset,
+  NewsletterDomain,
+  NewsletterPreflight,
+  NewsletterPreflightItem,
+  NewsletterPreview,
+  NewsletterTestSend,
   Suppression,
   Webhook,
   WebhookDelivery,
+  WebhookDeliveryDetail,
 } from "shipmail";
 import type { z } from "zod/v4";
 
@@ -44,6 +53,7 @@ import {
   inboxMessageSchema,
   inboxMessagesSchema,
   inboxThreadSchema,
+  mailboxExportSchema,
   mailboxFolderSchema,
   mailboxFoldersSchema,
   mailboxIdentitiesSchema,
@@ -51,7 +61,15 @@ import {
   mailboxRulesSchema,
   mailboxSchema,
   messageSchema,
+  newsletterAssetSchema,
+  newsletterDomainSchema,
+  newsletterPreflightItemSchema,
+  newsletterPreflightSchema,
+  newsletterPreviewSchema,
+  newsletterSchema,
+  newsletterTestSendSchema,
   suppressionSchema,
+  webhookDeliveryDetailSchema,
   webhookDeliverySchema,
   webhookSchema,
 } from "../schemas.js";
@@ -72,6 +90,7 @@ type AssertTrue<T extends true> = T;
 // side and forgetting to mirror it on the other will fail this typecheck.
 type _DomainKeys = AssertTrue<KeysMatch<Domain, z.infer<typeof domainSchema>>>;
 type _MailboxKeys = AssertTrue<KeysMatch<Mailbox, z.infer<typeof mailboxSchema>>>;
+type _MailboxExportKeys = AssertTrue<KeysMatch<MailboxExport, z.infer<typeof mailboxExportSchema>>>;
 type _MailboxFolderKeys = AssertTrue<KeysMatch<MailboxFolder, z.infer<typeof mailboxFolderSchema>>>;
 type _MailboxFoldersKeys = AssertTrue<
   KeysMatch<MailboxFolders, z.infer<typeof mailboxFoldersSchema>>
@@ -93,9 +112,31 @@ type _InboxMessagesKeys = AssertTrue<KeysMatch<InboxMessages, z.infer<typeof inb
 type _InboxThreadKeys = AssertTrue<KeysMatch<InboxThread, z.infer<typeof inboxThreadSchema>>>;
 type _MailboxRulesKeys = AssertTrue<KeysMatch<MailboxRules, z.infer<typeof mailboxRulesSchema>>>;
 type _MessageKeys = AssertTrue<KeysMatch<Message, z.infer<typeof messageSchema>>>;
+type _NewsletterDomainKeys = AssertTrue<
+  KeysMatch<NewsletterDomain, z.infer<typeof newsletterDomainSchema>>
+>;
+type _NewsletterKeys = AssertTrue<KeysMatch<Newsletter, z.infer<typeof newsletterSchema>>>;
+type _NewsletterAssetKeys = AssertTrue<
+  KeysMatch<NewsletterAsset, z.infer<typeof newsletterAssetSchema>>
+>;
+type _NewsletterPreflightItemKeys = AssertTrue<
+  KeysMatch<NewsletterPreflightItem, z.infer<typeof newsletterPreflightItemSchema>>
+>;
+type _NewsletterPreflightKeys = AssertTrue<
+  KeysMatch<NewsletterPreflight, z.infer<typeof newsletterPreflightSchema>>
+>;
+type _NewsletterPreviewKeys = AssertTrue<
+  KeysMatch<NewsletterPreview, z.infer<typeof newsletterPreviewSchema>>
+>;
+type _NewsletterTestSendKeys = AssertTrue<
+  KeysMatch<NewsletterTestSend, z.infer<typeof newsletterTestSendSchema>>
+>;
 type _WebhookKeys = AssertTrue<KeysMatch<Webhook, z.infer<typeof webhookSchema>>>;
 type _WebhookDeliveryKeys = AssertTrue<
   KeysMatch<WebhookDelivery, z.infer<typeof webhookDeliverySchema>>
+>;
+type _WebhookDeliveryDetailKeys = AssertTrue<
+  KeysMatch<WebhookDeliveryDetail, z.infer<typeof webhookDeliveryDetailSchema>>
 >;
 type _SuppressionKeys = AssertTrue<KeysMatch<Suppression, z.infer<typeof suppressionSchema>>>;
 type _DomainSearchKeys = AssertTrue<
@@ -110,6 +151,7 @@ type _DomainVerificationKeys = AssertTrue<
 type _AllChecks = [
   _DomainKeys,
   _MailboxKeys,
+  _MailboxExportKeys,
   _MailboxFolderKeys,
   _MailboxFoldersKeys,
   _MailboxIdentityKeys,
@@ -121,8 +163,16 @@ type _AllChecks = [
   _InboxThreadKeys,
   _MailboxRulesKeys,
   _MessageKeys,
+  _NewsletterDomainKeys,
+  _NewsletterKeys,
+  _NewsletterAssetKeys,
+  _NewsletterPreflightItemKeys,
+  _NewsletterPreflightKeys,
+  _NewsletterPreviewKeys,
+  _NewsletterTestSendKeys,
   _WebhookKeys,
   _WebhookDeliveryKeys,
+  _WebhookDeliveryDetailKeys,
   _SuppressionKeys,
   _DomainSearchKeys,
   _DomainVerificationKeys,
@@ -151,7 +201,16 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
     ];
-    if (checks.length !== 18) throw new Error("alignment matrix size changed");
+    if (checks.length !== 27) throw new Error("alignment matrix size changed");
   });
 });

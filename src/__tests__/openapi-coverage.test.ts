@@ -9,16 +9,13 @@ import { registerTools } from "../tools.js";
 
 // Coverage test: every operationId in the public OpenAPI fixture must either be
 // registered as an MCP tool or be in the INTENTIONALLY_EXCLUDED list with a
-// documented reason. The fixture is copied from https://shipmail.to/openapi.json
-// when this public source repo is synced from the private application repo.
-// This test catches silent drift when the REST API grows without touching MCP.
+// documented reason. The fixture is synced from the Shipmail application
+// repository so this test catches REST API changes that are missing from MCP.
 //
 // Updating this file is the explicit "I considered the MCP surface" gate that
 // the MCP package's reviewers were asking for.
 
-const OPENAPI_PATH = fileURLToPath(
-  new URL("../../fixtures/openapi.json", import.meta.url),
-);
+const OPENAPI_PATH = fileURLToPath(new URL("../../fixtures/openapi.json", import.meta.url));
 
 const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   getStatus: "shipmail_status",
@@ -26,6 +23,7 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   createDomain: "shipmail_create_domain",
   listDomains: "shipmail_list_domains",
   getDomain: "shipmail_get_domain",
+  getDomainDnsRecords: "shipmail_get_domain_dns_records",
   updateDomain: "shipmail_update_domain",
   deleteDomain: "shipmail_delete_domain",
   verifyDomain: "shipmail_verify_domain",
@@ -34,6 +32,10 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   createMailbox: "shipmail_create_mailbox",
   listMailboxes: "shipmail_list_mailboxes",
   getMailbox: "shipmail_get_mailbox",
+  suspendMailbox: "shipmail_suspend_mailbox",
+  resumeMailbox: "shipmail_resume_mailbox",
+  createMailboxExport: "shipmail_create_mailbox_export",
+  getMailboxExport: "shipmail_get_mailbox_export",
   updateMailbox: "shipmail_update_mailbox",
   deleteMailbox: "shipmail_delete_mailbox",
   listMailboxFolders: "shipmail_list_mailbox_folders",
@@ -48,6 +50,9 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   deleteMailboxInboxMessage: "shipmail_delete_inbox_message",
   getMailboxRules: "shipmail_get_mailbox_rules",
   updateMailboxRules: "shipmail_set_mailbox_rules",
+  listMailboxForwarding: "shipmail_list_mailbox_forwarding",
+  createMailboxForwarding: "shipmail_create_mailbox_forwarding",
+  deleteMailboxForwarding: "shipmail_delete_mailbox_forwarding",
   resetMailboxPassword: "shipmail_reset_mailbox_password",
   updateAutoReply: "shipmail_set_auto_reply",
   updateSpamFilter: "shipmail_set_spam_filter",
@@ -56,6 +61,7 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   getMailboxImport: "shipmail_get_mailbox_import",
   cancelMailboxImport: "shipmail_cancel_mailbox_import",
   undoMailboxImport: "shipmail_undo_mailbox_import",
+  injectSandboxInbound: "shipmail_inject_sandbox_inbound",
   // Messages and threads
   listMessages: "shipmail_list_messages",
   sendMessage: "shipmail_send_message",
@@ -73,9 +79,54 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   rotateWebhookSecret: "shipmail_rotate_webhook_secret",
   testWebhook: "shipmail_test_webhook",
   listWebhookDeliveries: "shipmail_list_webhook_deliveries",
+  getWebhookDelivery: "shipmail_get_webhook_delivery",
+  replayWebhookDelivery: "shipmail_replay_webhook_delivery",
   // Suppressions
   listSuppressions: "shipmail_list_suppressions",
   removeSuppression: "shipmail_remove_suppression",
+  // Audiences and subscribers
+  createAudience: "shipmail_create_audience",
+  listAudiences: "shipmail_list_audiences",
+  getAudience: "shipmail_get_audience",
+  updateAudience: "shipmail_update_audience",
+  deleteAudience: "shipmail_delete_audience",
+  addSubscriber: "shipmail_add_subscriber",
+  addSubscribersBatch: "shipmail_add_subscribers_batch",
+  listSubscribers: "shipmail_list_subscribers",
+  getSubscriber: "shipmail_get_subscriber",
+  getSubscriberByEmail: "shipmail_get_subscriber_by_email",
+  updateSubscriber: "shipmail_update_subscriber",
+  unsubscribeSubscriber: "shipmail_unsubscribe_subscriber",
+  resubscribeSubscriber: "shipmail_resubscribe_subscriber",
+  removeSubscriber: "shipmail_remove_subscriber",
+  // Newsletters
+  listNewsletterDomains: "shipmail_list_newsletter_domains",
+  createNewsletter: "shipmail_create_newsletter",
+  createNewsletterFromChangelog: "shipmail_create_newsletter_from_changelog",
+  listNewsletters: "shipmail_list_newsletters",
+  getNewsletter: "shipmail_get_newsletter",
+  updateNewsletter: "shipmail_update_newsletter",
+  listNewsletterAssets: "shipmail_list_newsletter_assets",
+  uploadNewsletterAsset: "shipmail_register_newsletter_asset",
+  previewNewsletter: "shipmail_preview_newsletter",
+  runNewsletterPreflight: "shipmail_run_newsletter_preflight",
+  sendNewsletterTest: "shipmail_send_newsletter_test",
+  scheduleNewsletter: "shipmail_schedule_newsletter",
+  cancelNewsletter: "shipmail_cancel_newsletter",
+  resumeNewsletter: "shipmail_resume_newsletter",
+  // Calendar
+  listCalendarEvents: "shipmail_list_calendar_events",
+  createCalendarEvent: "shipmail_create_calendar_event",
+  getCalendarEvent: "shipmail_get_calendar_event",
+  updateCalendarEvent: "shipmail_update_calendar_event",
+  deleteCalendarEvent: "shipmail_delete_calendar_event",
+  getCalendarAvailability: "shipmail_get_calendar_availability",
+  // Booking pages
+  listBookingPages: "shipmail_list_booking_pages",
+  createBookingPage: "shipmail_create_booking_page",
+  getBookingPage: "shipmail_get_booking_page",
+  updateBookingPage: "shipmail_update_booking_page",
+  deleteBookingPage: "shipmail_delete_booking_page",
 };
 
 const INTENTIONALLY_EXCLUDED: Readonly<Record<string, string>> = {
@@ -88,10 +139,7 @@ const INTENTIONALLY_EXCLUDED: Readonly<Record<string, string>> = {
 };
 
 type OpenApiDoc = {
-  readonly paths: Record<
-    string,
-    Record<string, { readonly operationId?: string } | unknown>
-  >;
+  readonly paths: Record<string, Record<string, { readonly operationId?: string } | unknown>>;
 };
 
 function readOpenApi(): OpenApiDoc {

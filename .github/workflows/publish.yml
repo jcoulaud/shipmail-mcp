@@ -13,6 +13,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -44,13 +48,16 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Check package version is unpublished
+        id: package
         if: ${{ !inputs.dry_run }}
         run: |
           package_name="$(node -p "require('./package.json').name")"
           package_version="$(node -p "require('./package.json').version")"
           if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
-            echo "::error title=Version already published::${package_name}@${package_version} already exists on npm. Bump package.json and server.json before publishing."
-            exit 1
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Version already published::Skipping npm publish for ${package_name}@${package_version}."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Dry-run package pack
@@ -58,5 +65,18 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish package
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && steps.package.outputs.published != 'true' }}
         run: npm publish --access public --provenance
+
+      - name: Install MCP Registry publisher
+        if: ${{ !inputs.dry_run }}
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry
+        if: ${{ !inputs.dry_run }}
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        if: ${{ !inputs.dry_run }}
+        run: ./mcp-publisher publish

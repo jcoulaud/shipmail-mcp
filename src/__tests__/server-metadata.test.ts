@@ -2,38 +2,29 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "bun:test";
+import { z } from "zod/v4";
 
 import { VERSION } from "../version.js";
 
-const PACKAGE_JSON_PATH = fileURLToPath(
-  new URL("../../package.json", import.meta.url),
-);
-const SERVER_JSON_PATH = fileURLToPath(
-  new URL("../../server.json", import.meta.url),
-);
-const SMITHERY_YAML_PATH = fileURLToPath(
-  new URL("../../smithery.yaml", import.meta.url),
-);
+const PACKAGE_JSON_PATH = fileURLToPath(new URL("../../package.json", import.meta.url));
+const SERVER_JSON_PATH = fileURLToPath(new URL("../../server.json", import.meta.url));
+const SMITHERY_YAML_PATH = fileURLToPath(new URL("../../smithery.yaml", import.meta.url));
 const PUBLIC_REPO_URL = "https://github.com/jcoulaud/shipmail-mcp";
 
-type PackageJson = {
-  readonly version: string;
-  readonly repository?: { readonly url?: string };
-  readonly bugs?: { readonly url?: string };
-  readonly files?: readonly string[];
-};
+const packageJsonSchema = z.object({
+  mcpName: z.string(),
+  version: z.string(),
+  repository: z.object({ url: z.string() }).optional(),
+  bugs: z.object({ url: z.string() }).optional(),
+  files: z.array(z.string()).optional(),
+});
 
-type ServerJson = {
-  readonly version: string;
-  readonly repository: { readonly url: string };
-  readonly packages: readonly [
-    { readonly identifier: string; readonly version: string },
-  ];
-};
-
-function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
+const serverJsonSchema = z.object({
+  name: z.string(),
+  version: z.string(),
+  repository: z.object({ url: z.string() }),
+  packages: z.tuple([z.object({ identifier: z.string(), version: z.string() })]),
+});
 
 function readSmitheryVersion(): string {
   const match = readFileSync(SMITHERY_YAML_PATH, "utf8").match(
@@ -45,11 +36,14 @@ function readSmitheryVersion(): string {
 
 describe("server metadata", () => {
   test("package, runtime, and directory metadata stay aligned", () => {
-    const pkg = readJson<PackageJson>(PACKAGE_JSON_PATH);
-    const server = readJson<ServerJson>(SERVER_JSON_PATH);
+    const pkg = packageJsonSchema.parse(JSON.parse(readFileSync(PACKAGE_JSON_PATH, "utf8")));
+    const server = serverJsonSchema.parse(JSON.parse(readFileSync(SERVER_JSON_PATH, "utf8")));
 
     expect(pkg.files).toContain("server.json");
+    expect(pkg.files).toContain("smithery.yaml");
+    expect(pkg.mcpName).toBe("io.github.jcoulaud/shipmail-mcp");
     expect(VERSION).toBe(pkg.version);
+    expect(server.name).toBe(pkg.mcpName);
     expect(server.version).toBe(pkg.version);
     expect(server.packages[0].version).toBe(pkg.version);
     expect(readSmitheryVersion()).toBe(pkg.version);

@@ -5,10 +5,14 @@ import {
   attachmentInputSchema,
   createDomainInputSchema,
   createMailboxFolderInputSchema,
+  createMailboxInputSchema,
+  createNewsletterFromChangelogInputSchema,
+  createNewsletterInputSchema,
   createWebhookInputSchema,
   domainVerificationSchema,
   getByIdInputSchema,
   idempotencyKeySchema,
+  injectSandboxInboundInputSchema,
   listMailboxInboxMessagesInputSchema,
   listWebhookDeliveriesInputSchema,
   mailboxFoldersSchema,
@@ -16,10 +20,14 @@ import {
   mailboxRuleSchema,
   mailboxRulesSchema,
   moveInboxMessageInputSchema,
+  newsletterDomainSchema,
+  newsletterSchema,
   paginationInputSchema,
   removeSuppressionInputSchema,
   resetPasswordInputSchema,
+  scheduleNewsletterInputSchema,
   sendMessageInputSchema,
+  sendNewsletterTestInputSchema,
   spamFilterInputSchema,
   suppressionSchema,
   updateDomainInputSchema,
@@ -27,6 +35,7 @@ import {
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
   updateMailboxRulesInputSchema,
+  updateNewsletterInputSchema,
 } from "../schemas.js";
 
 describe("idSchema (via getByIdInputSchema)", () => {
@@ -74,6 +83,28 @@ describe("idempotencyKeySchema", () => {
   });
 });
 
+describe("createMailboxInputSchema", () => {
+  test("requires the same strong password shape as the API", () => {
+    expect(
+      createMailboxInputSchema.parse({
+        domain_id: "dom_123",
+        address: "hello",
+        password: "StrongPass123",
+      }).password,
+    ).toBe("StrongPass123");
+    expect(() =>
+      createMailboxInputSchema.parse({ domain_id: "dom_123", address: "hello" }),
+    ).toThrow();
+    expect(() =>
+      createMailboxInputSchema.parse({
+        domain_id: "dom_123",
+        address: "hello",
+        password: "Password1",
+      }),
+    ).toThrow();
+  });
+});
+
 describe("listMailboxInboxMessagesInputSchema", () => {
   test("accepts position pagination and keyword filters", () => {
     const out = listMailboxInboxMessagesInputSchema.parse({
@@ -93,6 +124,39 @@ describe("listMailboxInboxMessagesInputSchema", () => {
         id: "mbx_abc123",
         folder_id: "fld_123",
         folder_role: "inbox",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("injectSandboxInboundInputSchema", () => {
+  test("accepts an isolated fake inbound message", () => {
+    const value = injectSandboxInboundInputSchema.parse({
+      id: "mbx_abc123",
+      from: "Customer@Example.COM",
+      subject: "Sandbox reply",
+      text: "Looks good",
+      message_id: "<reply-1@example.com>",
+    });
+
+    expect(value.from).toBe("customer@example.com");
+    expect(value.message_id).toBe("<reply-1@example.com>");
+  });
+
+  test("rejects missing content and header injection", () => {
+    expect(() =>
+      injectSandboxInboundInputSchema.parse({
+        id: "mbx_abc123",
+        from: "customer@example.com",
+        subject: "No body",
+      }),
+    ).toThrow();
+    expect(() =>
+      injectSandboxInboundInputSchema.parse({
+        id: "mbx_abc123",
+        from: "customer@example.com",
+        subject: "Hello\r\nBcc: spy@example.com",
+        text: "body",
       }),
     ).toThrow();
   });
@@ -311,6 +375,7 @@ describe("update schemas use nullable instead of refine", () => {
           type: "ai_draft_reply",
           instructions: "Write a concise support reply.",
           reply_mode: "reply",
+          agent_policy: "draft_for_review",
         },
       ],
     };
@@ -333,6 +398,7 @@ describe("update schemas use nullable instead of refine", () => {
         type: "ai_draft_reply",
         instructions: "Write a concise support reply.",
         reply_mode: "reply",
+        agent_policy: "draft_for_review",
       },
     ]);
   });
@@ -479,6 +545,227 @@ describe("sendMessageInputSchema", () => {
         references: ["<legit@id>", "<evil>\nBcc: spy@evil.com"],
       }),
     ).toThrow();
+  });
+
+  test("accepts durable correlation metadata and RFC 8058 headers", () => {
+    const out = sendMessageInputSchema.parse({
+      mailbox_id: "mbx_abc",
+      to: ["u@example.com"],
+      subject: "hi",
+      text: "body",
+      client_reference: "crm-123",
+      metadata: { campaign: "onboarding", step: 2 },
+      source_rfc_message_id: "<crm-123@example.com>",
+      headers: [
+        { name: "List-Unsubscribe", value: "<https://example.com/unsubscribe/123>" },
+        { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
+      ],
+    });
+    expect(out.client_reference).toBe("crm-123");
+  });
+
+  test("rejects reserved mixed-case headers and nested metadata", () => {
+    expect(() =>
+      sendMessageInputSchema.parse({
+        mailbox_id: "mbx_abc",
+        to: ["u@example.com"],
+        subject: "hi",
+        text: "body",
+        headers: [{ name: "X-SeS-Tenant", value: "spoofed" }],
+      }),
+    ).toThrow();
+    expect(() =>
+      sendMessageInputSchema.parse({
+        mailbox_id: "mbx_abc",
+        to: ["u@example.com"],
+        subject: "hi",
+        text: "body",
+        metadata: { nested: { value: true } },
+      }),
+    ).toThrow();
+  });
+});
+
+describe("newsletter schemas", () => {
+  test("create requires blocks, html, or text", () => {
+    const out = createNewsletterInputSchema.parse({
+      audience_id: "aud_123",
+      newsletter_domain_id: "nwsdom_123",
+      name: "July Update",
+      subject: "What shipped in July",
+      body_html: "<p>Updates</p>",
+    });
+    expect(out.body_html).toBe("<p>Updates</p>");
+
+    expect(() =>
+      createNewsletterInputSchema.parse({
+        audience_id: "aud_123",
+        newsletter_domain_id: "nwsdom_123",
+        name: "July Update",
+        subject: "What shipped in July",
+      }),
+    ).toThrow();
+  });
+
+  test("create accepts complete block shapes up to the server block limit", () => {
+    const blocks = [
+      { type: "heading", level: 1, text: "July updates" },
+      { type: "list", ordered: false, items: ["One", "Two"] },
+      { type: "callout", variant: "info", title: "Quick note", body: "A short intro." },
+      {
+        type: "columns",
+        ratio: "50-50",
+        left: { title: "For teams", body: "Shared inbox improvements." },
+        right: { title: "For agents", body: "API and MCP improvements." },
+      },
+    ] as const;
+    const out = createNewsletterInputSchema.parse({
+      audience_id: "aud_123",
+      newsletter_domain_id: "nwsdom_123",
+      name: "July Update",
+      subject: "What shipped in July",
+      blocks,
+    });
+    expect(out.blocks?.[1]?.type).toBe("list");
+
+    expect(() =>
+      createNewsletterInputSchema.parse({
+        audience_id: "aud_123",
+        newsletter_domain_id: "nwsdom_123",
+        name: "July Update",
+        subject: "What shipped in July",
+        blocks: Array.from({ length: 201 }, () => ({
+          type: "paragraph",
+          body: "Too many.",
+        })),
+      }),
+    ).toThrow();
+  });
+
+  test("create from changelog accepts entries and media", () => {
+    const out = createNewsletterFromChangelogInputSchema.parse({
+      audience_id: "aud_123",
+      newsletter_domain_id: "nwsdom_123",
+      name: "July Update",
+      subject: "What shipped in July",
+      tone: "technical",
+      entries: [
+        {
+          title: "Media library",
+          body: "Reuse uploaded assets.",
+          media: [
+            {
+              kind: "video",
+              video_url: "https://cdn.example.com/demo.mp4",
+              thumbnail_url: "https://cdn.example.com/demo.jpg",
+              label: "Watch demo",
+            },
+          ],
+        },
+      ],
+    });
+    expect(out.entries[0]?.title).toBe("Media library");
+  });
+
+  test("update accepts explicit nullable fields and rejects id-only input", () => {
+    expect(
+      updateNewsletterInputSchema.parse({
+        id: "nws_123",
+        preview_text: null,
+        idempotency_key: "k",
+      }).preview_text,
+    ).toBeNull();
+    expect(() => updateNewsletterInputSchema.parse({ id: "nws_123" })).toThrow();
+  });
+
+  test("test send normalizes recipient email", () => {
+    const out = sendNewsletterTestInputSchema.parse({
+      id: "nws_123",
+      recipient_email: "  User@Example.COM ",
+    });
+    expect(out.recipient_email).toBe("user@example.com");
+  });
+
+  test("schedule requires an ISO datetime", () => {
+    expect(
+      scheduleNewsletterInputSchema.parse({
+        id: "nws_123",
+        scheduled_at: "2026-08-01T09:00:00.000Z",
+      }).scheduled_at,
+    ).toBe("2026-08-01T09:00:00.000Z");
+    expect(() =>
+      scheduleNewsletterInputSchema.parse({
+        id: "nws_123",
+        scheduled_at: "tomorrow morning",
+      }),
+    ).toThrow();
+  });
+
+  test("newsletter output accepts the public response shape", () => {
+    expect(
+      newsletterSchema.parse({
+        object: "newsletter",
+        id: "nws_123",
+        audience_id: "aud_123",
+        newsletter_domain_id: "nwsdom_123",
+        reply_to_mailbox_id: null,
+        name: "July Update",
+        subject: "What shipped in July",
+        preview_text: null,
+        from_name: "ShipMail",
+        from_address: "updates@example.com",
+        reply_to_address: null,
+        blocks: [{ type: "paragraph", body: "<p>Updates</p>" }],
+        body_html: "<p>Updates</p>",
+        body_text: null,
+        status: "draft",
+        archive_visibility: "private",
+        preflight_status: "not_run",
+        preflight_results: {},
+        send_window_hours: 6,
+        send_rate_per_hour: 100,
+        recipient_count: 0,
+        sent_count: 0,
+        delivered_count: 0,
+        bounced_count: 0,
+        complained_count: 0,
+        failed_count: 0,
+        skipped_count: 0,
+        last_test_sent_at: null,
+        last_test_recipient: null,
+        content_changed_since_test_send: false,
+        scheduled_at: null,
+        approved_at: null,
+        started_at: null,
+        completed_at: null,
+        cancelled_at: null,
+        created_at: "2026-07-03T00:00:00.000Z",
+        updated_at: "2026-07-03T00:00:00.000Z",
+      }).id,
+    ).toBe("nws_123");
+  });
+
+  test("newsletter domain output accepts the public response shape", () => {
+    expect(
+      newsletterDomainSchema.parse({
+        object: "newsletter_domain",
+        id: "nwsdom_123",
+        root_domain_id: "dom_123",
+        domain_name: "updates.example.com",
+        from_local_part: "updates",
+        from_address: "updates@updates.example.com",
+        mail_from_domain: "mail.updates.example.com",
+        reply_to_mailbox_id: "mbx_123",
+        status: "verified",
+        dkim_status: "verified",
+        mail_from_status: "verified",
+        spf_status: "verified",
+        dmarc_status: "verified",
+        verified_at: "2026-07-03T00:00:00.000Z",
+        created_at: "2026-07-03T00:00:00.000Z",
+        updated_at: "2026-07-03T00:00:00.000Z",
+      }).id,
+    ).toBe("nwsdom_123");
   });
 });
 
