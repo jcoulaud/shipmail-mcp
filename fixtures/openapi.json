@@ -16,6 +16,597 @@
     }
   ],
   "paths": {
+    "/calendar/events": {
+      "get": {
+        "operationId": "listCalendarEvents",
+        "summary": "List calendar events",
+        "description": "List events in a time range for one mailbox's calendar. Set expand=true to return recurring events as individual instances.",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "calendar:read",
+        "parameters": [
+          {
+            "name": "mailbox",
+            "in": "query",
+            "required": true,
+            "description": "The mailbox (calendar owner) address.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Start of the range (UTC instant).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "End of the range (UTC instant).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Expand recurring events into individual instances.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "calendar_id",
+            "in": "query",
+            "description": "Restrict to a single calendar.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items per page (1-250, default 100).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 250,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of calendar events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CalendarEvent"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createCalendarEvent",
+        "summary": "Create a calendar event",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "calendar:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Calendar event created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/calendar/events/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Calendar event ID.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getCalendarEvent",
+        "summary": "Get a calendar event",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "calendar:read",
+        "parameters": [
+          {
+            "name": "mailbox",
+            "in": "query",
+            "required": true,
+            "description": "The mailbox (calendar owner) address.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar event object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCalendarEvent",
+        "summary": "Update a calendar event",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "calendar:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCalendarEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated calendar event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCalendarEvent",
+        "summary": "Delete a calendar event",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "calendar:write",
+        "parameters": [
+          {
+            "name": "mailbox",
+            "in": "query",
+            "required": true,
+            "description": "The mailbox (calendar owner) address.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Calendar event deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/calendar/availability": {
+      "get": {
+        "operationId": "getCalendarAvailability",
+        "summary": "Get open availability",
+        "description": "Compute open meeting slots for one mailbox from its own calendar. Derived app-side (not a cross-user free/busy lookup).",
+        "tags": ["Calendar"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "calendar:read",
+        "parameters": [
+          {
+            "name": "mailbox",
+            "in": "query",
+            "required": true,
+            "description": "The mailbox (calendar owner) address.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Start of the range (UTC instant).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "End of the range (UTC instant).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "description": "Meeting length in minutes (default 30).",
+            "schema": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 480,
+              "default": 30
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "description": "Step between candidate slot starts in minutes (default = duration).",
+            "schema": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 480
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "description": "IANA time zone the working window is defined in (default Etc/UTC).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Comma-separated weekdays offered, 0=Sunday .. 6=Saturday (default 1,2,3,4,5).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "window_start",
+            "in": "query",
+            "description": "Start of the daily window, minutes from midnight (default 540).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1440
+            }
+          },
+          {
+            "name": "window_end",
+            "in": "query",
+            "description": "End of the daily window, minutes from midnight (default 1020).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1440
+            }
+          },
+          {
+            "name": "buffer",
+            "in": "query",
+            "description": "Padding around busy intervals in minutes (default 0).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 240
+            }
+          },
+          {
+            "name": "minimum_notice",
+            "in": "query",
+            "description": "Minimum notice before the first slot in minutes (default 0).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open availability slots.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarAvailability"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/booking-pages": {
+      "get": {
+        "operationId": "listBookingPages",
+        "summary": "List booking pages",
+        "tags": ["Booking Pages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "booking_pages:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of booking pages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BookingPage"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createBookingPage",
+        "summary": "Create a booking page",
+        "tags": ["Booking Pages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "booking_pages:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingPageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking page created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/booking-pages/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Booking page ID.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getBookingPage",
+        "summary": "Get a booking page",
+        "tags": ["Booking Pages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "booking_pages:read",
+        "responses": {
+          "200": {
+            "description": "Booking page object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateBookingPage",
+        "summary": "Update a booking page",
+        "tags": ["Booking Pages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "booking_pages:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingPageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated booking page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteBookingPage",
+        "summary": "Delete a booking page",
+        "tags": ["Booking Pages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "booking_pages:write",
+        "responses": {
+          "204": {
+            "description": "Booking page deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/status": {
       "get": {
         "operationId": "getStatus",
@@ -252,6 +843,42 @@
         }
       }
     },
+    "/domains/{id}/dns-records": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getDomainDnsRecords",
+        "summary": "Get domain DNS records",
+        "description": "Return all DNS records required by Shipmail and run a live, read-only DNS check. This endpoint does not update the domain's persisted verification state.",
+        "tags": ["Domains"],
+        "x-rate-limit-tier": "verification",
+        "x-scope": "domains:read",
+        "responses": {
+          "200": {
+            "description": "Required DNS records with live diagnostics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainDnsRecordSet"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/domains/search": {
       "post": {
         "operationId": "searchDomains",
@@ -412,7 +1039,7 @@
       "get": {
         "operationId": "listMailboxes",
         "summary": "List mailboxes",
-        "description": "List mailboxes with optional domain filter and cursor-based pagination.",
+        "description": "List mailboxes with optional domain filter and cursor-based pagination. Use the returned mailbox object's id field as mailbox_id for mailbox-scoped endpoints.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "read",
         "x-scope": "mailboxes:read",
@@ -545,6 +1172,192 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/suspend": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "suspendMailbox",
+        "summary": "Suspend a mailbox",
+        "description": "Add a manual suspension. Authentication, sending, receiving, and mailbox rules are blocked. Billing and security suspension reasons remain independent.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "responses": {
+          "200": {
+            "description": "Suspended mailbox.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "resumeMailbox",
+        "summary": "Resume a mailbox",
+        "description": "Remove only the manual suspension. Billing, security, organization reputation, and AWS restrictions are not cleared.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "responses": {
+          "200": {
+            "description": "Mailbox after removing the manual suspension.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/exports": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "createMailboxExport",
+        "summary": "Create a mailbox export",
+        "description": "Queue a fail-closed ZIP snapshot of one mailbox. Archived mailboxes reuse their exact current billing snapshot without restoring the mailbox. Poll the returned export until completed.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:export",
+        "responses": {
+          "200": {
+            "description": "Existing active export returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxExport"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Completed export created by reusing a compatible archived snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxExport"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Mailbox export queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/exports/{export_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "export_id",
+          "in": "path",
+          "required": true,
+          "description": "Mailbox export ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^mbexp_[0-9a-z]{24}$"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getMailboxExport",
+        "summary": "Get a mailbox export",
+        "description": "Read one customer mailbox export. Completed exports include a private download URL valid for at most five minutes and never beyond the seven-day export expiry.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:export",
+        "responses": {
+          "200": {
+            "description": "Mailbox export status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "429": {
             "$ref": "#/components/responses/RateLimitError"
@@ -1021,11 +1834,200 @@
         }
       }
     },
+    "/mailboxes/{id}/forwarding": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listMailboxForwarding",
+        "summary": "List mailbox forwarding destinations",
+        "description": "List pending and active forwarding destinations for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailboxes:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox forwarding destinations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxForwardingList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMailboxForwarding",
+        "summary": "Add a mailbox forwarding destination",
+        "description": "Send a confirmation email to a forwarding destination. Forwarding becomes active only after the recipient confirms. Active forwarding keeps a copy in the Shipmail mailbox and excludes messages classified as spam. Repeating this request for a pending destination sends a new confirmation link.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailboxForwardingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Forwarding destination created, refreshed, or already active.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxForwarding"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/forwarding/{forwarding_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "forwarding_id",
+          "in": "path",
+          "required": true,
+          "description": "Forwarding destination ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^fwd_[0-9a-z]{24}$"
+          }
+        }
+      ],
+      "delete": {
+        "operationId": "deleteMailboxForwarding",
+        "summary": "Remove a mailbox forwarding destination",
+        "description": "Remove a pending or active forwarding destination. Active delivery is removed from the mail server before the record is deleted.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailboxes:write",
+        "responses": {
+          "204": {
+            "description": "Forwarding destination removed."
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/sandbox/inbound": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "injectSandboxInbound",
+        "summary": "Inject a sandbox inbound message",
+        "description": "Create a fake inbound message in isolated sandbox storage. This endpoint requires a test API key. It runs the normal inbound threading, rule, and webhook pipeline without delivering mail to any supplied address.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InjectSandboxInboundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sandbox inbound message created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/messages": {
       "get": {
         "operationId": "listMessages",
         "summary": "List messages",
-        "description": "List messages for a mailbox with cursor-based pagination.",
+        "description": "List messages with cursor-based pagination. Provide mailbox_id, client_reference, or both. client_reference lookup is exact and organization-scoped.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "read",
         "x-scope": "messages:read",
@@ -1033,10 +2035,19 @@
           {
             "name": "mailbox_id",
             "in": "query",
-            "required": true,
-            "description": "Filter messages by mailbox ID.",
+            "required": false,
+            "description": "Filter messages by mailbox ID. Use the id field returned by GET /mailboxes.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "client_reference",
+            "in": "query",
+            "required": false,
+            "description": "Exact caller-defined reference. At least one of mailbox_id or client_reference is required.",
+            "schema": {
+              "$ref": "#/components/schemas/ClientReference"
             }
           },
           {
@@ -1080,7 +2091,7 @@
       "post": {
         "operationId": "sendMessage",
         "summary": "Send a message",
-        "description": "Send an email from a mailbox. Provide mailbox_id or from (email address) to identify the sender. At least one of html or text is required. Total recipients (to + cc + bcc) must not exceed 50. Attachments are base64-encoded, max 20 files, 3 MB per file, 3 MB total.",
+        "description": "Send an email from a mailbox. Provide from (email address) or mailbox_id to identify the sender. Prefer from when you know the mailbox email address; Shipmail resolves it to a mailbox ID. At least one of html or text is required. Total recipients (to + cc + bcc) must not exceed 50. Attachments are base64-encoded, max 20 files, 3 MB per file, 3 MB total.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "send",
         "x-scope": "messages:write",
@@ -1112,6 +2123,9 @@
           },
           "403": {
             "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
@@ -1198,6 +2212,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
@@ -1362,6 +2379,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
@@ -1659,7 +2679,7 @@
             "in": "query",
             "description": "Filter by event type.",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/WebhookDeliveryEventType"
             }
           },
           {
@@ -1701,6 +2721,77 @@
           "429": {
             "$ref": "#/components/responses/RateLimitError"
           }
+        }
+      }
+    },
+    "/webhooks/{id}/deliveries/{deliveryId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "deliveryId",
+          "in": "path",
+          "required": true,
+          "description": "Webhook delivery ID.",
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "operationId": "getWebhookDelivery",
+        "summary": "Retrieve a webhook delivery",
+        "description": "Retrieve one organization- and webhook-scoped delivery, including its payload and replay source.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "webhooks:read",
+        "responses": {
+          "200": {
+            "description": "Webhook delivery detail.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookDeliveryDetail" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/webhooks/{id}/deliveries/{deliveryId}/replay": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "deliveryId",
+          "in": "path",
+          "required": true,
+          "description": "Failed webhook delivery ID.",
+          "schema": { "type": "string" }
+        }
+      ],
+      "post": {
+        "operationId": "replayWebhookDelivery",
+        "summary": "Replay a failed webhook delivery",
+        "description": "Create a new pending delivery with the same event ID, event type, and payload. Only failed deliveries using the current webhook contract can be replayed.",
+        "tags": ["Webhooks"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "webhooks:write",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "responses": {
+          "201": {
+            "description": "Replay delivery created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookDeliveryDetail" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
         }
       }
     },
@@ -2451,6 +3542,1323 @@
           }
         }
       }
+    },
+    "/audiences": {
+      "post": {
+        "operationId": "createAudience",
+        "summary": "Create an audience",
+        "description": "Create a newsletter audience. consent_source is a required consent attestation.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAudienceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Audience created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audience"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listAudiences",
+        "summary": "List audiences",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of audiences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Audience"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getAudience",
+        "summary": "Get an audience",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "responses": {
+          "200": {
+            "description": "Audience object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audience"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAudience",
+        "summary": "Update an audience",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAudienceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated audience.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audience"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAudience",
+        "summary": "Delete an audience",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "responses": {
+          "204": {
+            "description": "Audience deleted. Subscribers cascade; newsletters keep their history."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "addSubscriber",
+        "summary": "Add a subscriber",
+        "description": "Add one subscriber (single opt-in). Returns a per-row outcome; it does not error for a suppressed or invalid address. Re-adding an existing subscriber merges: a provided display_name replaces the stored one (absent keeps it), merge_fields keys you send are merged into the stored object, and consent is re-attested. Use PATCH to replace fields wholesale.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSubscriberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-row outcome for the address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriberResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listSubscribers",
+        "summary": "List subscribers",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by subscriber status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "subscribed",
+                "pending",
+                "unsubscribed",
+                "bounced",
+                "complained",
+                "suppressed",
+                "transactional_only"
+              ]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "Filter to an exact email address.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of subscribers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Subscriber"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers/batch": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "addSubscribersBatch",
+        "summary": "Add subscribers in bulk",
+        "description": "Add up to 1000 subscribers in one call (single opt-in). Returns a per-row outcome for each address, in input order. Net-new admissions are all-or-nothing against the monthly ingest quota: if the remaining quota cannot admit every net-new address in the batch, they are all returned as skipped_quota.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSubscribersBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-row outcomes, in input order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["results"],
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubscriberResult"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers/by-email/{email}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "email",
+          "in": "path",
+          "required": true,
+          "description": "URL-encoded email address of the subscriber.",
+          "schema": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getSubscriberByEmail",
+        "summary": "Get a subscriber by email",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "responses": {
+          "200": {
+            "description": "Subscriber object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers/{subscriber_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "subscriber_id",
+          "in": "path",
+          "required": true,
+          "description": "Subscriber ID.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getSubscriber",
+        "summary": "Get a subscriber",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "responses": {
+          "200": {
+            "description": "Subscriber object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateSubscriber",
+        "summary": "Update a subscriber",
+        "description": "Update display name or merge fields. To unsubscribe, use the unsubscribe endpoint.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated subscriber.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeSubscriber",
+        "summary": "Remove a subscriber",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "responses": {
+          "204": {
+            "description": "Subscriber deleted. Prefer unsubscribe to preserve opt-out history."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers/{subscriber_id}/unsubscribe": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "subscriber_id",
+          "in": "path",
+          "required": true,
+          "description": "Subscriber ID.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "unsubscribeSubscriber",
+        "summary": "Unsubscribe a subscriber",
+        "description": "Unsubscribe a subscriber. Writes an organization-wide opt-out so future newsletters skip them.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "responses": {
+          "200": {
+            "description": "Updated subscriber (status unsubscribed).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/subscribers/{subscriber_id}/resubscribe": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "subscriber_id",
+          "in": "path",
+          "required": true,
+          "description": "Subscriber ID.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "resubscribeSubscriber",
+        "summary": "Resubscribe a subscriber",
+        "description": "Resubscribe a subscriber after renewed opt-in. Removes their organization-wide newsletter opt-out and marks them active again.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResubscribeSubscriberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated subscriber (status subscribed).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscriber"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters": {
+      "post": {
+        "operationId": "createNewsletter",
+        "summary": "Create a newsletter draft",
+        "description": "Create a draft newsletter. Drafts must be tested and pass preflight before scheduling.",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNewsletterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Newsletter draft created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listNewsletters",
+        "summary": "List newsletters",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of newsletters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Newsletter"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletter-domains": {
+      "get": {
+        "operationId": "listNewsletterDomains",
+        "summary": "List newsletter domains",
+        "description": "List configured newsletter sending domains. Use these IDs as newsletter_domain_id when creating newsletter drafts.",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of newsletter sending domains.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NewsletterDomain"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/{id}": {
+      "get": {
+        "operationId": "getNewsletter",
+        "summary": "Retrieve a newsletter",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newsletter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateNewsletter",
+        "summary": "Update a newsletter",
+        "description": "Update an editable draft newsletter or a scheduled newsletter whose send time is still in the future. Sending and sent newsletters cannot be edited.",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNewsletterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Newsletter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/preflight": {
+      "post": {
+        "operationId": "runNewsletterPreflight",
+        "summary": "Run newsletter preflight",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run newsletter preflight.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsletterPreflight"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/test-send": {
+      "post": {
+        "operationId": "sendNewsletterTest",
+        "summary": "Send a newsletter test",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Send a newsletter test.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsletterTestSend"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendNewsletterTestRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/schedule": {
+      "post": {
+        "operationId": "scheduleNewsletter",
+        "summary": "Schedule a newsletter",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedule a newsletter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleNewsletterRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/cancel": {
+      "post": {
+        "operationId": "cancelNewsletter",
+        "summary": "Cancel a newsletter",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancel a newsletter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/resume": {
+      "post": {
+        "operationId": "resumeNewsletter",
+        "summary": "Resume a paused newsletter",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resume a paused newsletter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletter-assets": {
+      "get": {
+        "operationId": "listNewsletterAssets",
+        "summary": "List newsletter assets",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["image", "video"]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newsletter assets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination", "storage"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NewsletterAsset"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    },
+                    "storage": {
+                      "$ref": "#/components/schemas/NewsletterAssetStorageUsage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "uploadNewsletterAsset",
+        "summary": "Upload or register newsletter asset",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-ShipMail-Filename",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "filename": {
+                    "type": "string"
+                  },
+                  "thumbnail_url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/gif": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "video/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "video/quicktime": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "video/webm": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Uploaded asset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsletterAsset"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/QuotaExceededError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/{id}/preview": {
+      "post": {
+        "operationId": "previewNewsletter",
+        "summary": "Preview newsletter draft",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newsletter preview.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsletterPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/newsletters/from-changelog": {
+      "post": {
+        "operationId": "createNewsletterFromChangelog",
+        "summary": "Create newsletter from changelog entries",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "newsletters:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNewsletterFromChangelogRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Newsletter draft created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Newsletter"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2535,6 +4943,687 @@
       }
     },
     "schemas": {
+      "RecurrenceNDay": {
+        "type": "object",
+        "required": ["day"],
+        "properties": {
+          "day": {
+            "type": "string",
+            "enum": ["mo", "tu", "we", "th", "fr", "sa", "su"]
+          },
+          "nth_of_period": {
+            "type": "integer"
+          }
+        }
+      },
+      "Recurrence": {
+        "type": "object",
+        "required": ["frequency"],
+        "properties": {
+          "frequency": {
+            "type": "string",
+            "enum": ["yearly", "monthly", "weekly", "daily", "hourly", "minutely", "secondly"]
+          },
+          "interval": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "until": {
+            "type": "string",
+            "description": "Local date-time, e.g. 2026-12-31T00:00:00."
+          },
+          "by_day": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecurrenceNDay"
+            }
+          }
+        }
+      },
+      "Reminder": {
+        "type": "object",
+        "required": ["minutes_before"],
+        "properties": {
+          "minutes_before": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Minutes before the event start to fire an email reminder."
+          }
+        }
+      },
+      "CalendarAttendeeInput": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string", "maxLength": 255 }
+        }
+      },
+      "CalendarPerson": {
+        "type": "object",
+        "required": ["email", "name"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string", "nullable": true }
+        }
+      },
+      "CalendarAttendee": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CalendarPerson" },
+          {
+            "type": "object",
+            "required": ["status"],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["needs-action", "accepted", "declined", "tentative"]
+              }
+            }
+          }
+        ]
+      },
+      "CalendarEvent": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox",
+          "calendar_id",
+          "uid",
+          "title",
+          "description",
+          "location",
+          "video_url",
+          "all_day",
+          "start",
+          "end",
+          "timezone",
+          "duration",
+          "status",
+          "free_busy_status",
+          "privacy",
+          "color",
+          "recurrence",
+          "recurrence_id",
+          "reminders",
+          "organizer",
+          "attendees",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["calendar_event"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox": {
+            "type": "string",
+            "format": "email",
+            "description": "The mailbox (calendar owner) address."
+          },
+          "calendar_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "uid": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "video_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Video/conference join URL (JSCalendar virtualLocation)."
+          },
+          "all_day": {
+            "type": "boolean"
+          },
+          "start": {
+            "type": "string",
+            "description": "Timed events: a UTC instant. All-day events: a YYYY-MM-DD date."
+          },
+          "end": {
+            "type": "string",
+            "description": "Timed events: a UTC instant. All-day events: the exclusive end date."
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true,
+            "description": "The event's own IANA time zone. Null for all-day or floating events."
+          },
+          "duration": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 8601 duration, e.g. PT1H."
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["confirmed", "tentative", "cancelled"]
+          },
+          "free_busy_status": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["free", "busy"]
+          },
+          "privacy": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["public", "private", "secret"]
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "recurrence": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Recurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recurrence_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set on an expanded recurrence instance."
+          },
+          "reminders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reminder"
+            }
+          },
+          "organizer": {
+            "nullable": true,
+            "anyOf": [{ "$ref": "#/components/schemas/CalendarPerson" }, { "type": "null" }]
+          },
+          "attendees": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CalendarAttendee" }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CreateCalendarEventRequest": {
+        "type": "object",
+        "required": ["mailbox", "title", "start"],
+        "properties": {
+          "mailbox": {
+            "type": "string",
+            "format": "email",
+            "description": "The mailbox (calendar owner) address."
+          },
+          "calendar_id": {
+            "type": "string",
+            "description": "Target calendar. Defaults to the mailbox's default calendar."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "start": {
+            "type": "string",
+            "description": "Local date-time (YYYY-MM-DDTHH:MM:SS). Its zone is given by timezone."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 32768
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone the start is defined in."
+          },
+          "duration": {
+            "type": "string",
+            "description": "ISO 8601 duration, e.g. PT1H. Defaults to one hour."
+          },
+          "all_day": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "video_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "color": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "tentative", "cancelled"]
+          },
+          "free_busy_status": {
+            "type": "string",
+            "enum": ["free", "busy"]
+          },
+          "privacy": {
+            "type": "string",
+            "enum": ["public", "private", "secret"]
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/Recurrence"
+          },
+          "reminders": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/Reminder"
+            }
+          },
+          "attendees": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/CalendarAttendeeInput" }
+          }
+        }
+      },
+      "UpdateCalendarEventRequest": {
+        "type": "object",
+        "required": ["mailbox"],
+        "description": "Omitted fields are left unchanged. A null value clears description, location, video_url, recurrence, or reminders.",
+        "properties": {
+          "mailbox": {
+            "type": "string",
+            "format": "email"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32768
+          },
+          "start": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string"
+          },
+          "all_day": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1024
+          },
+          "video_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "color": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "tentative", "cancelled"]
+          },
+          "free_busy_status": {
+            "type": "string",
+            "enum": ["free", "busy"]
+          },
+          "privacy": {
+            "type": "string",
+            "enum": ["public", "private", "secret"]
+          },
+          "recurrence": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Recurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reminders": {
+            "type": "array",
+            "nullable": true,
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/Reminder"
+            }
+          },
+          "attendees": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/CalendarAttendeeInput" }
+          }
+        }
+      },
+      "CalendarAvailabilitySlot": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CalendarAvailability": {
+        "type": "object",
+        "required": ["object", "mailbox", "from", "to", "duration_minutes", "timezone", "slots"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["calendar_availability"]
+          },
+          "mailbox": {
+            "type": "string",
+            "format": "email"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_minutes": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarAvailabilitySlot"
+            }
+          }
+        }
+      },
+      "BookingPage": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox",
+          "slug",
+          "url",
+          "name",
+          "description",
+          "duration_minutes",
+          "availability_days",
+          "window_start_minutes",
+          "window_end_minutes",
+          "timezone",
+          "buffer_minutes",
+          "minimum_notice_minutes",
+          "max_advance_days",
+          "active",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["booking_page"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox": {
+            "type": "string",
+            "format": "email",
+            "description": "The mailbox whose availability the page exposes."
+          },
+          "slug": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Public booking URL."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration_minutes": {
+            "type": "integer"
+          },
+          "availability_days": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Weekdays offered, 0=Sunday .. 6=Saturday."
+          },
+          "window_start_minutes": {
+            "type": "integer",
+            "description": "Start of the daily window, minutes from midnight."
+          },
+          "window_end_minutes": {
+            "type": "integer",
+            "description": "End of the daily window, minutes from midnight."
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "buffer_minutes": {
+            "type": "integer"
+          },
+          "minimum_notice_minutes": {
+            "type": "integer"
+          },
+          "max_advance_days": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateBookingPageRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "mailbox",
+          "slug",
+          "duration_minutes",
+          "availability_days",
+          "window_start_minutes",
+          "window_end_minutes",
+          "timezone"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "mailbox": {
+            "type": "string",
+            "format": "email",
+            "description": "The mailbox whose availability the page exposes."
+          },
+          "slug": {
+            "type": "string",
+            "description": "URL slug, lowercase letters, numbers, and hyphens."
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 480
+          },
+          "availability_days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekdays offered, 0=Sunday .. 6=Saturday."
+          },
+          "window_start_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "window_end_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "buffer_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240,
+            "default": 0
+          },
+          "minimum_notice_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "max_advance_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 30
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "UpdateBookingPageRequest": {
+        "type": "object",
+        "description": "Partial update. Provide at least one field.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "mailbox": {
+            "type": "string",
+            "format": "email"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 480
+          },
+          "availability_days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          "window_start_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "window_end_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "buffer_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240
+          },
+          "minimum_notice_minutes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_advance_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
       "Suppression": {
         "type": "object",
         "required": ["object", "email_address", "reason", "created_at"],
@@ -2623,8 +5712,8 @@
           },
           "managed_by": {
             "type": "string",
-            "enum": ["external", "namecom"],
-            "description": "Whether the domain is managed externally or registered through shipmail."
+            "enum": ["external", "shipmail"],
+            "description": "Whether the domain is managed externally or registered through Shipmail."
           },
           "dns_provider": {
             "type": ["string", "null"]
@@ -2708,6 +5797,76 @@
           "registered_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "DomainDnsRecord": {
+        "type": "object",
+        "required": ["key", "type", "host", "value", "priority", "ttl", "status", "found_values"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": ["mx", "spf", "mail_from_mx", "mail_from_spf", "dkim", "dmarc"]
+          },
+          "type": {
+            "type": "string",
+            "enum": ["MX", "TXT"]
+          },
+          "host": {
+            "type": "string",
+            "description": "DNS host relative to the domain. @ means the root domain."
+          },
+          "value": {
+            "type": ["string", "null"],
+            "description": "Expected value. Null only while the DKIM value is pending."
+          },
+          "priority": {
+            "type": ["integer", "null"],
+            "description": "MX priority, or null for TXT records."
+          },
+          "ttl": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": ["verified", "not_found", "mismatch", "pending"]
+          },
+          "found_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Values observed during the live DNS check."
+          }
+        }
+      },
+      "DomainDnsRecordSet": {
+        "type": "object",
+        "required": ["object", "domain_id", "domain_name", "all_verified", "checked_at", "records"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "dns_record_set"
+          },
+          "domain_id": {
+            "type": "string"
+          },
+          "domain_name": {
+            "type": "string"
+          },
+          "all_verified": {
+            "type": "boolean"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DomainDnsRecord"
+            }
           }
         }
       },
@@ -2796,6 +5955,7 @@
           "address",
           "display_name",
           "suspended_at",
+          "suspension_reasons",
           "spam_filter_threshold",
           "auto_reply",
           "created_at",
@@ -2823,6 +5983,14 @@
             "type": ["string", "null"],
             "format": "date-time",
             "description": "When the mailbox was suspended. Null if active."
+          },
+          "suspension_reasons": {
+            "type": "array",
+            "description": "Independent reasons currently keeping the mailbox suspended.",
+            "items": {
+              "type": "string",
+              "enum": ["billing", "manual", "security"]
+            }
           },
           "spam_filter_threshold": {
             "type": "integer",
@@ -2859,6 +6027,92 @@
           },
           "updated_at": {
             "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MailboxExport": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "status",
+          "format",
+          "format_version",
+          "file_size",
+          "message_count",
+          "folder_count",
+          "error_code",
+          "download_url",
+          "download_url_expires_at",
+          "expires_at",
+          "created_at",
+          "started_at",
+          "completed_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_export"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^mbexp_[0-9a-z]{24}$"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed", "failed", "expired"]
+          },
+          "format": {
+            "type": "string",
+            "const": "zip"
+          },
+          "format_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "file_size": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "message_count": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "folder_count": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "error_code": {
+            "type": ["string", "null"],
+            "enum": ["source_unavailable", "snapshot_changed", "export_failed", null]
+          },
+          "download_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "download_url_expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": ["string", "null"],
             "format": "date-time"
           }
         }
@@ -2979,6 +6233,89 @@
             "items": {
               "$ref": "#/components/schemas/MailboxIdentity"
             }
+          }
+        }
+      },
+      "MailboxForwarding": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "destination",
+          "status",
+          "verification_sent_at",
+          "verified_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_forwarding"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^fwd_[0-9a-z]{24}$"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "active"]
+          },
+          "verification_sent_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "verified_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MailboxForwardingList": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_forwarding_list"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/MailboxForwarding"
+            }
+          }
+        }
+      },
+      "CreateMailboxForwardingRequest": {
+        "type": "object",
+        "required": ["destination"],
+        "additionalProperties": false,
+        "properties": {
+          "destination": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 320
           }
         }
       },
@@ -3270,6 +6607,60 @@
           }
         }
       },
+      "ClientReference": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "description": "Caller-defined idempotent correlation reference, unique within an organization."
+      },
+      "MessageMetadata": {
+        "type": "object",
+        "maxProperties": 20,
+        "additionalProperties": {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        "description": "Up to 20 scalar values and 8 KB of JSON. Nested objects and arrays are rejected."
+      },
+      "SourceRfcMessageId": {
+        "type": "string",
+        "maxLength": 998,
+        "pattern": "^<[^<>\\s@]+@[^<>\\s@]+>$",
+        "description": "Caller-selected source RFC Message-ID. Its domain must equal the actual sender domain."
+      },
+      "DataMode": {
+        "type": "string",
+        "enum": ["live", "test"],
+        "description": "The API-key data plane that owns this resource. Test resources are isolated from live delivery, quota, suppression, and reputation."
+      },
+      "SandboxOutcome": {
+        "type": "string",
+        "enum": ["delivered", "bounced", "complained"],
+        "description": "Synthetic final outcome for a sandbox send. Only accepted with a test API key."
+      },
+      "OutboundHeader": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 78,
+            "description": "List-Unsubscribe, List-Unsubscribe-Post, or a non-reserved X-* header."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 998
+          }
+        }
+      },
+      "OutboundHeaders": {
+        "type": "array",
+        "maxItems": 20,
+        "items": {
+          "$ref": "#/components/schemas/OutboundHeader"
+        },
+        "description": "Safe outbound headers. Shipmail, SES, routing, and identity headers are rejected. RFC 8058 requires List-Unsubscribe-Post: List-Unsubscribe=One-Click and an HTTPS List-Unsubscribe URL."
+      },
       "Message": {
         "type": "object",
         "required": [
@@ -3277,6 +6668,11 @@
           "id",
           "mailbox_id",
           "thread_id",
+          "source_rfc_message_id",
+          "delivered_rfc_message_id",
+          "client_reference",
+          "metadata",
+          "headers",
           "subject",
           "from_address",
           "to_addresses",
@@ -3284,6 +6680,7 @@
           "bcc_addresses",
           "attachments",
           "source",
+          "mode",
           "status",
           "scheduled_at",
           "created_at",
@@ -3302,6 +6699,24 @@
           },
           "thread_id": {
             "type": ["string", "null"]
+          },
+          "source_rfc_message_id": {
+            "type": ["string", "null"],
+            "description": "Source RFC Message-ID supplied by the caller or observed before relay."
+          },
+          "delivered_rfc_message_id": {
+            "type": ["string", "null"],
+            "description": "Exact provider-assigned delivered RFC Message-ID after Shipmail observes it in a recipient reply. Null before an observation and never reconstructed from the SES provider ID."
+          },
+          "client_reference": {
+            "type": ["string", "null"],
+            "description": "Caller-defined organization-scoped reference."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MessageMetadata"
+          },
+          "headers": {
+            "$ref": "#/components/schemas/OutboundHeaders"
           },
           "subject": {
             "type": ["string", "null"]
@@ -3336,7 +6751,10 @@
           },
           "source": {
             "type": "string",
-            "enum": ["api", "dashboard", "inbound", "smtp"]
+            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp"]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/DataMode"
           },
           "status": {
             "type": "string",
@@ -3348,6 +6766,7 @@
               "bounced",
               "complained",
               "failed",
+              "suppressed",
               "cancelled"
             ]
           },
@@ -3462,6 +6881,7 @@
           "id",
           "event_id",
           "event_type",
+          "mode",
           "status",
           "attempts",
           "last_status_code",
@@ -3481,7 +6901,10 @@
             "type": "string"
           },
           "event_type": {
-            "type": "string"
+            "$ref": "#/components/schemas/WebhookDeliveryEventType"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/DataMode"
           },
           "status": {
             "type": "string",
@@ -3506,6 +6929,47 @@
           }
         }
       },
+      "WebhookDeliveryDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/WebhookDelivery" },
+          {
+            "type": "object",
+            "required": ["payload", "next_attempt_at", "replayed_from_delivery_id"],
+            "properties": {
+              "payload": {
+                "type": "object",
+                "description": "The exact versioned webhook envelope sent to the endpoint."
+              },
+              "next_attempt_at": {
+                "type": ["string", "null"],
+                "format": "date-time"
+              },
+              "replayed_from_delivery_id": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        ]
+      },
+      "WebhookDeliveryEventType": {
+        "type": "string",
+        "enum": [
+          "webhook.test",
+          "message.received",
+          "message.sent",
+          "message.delivered",
+          "message.bounced",
+          "message.complained",
+          "mailbox.rule_matched",
+          "domain.verified",
+          "domain.verification_failed",
+          "domain.degraded",
+          "org.reputation_warning",
+          "org.sending_throttled",
+          "org.sending_suspended",
+          "org.reputation_recovered"
+        ]
+      },
       "WebhookEventType": {
         "type": "string",
         "enum": [
@@ -3514,6 +6978,7 @@
           "message.delivered",
           "message.bounced",
           "message.complained",
+          "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
           "domain.degraded",
@@ -3545,7 +7010,7 @@
           "records": {
             "type": "object",
             "description": "Verification status for each DNS record type.",
-            "required": ["mx", "spf", "dkim"],
+            "required": ["mx", "spf", "dkim", "dmarc"],
             "properties": {
               "mx": {
                 "type": "boolean"
@@ -3554,6 +7019,9 @@
                 "type": "boolean"
               },
               "dkim": {
+                "type": "boolean"
+              },
+              "dmarc": {
                 "type": "boolean"
               }
             }
@@ -3672,7 +7140,7 @@
       },
       "CreateMailboxRequest": {
         "type": "object",
-        "required": ["domain_id", "address"],
+        "required": ["domain_id", "address", "password"],
         "properties": {
           "domain_id": {
             "type": "string",
@@ -3684,10 +7152,17 @@
             "maxLength": 64,
             "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$"
           },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "Initial mailbox password. Must include lowercase, uppercase, and numeric characters; common passwords are rejected. It is never returned by the API.",
+            "minLength": 8,
+            "maxLength": 128
+          },
           "display_name": {
             "type": "string",
             "description": "Display name for the mailbox.",
-            "maxLength": 200
+            "maxLength": 128
           }
         }
       },
@@ -3794,16 +7269,16 @@
       "SendMessageRequest": {
         "type": "object",
         "required": ["to", "subject"],
-        "description": "Request body for sending a message. Provide either mailbox_id or from to identify the sending mailbox.",
+        "description": "Request body for sending a message. Provide either from or mailbox_id to identify the sending mailbox.",
         "properties": {
-          "mailbox_id": {
-            "type": "string",
-            "description": "ID of the sending mailbox."
-          },
           "from": {
             "type": "string",
             "format": "email",
-            "description": "Email address of the sending mailbox. Alternative to mailbox_id."
+            "description": "Email address of the sending mailbox. Shipmail resolves it to a mailbox ID server-side."
+          },
+          "mailbox_id": {
+            "type": "string",
+            "description": "ID of the sending mailbox. Alternative to from."
           },
           "to": {
             "type": "array",
@@ -3865,10 +7340,25 @@
             "maxItems": 20,
             "description": "File attachments. Base64-encoded. Max 20 attachments, 3 MB per file, 3 MB total."
           },
+          "client_reference": {
+            "$ref": "#/components/schemas/ClientReference"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MessageMetadata"
+          },
+          "source_rfc_message_id": {
+            "$ref": "#/components/schemas/SourceRfcMessageId"
+          },
+          "headers": {
+            "$ref": "#/components/schemas/OutboundHeaders"
+          },
           "scheduled_at": {
             "type": "string",
             "format": "date-time",
             "description": "Optional UTC ISO 8601 time to send later. Past or near-immediate times are sent immediately."
+          },
+          "sandbox_outcome": {
+            "$ref": "#/components/schemas/SandboxOutcome"
           }
         }
       },
@@ -3901,10 +7391,89 @@
             "description": "Plain text body. At least one of html or text is required.",
             "maxLength": 262144
           },
+          "client_reference": {
+            "$ref": "#/components/schemas/ClientReference"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MessageMetadata"
+          },
+          "source_rfc_message_id": {
+            "$ref": "#/components/schemas/SourceRfcMessageId"
+          },
+          "headers": {
+            "$ref": "#/components/schemas/OutboundHeaders"
+          },
           "scheduled_at": {
             "type": "string",
             "format": "date-time",
             "description": "Optional UTC ISO 8601 time to send this reply later."
+          },
+          "sandbox_outcome": {
+            "$ref": "#/components/schemas/SandboxOutcome"
+          }
+        }
+      },
+      "InjectSandboxInboundRequest": {
+        "type": "object",
+        "required": ["from", "subject"],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Recipient"
+          },
+          "to": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "cc": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 998
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 256000,
+            "description": "Plain text body. At least one of text or html is required."
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 512000,
+            "description": "HTML body. At least one of text or html is required."
+          },
+          "message_id": {
+            "type": "string",
+            "maxLength": 998,
+            "pattern": "^<[^<>\\r\\n]+>$"
+          },
+          "in_reply_to": {
+            "type": "string",
+            "maxLength": 998,
+            "pattern": "^<[^<>\\r\\n]+>$"
+          },
+          "references": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 998,
+              "pattern": "^<[^<>\\r\\n]+>$"
+            }
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "headers": {
+            "$ref": "#/components/schemas/OutboundHeaders"
           }
         }
       },
@@ -3995,6 +7564,10 @@
                   "properties": {
                     "field": {
                       "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Stable machine-readable code for the validation detail when available."
                     },
                     "message": {
                       "type": "string"
@@ -4791,9 +8364,1520 @@
             "type": "integer"
           }
         }
+      },
+      "Audience": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "name",
+          "description",
+          "member_count",
+          "subscribed_count",
+          "consent_source",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["audience"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "member_count": {
+            "type": "integer",
+            "description": "Total subscribers of any status."
+          },
+          "subscribed_count": {
+            "type": "integer",
+            "description": "Subscribers currently receiving newsletters."
+          },
+          "consent_source": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MergeFields": {
+        "type": "object",
+        "description": "Arbitrary string/number/boolean/null values keyed by field name. Max 50 keys.",
+        "additionalProperties": {
+          "nullable": true
+        }
+      },
+      "Subscriber": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "audience_id",
+          "email_address",
+          "display_name",
+          "status",
+          "merge_fields",
+          "consent_source",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["subscriber"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "audience_id": {
+            "type": "string"
+          },
+          "email_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "subscribed",
+              "pending",
+              "unsubscribed",
+              "bounced",
+              "complained",
+              "suppressed",
+              "transactional_only"
+            ]
+          },
+          "merge_fields": {
+            "$ref": "#/components/schemas/MergeFields"
+          },
+          "consent_source": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubscriberResult": {
+        "type": "object",
+        "description": "Per-row outcome. email_address echoes the normalized (trimmed, lowercased) address. Skip reasons are generic and never reveal suppression or opt-out state.",
+        "required": ["email_address", "outcome"],
+        "properties": {
+          "email_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "skipped_not_mailable",
+              "skipped_invalid",
+              "skipped_cap",
+              "skipped_quota"
+            ]
+          }
+        }
+      },
+      "CreateAudienceRequest": {
+        "type": "object",
+        "required": ["name", "consent_source"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true
+          },
+          "consent_source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Where and how these people opted in. Required consent attestation."
+          }
+        }
+      },
+      "UpdateAudienceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true
+          }
+        }
+      },
+      "AddSubscriberRequest": {
+        "type": "object",
+        "required": ["email_address"],
+        "properties": {
+          "email_address": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "merge_fields": {
+            "$ref": "#/components/schemas/MergeFields"
+          },
+          "consent_source": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "consent_ip": {
+            "type": "string",
+            "maxLength": 64,
+            "nullable": true
+          }
+        }
+      },
+      "AddSubscribersBatchRequest": {
+        "type": "object",
+        "required": ["subscribers"],
+        "properties": {
+          "subscribers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/AddSubscriberRequest"
+            }
+          }
+        }
+      },
+      "UpdateSubscriberRequest": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "merge_fields": {
+            "$ref": "#/components/schemas/MergeFields"
+          }
+        }
+      },
+      "ResubscribeSubscriberRequest": {
+        "type": "object",
+        "required": ["consent_source"],
+        "properties": {
+          "consent_source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Where and how this subscriber opted in again."
+          }
+        }
+      },
+      "NewsletterDomain": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "root_domain_id",
+          "domain_name",
+          "from_local_part",
+          "from_address",
+          "mail_from_domain",
+          "reply_to_mailbox_id",
+          "status",
+          "dkim_status",
+          "mail_from_status",
+          "spf_status",
+          "dmarc_status",
+          "verified_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_domain"
+          },
+          "id": {
+            "type": "string"
+          },
+          "root_domain_id": {
+            "type": "string"
+          },
+          "domain_name": {
+            "type": "string"
+          },
+          "from_local_part": {
+            "type": "string"
+          },
+          "from_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "mail_from_domain": {
+            "type": "string"
+          },
+          "reply_to_mailbox_id": {
+            "type": ["string", "null"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "verifying", "verified", "failed", "disabled"]
+          },
+          "dkim_status": {
+            "type": "string",
+            "enum": ["pending", "verified", "failed"]
+          },
+          "mail_from_status": {
+            "type": "string",
+            "enum": ["pending", "verified", "failed"]
+          },
+          "spf_status": {
+            "type": "string",
+            "enum": ["pending", "verified", "failed"]
+          },
+          "dmarc_status": {
+            "type": "string",
+            "enum": ["pending", "verified", "failed"]
+          },
+          "verified_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Newsletter": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "audience_id",
+          "newsletter_domain_id",
+          "name",
+          "status",
+          "archive_visibility",
+          "preflight_status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter"
+          },
+          "id": {
+            "type": "string"
+          },
+          "audience_id": {
+            "type": ["string", "null"]
+          },
+          "newsletter_domain_id": {
+            "type": "string"
+          },
+          "reply_to_mailbox_id": {
+            "type": ["string", "null"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "preview_text": {
+            "type": ["string", "null"]
+          },
+          "from_name": {
+            "type": ["string", "null"]
+          },
+          "from_address": {
+            "type": "string"
+          },
+          "reply_to_address": {
+            "type": ["string", "null"]
+          },
+          "blocks": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/NewsletterBlock"
+            },
+            "description": "Structured blocks this draft was authored from. body_html and body_text are rendered from these blocks on every draft save. Null for newsletters sent before blocks existed."
+          },
+          "body_html": {
+            "type": ["string", "null"],
+            "description": "Rendered email HTML, derived from blocks for drafts. Read-only."
+          },
+          "body_text": {
+            "type": ["string", "null"],
+            "description": "Plain-text body, derived from blocks unless a manual override was set. Read-only."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending_approval",
+              "approved",
+              "scheduled",
+              "sending",
+              "paused",
+              "sent",
+              "cancelled",
+              "failed"
+            ]
+          },
+          "archive_visibility": {
+            "type": "string",
+            "enum": ["private", "public"]
+          },
+          "preflight_status": {
+            "type": "string",
+            "enum": ["not_run", "passed", "warning", "failed"]
+          },
+          "preflight_results": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "send_window_hours": {
+            "type": "integer"
+          },
+          "send_rate_per_hour": {
+            "type": "integer"
+          },
+          "recipient_count": {
+            "type": "integer"
+          },
+          "sent_count": {
+            "type": "integer"
+          },
+          "delivered_count": {
+            "type": "integer"
+          },
+          "bounced_count": {
+            "type": "integer"
+          },
+          "complained_count": {
+            "type": "integer"
+          },
+          "failed_count": {
+            "type": "integer"
+          },
+          "skipped_count": {
+            "type": "integer"
+          },
+          "scheduled_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "approved_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "cancelled_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_test_sent_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "last_test_recipient": {
+            "type": ["string", "null"]
+          },
+          "content_changed_since_test_send": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateNewsletterRequest": {
+        "type": "object",
+        "required": ["audience_id", "newsletter_domain_id", "name", "subject"],
+        "properties": {
+          "audience_id": {
+            "type": "string"
+          },
+          "newsletter_domain_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "preview_text": {
+            "type": ["string", "null"]
+          },
+          "from_name": {
+            "type": ["string", "null"]
+          },
+          "body_html": {
+            "type": ["string", "null"],
+            "description": "Full HTML body. Stored as one custom_html block when blocks are not provided."
+          },
+          "body_text": {
+            "type": ["string", "null"],
+            "description": "Plain-text body. Becomes paragraph blocks when blocks are not provided. With blocks or body_html, sets the plain-text override."
+          },
+          "send_window_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "archive_visibility": {
+            "type": "string",
+            "enum": ["private", "public"],
+            "default": "private"
+          },
+          "blocks": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/NewsletterBlock"
+            },
+            "description": "Preferred body format. ShipMail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
+          }
+        }
+      },
+      "UpdateNewsletterRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "audience_id": {
+            "type": "string"
+          },
+          "newsletter_domain_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "preview_text": {
+            "type": ["string", "null"]
+          },
+          "from_name": {
+            "type": ["string", "null"]
+          },
+          "body_html": {
+            "type": ["string", "null"],
+            "description": "Full HTML body. Stored as one custom_html block when blocks are not provided."
+          },
+          "body_text": {
+            "type": ["string", "null"],
+            "description": "Plain-text body. Becomes paragraph blocks when blocks are not provided. With blocks or body_html, sets the plain-text override."
+          },
+          "send_window_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "archive_visibility": {
+            "type": "string",
+            "enum": ["private", "public"],
+            "default": "private"
+          },
+          "blocks": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/NewsletterBlock"
+            },
+            "description": "Preferred body format. ShipMail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
+          }
+        }
+      },
+      "NewsletterPreflightItem": {
+        "type": "object",
+        "required": ["key", "label", "status", "message"],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "warn", "fail"]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "NewsletterPreflight": {
+        "type": "object",
+        "required": ["object", "newsletter_id", "status", "items", "url_breakdown"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_preflight"
+          },
+          "newsletter_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["not_run", "passed", "warning", "failed"]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewsletterPreflightItem"
+            }
+          },
+          "url_breakdown": {
+            "$ref": "#/components/schemas/NewsletterUrlBreakdown"
+          }
+        }
+      },
+      "NewsletterTestSend": {
+        "type": "object",
+        "required": ["object", "id", "newsletter_id", "recipient_email", "status", "created_at"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_test_send"
+          },
+          "id": {
+            "type": "string"
+          },
+          "newsletter_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": ["string", "null"]
+          },
+          "recipient_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "sent", "failed"]
+          },
+          "last_error": {
+            "type": ["string", "null"]
+          },
+          "sent_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SendNewsletterTestRequest": {
+        "type": "object",
+        "required": ["recipient_email"],
+        "properties": {
+          "recipient_email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "ScheduleNewsletterRequest": {
+        "type": "object",
+        "required": ["scheduled_at"],
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NewsletterBlock": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "text"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "heading"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000,
+                "description": "Heading text."
+              },
+              "level": {
+                "type": "integer",
+                "enum": [1, 2, 3],
+                "default": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "body"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "paragraph"
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000,
+                "description": "Plain-text paragraph body. Newlines are converted to paragraph and line breaks."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "items"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "list"
+              },
+              "ordered": {
+                "type": "boolean",
+                "default": false
+              },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 50,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10000,
+                  "description": "Plain-text list item."
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "body"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "callout"
+              },
+              "title": {
+                "type": ["string", "null"],
+                "maxLength": 10000,
+                "description": "Optional callout title."
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000,
+                "description": "Plain-text callout body. Newlines are converted to paragraph and line breaks."
+              },
+              "variant": {
+                "type": "string",
+                "enum": ["accent", "info", "warning", "success"],
+                "default": "accent"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "label", "url"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "button"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Button label."
+              },
+              "url": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Absolute http, https, or mailto URL."
+              },
+              "align": {
+                "type": "string",
+                "enum": ["left", "center", "right"],
+                "default": "left",
+                "description": "Horizontal alignment of the button."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "url", "alt"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "image"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "description": "Hosted HTTPS image URL."
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300,
+                "description": "Image alt text."
+              },
+              "link_url": {
+                "type": ["string", "null"],
+                "maxLength": 2048,
+                "description": "Optional absolute http, https, or mailto image link."
+              },
+              "caption": {
+                "type": ["string", "null"],
+                "maxLength": 10000,
+                "description": "Optional image caption."
+              },
+              "caption_url": {
+                "type": ["string", "null"],
+                "maxLength": 2048,
+                "description": "Optional absolute http, https, or mailto caption link."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "video_url", "thumbnail_url", "label"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "video"
+              },
+              "video_url": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Absolute hosted video URL. Emails render this as a linked thumbnail."
+              },
+              "thumbnail_url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "description": "Hosted HTTPS image thumbnail URL."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Video link label."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "left", "right"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "columns"
+              },
+              "ratio": {
+                "type": "string",
+                "enum": ["50-50", "33-67", "67-33"],
+                "default": "50-50"
+              },
+              "left": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["body"],
+                "properties": {
+                  "title": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Optional column heading."
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Plain-text column body. Newlines are converted to paragraph and line breaks."
+                  },
+                  "image_url": {
+                    "type": ["string", "null"],
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "description": "Optional hosted HTTPS image URL."
+                  },
+                  "image_alt": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Alt text for image_url."
+                  },
+                  "cta_label": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Optional call-to-action label."
+                  },
+                  "cta_url": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Optional http, https, or mailto call-to-action URL."
+                  }
+                }
+              },
+              "right": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["body"],
+                "properties": {
+                  "title": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Optional column heading."
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Plain-text column body. Newlines are converted to paragraph and line breaks."
+                  },
+                  "image_url": {
+                    "type": ["string", "null"],
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "description": "Optional hosted HTTPS image URL."
+                  },
+                  "image_alt": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Alt text for image_url."
+                  },
+                  "cta_label": {
+                    "type": ["string", "null"],
+                    "maxLength": 10000,
+                    "description": "Optional call-to-action label."
+                  },
+                  "cta_url": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Optional http, https, or mailto call-to-action URL."
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "items"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "link_list"
+              },
+              "title": {
+                "type": ["string", "null"],
+                "maxLength": 10000,
+                "description": "Optional link list title."
+              },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 20,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["label", "url"],
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 180,
+                      "description": "Link label."
+                    },
+                    "url": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "description": "Absolute http, https, or mailto URL."
+                    },
+                    "description": {
+                      "type": ["string", "null"],
+                      "maxLength": 10000,
+                      "description": "Optional description shown under the link."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "body"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "quote"
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000,
+                "description": "Plain-text quote body. Newlines are converted to paragraph and line breaks."
+              },
+              "cite": {
+                "type": ["string", "null"],
+                "maxLength": 10000,
+                "description": "Optional quote citation."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "divider"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "spacer"
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 8,
+                "maximum": 80,
+                "default": 24
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "code"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "code"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000,
+                "description": "Code text."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "html"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "custom_html"
+              },
+              "html": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 250000,
+                "description": "Custom email-safe HTML fragment."
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        },
+        "description": "Structured newsletter block. Public API block prose fields are plain text on input; ShipMail renders blocks to email-safe HTML and text."
+      },
+      "NewsletterCountedUrl": {
+        "type": "object",
+        "required": ["url", "source"],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["href", "image_src", "video_href", "text"]
+          }
+        }
+      },
+      "NewsletterUrlBreakdown": {
+        "type": "object",
+        "required": [
+          "href_count",
+          "image_src_count",
+          "video_href_count",
+          "text_url_count",
+          "unique_url_count",
+          "max_unique_urls",
+          "urls",
+          "offending_urls"
+        ],
+        "properties": {
+          "href_count": {
+            "type": "integer"
+          },
+          "image_src_count": {
+            "type": "integer"
+          },
+          "video_href_count": {
+            "type": "integer"
+          },
+          "text_url_count": {
+            "type": "integer"
+          },
+          "unique_url_count": {
+            "type": "integer"
+          },
+          "max_unique_urls": {
+            "type": "integer"
+          },
+          "urls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewsletterCountedUrl"
+            }
+          },
+          "offending_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "NewsletterPreviewWarning": {
+        "type": "object",
+        "required": ["kind", "severity", "message"],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["fail", "warn"]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "NewsletterPreview": {
+        "type": "object",
+        "required": [
+          "object",
+          "newsletter_id",
+          "html",
+          "archive_html",
+          "text",
+          "warnings",
+          "url_breakdown"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_preview"
+          },
+          "newsletter_id": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "archive_html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewsletterPreviewWarning"
+            }
+          },
+          "url_breakdown": {
+            "$ref": "#/components/schemas/NewsletterUrlBreakdown"
+          }
+        }
+      },
+      "NewsletterAsset": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "kind",
+          "filename",
+          "content_type",
+          "byte_size",
+          "checksum_sha256",
+          "url",
+          "created_at",
+          "image_url",
+          "video_url"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_asset"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["image", "video"]
+          },
+          "filename": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "byte_size": {
+            "type": "integer"
+          },
+          "checksum_sha256": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "thumbnail_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "thumbnail_content_type": {
+            "type": ["string", "null"]
+          },
+          "thumbnail_byte_size": {
+            "type": ["integer", "null"]
+          },
+          "duration_seconds": {
+            "type": ["number", "null"]
+          },
+          "width": {
+            "type": ["integer", "null"]
+          },
+          "height": {
+            "type": ["integer", "null"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "image_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "video_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          }
+        }
+      },
+      "NewsletterAssetStorageUsage": {
+        "type": "object",
+        "required": [
+          "used_bytes",
+          "limit_bytes",
+          "remaining_bytes",
+          "over_limit",
+          "plan",
+          "is_in_trial",
+          "next_upgrade"
+        ],
+        "properties": {
+          "used_bytes": {
+            "type": "integer"
+          },
+          "limit_bytes": {
+            "type": "integer"
+          },
+          "remaining_bytes": {
+            "type": "integer"
+          },
+          "over_limit": {
+            "type": "boolean"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "is_in_trial": {
+            "type": "boolean"
+          },
+          "next_upgrade": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["plan", "storage_bytes"],
+                "properties": {
+                  "plan": {
+                    "type": "string"
+                  },
+                  "storage_bytes": {
+                    "type": "integer"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "NewsletterChangelogMedia": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "url", "alt"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "image"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "alt": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "caption": {
+                "type": ["string", "null"],
+                "maxLength": 500
+              },
+              "link_url": {
+                "type": ["string", "null"],
+                "format": "uri"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind", "video_url", "thumbnail_url", "label"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "video"
+              },
+              "video_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "thumbnail_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 160
+              }
+            }
+          }
+        ]
+      },
+      "NewsletterChangelogEntry": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180
+          },
+          "body": {
+            "type": ["string", "null"],
+            "maxLength": 5000
+          },
+          "url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "media": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/NewsletterChangelogMedia"
+            }
+          },
+          "cta_label": {
+            "type": ["string", "null"],
+            "maxLength": 120
+          },
+          "cta_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          }
+        }
+      },
+      "CreateNewsletterFromChangelogRequest": {
+        "type": "object",
+        "required": ["audience_id", "newsletter_domain_id", "name", "subject", "entries"],
+        "properties": {
+          "audience_id": {
+            "type": "string"
+          },
+          "newsletter_domain_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "preview_text": {
+            "type": ["string", "null"],
+            "maxLength": 240
+          },
+          "from_name": {
+            "type": ["string", "null"],
+            "maxLength": 120
+          },
+          "tone": {
+            "type": "string",
+            "enum": ["concise", "friendly", "technical"],
+            "default": "concise"
+          },
+          "entries": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 40,
+            "items": {
+              "$ref": "#/components/schemas/NewsletterChangelogEntry"
+            }
+          },
+          "final_cta": {
+            "type": "object",
+            "required": ["label", "url"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "body": {
+                "type": ["string", "null"],
+                "maxLength": 1000
+              }
+            }
+          },
+          "send_window_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "archive_visibility": {
+            "type": "string",
+            "enum": ["private", "public"],
+            "default": "private"
+          }
+        }
       }
     },
     "responses": {
+      "ConflictError": {
+        "description": "Resource conflict.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
       "ValidationError": {
         "description": "Validation failed.",
         "content": {
@@ -4889,6 +9973,14 @@
   ],
   "tags": [
     {
+      "name": "Calendar",
+      "description": "Calendar events and single-mailbox availability."
+    },
+    {
+      "name": "Booking Pages",
+      "description": "Booking pages for scheduling meetings."
+    },
+    {
       "name": "Status",
       "description": "API health check."
     },
@@ -4911,6 +10003,14 @@
     {
       "name": "Webhooks",
       "description": "Subscribe to real-time event notifications."
+    },
+    {
+      "name": "Audiences",
+      "description": "Newsletter audiences and their subscribers."
+    },
+    {
+      "name": "Newsletters",
+      "description": "Create, test, and schedule newsletter campaigns."
     }
   ]
 }

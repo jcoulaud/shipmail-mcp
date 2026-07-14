@@ -13,20 +13,26 @@ import type {
   CreateDomainParams,
   CreateMailboxFolderParams,
   CreateMailboxParams,
+  CreateNewsletterFromChangelogParams,
+  CreateNewsletterParams,
   CreateWebhookParams,
+  InjectSandboxInboundParams,
   ListInboxMessagesParams,
   MoveInboxMessageParams,
   ReplyToMessageParams,
   ReplyToThreadParams,
   ResetMailboxPasswordParams,
+  ScheduleNewsletterParams,
   SearchDomainsParams,
   SendMessageParams,
+  SendNewsletterTestParams,
   UpdateAutoReplyParams,
   UpdateDomainParams,
   UpdateInboxMessageParams,
   UpdateMailboxFolderParams,
   UpdateMailboxParams,
   UpdateMailboxRulesParams,
+  UpdateNewsletterParams,
   UpdateSpamFilterParams,
   UpdateWebhookParams,
 } from "shipmail";
@@ -37,20 +43,26 @@ import type {
   createDomainInputSchema,
   createMailboxFolderInputSchema,
   createMailboxInputSchema,
+  createNewsletterFromChangelogInputSchema,
+  createNewsletterInputSchema,
   createWebhookInputSchema,
+  injectSandboxInboundInputSchema,
   listMailboxInboxMessagesInputSchema,
   moveInboxMessageInputSchema,
   replyToMessageInputSchema,
   replyToThreadInputSchema,
   resetPasswordInputSchema,
+  scheduleNewsletterInputSchema,
   searchDomainsInputSchema,
   sendMessageInputSchema,
+  sendNewsletterTestInputSchema,
   spamFilterInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
   updateMailboxRulesInputSchema,
+  updateNewsletterInputSchema,
   updateWebhookInputSchema,
 } from "../schemas.js";
 
@@ -94,6 +106,12 @@ type _CreateMailbox = AssertTrue<
 type _UpdateMailbox = AssertTrue<
   KeysMatch<UpdateMailboxParams, StripMcpOnly<z.infer<typeof updateMailboxInputSchema>>>
 >;
+type _InjectSandboxInbound = AssertTrue<
+  KeysMatch<
+    InjectSandboxInboundParams,
+    StripMcpOnlyKeepFolderId<z.infer<typeof injectSandboxInboundInputSchema>>
+  >
+>;
 type _CreateMailboxFolder = AssertTrue<
   KeysMatch<CreateMailboxFolderParams, StripMcpOnly<z.infer<typeof createMailboxFolderInputSchema>>>
 >;
@@ -136,6 +154,24 @@ type _ReplyToMessage = AssertTrue<
 type _ReplyToThread = AssertTrue<
   KeysMatch<ReplyToThreadParams, StripMcpOnly<z.infer<typeof replyToThreadInputSchema>>>
 >;
+type _CreateNewsletter = AssertTrue<
+  KeysMatch<CreateNewsletterParams, StripMcpOnly<z.infer<typeof createNewsletterInputSchema>>>
+>;
+type _CreateNewsletterFromChangelog = AssertTrue<
+  KeysMatch<
+    CreateNewsletterFromChangelogParams,
+    StripMcpOnly<z.infer<typeof createNewsletterFromChangelogInputSchema>>
+  >
+>;
+type _UpdateNewsletter = AssertTrue<
+  KeysMatch<UpdateNewsletterParams, StripMcpOnly<z.infer<typeof updateNewsletterInputSchema>>>
+>;
+type _SendNewsletterTest = AssertTrue<
+  KeysMatch<SendNewsletterTestParams, StripMcpOnly<z.infer<typeof sendNewsletterTestInputSchema>>>
+>;
+type _ScheduleNewsletter = AssertTrue<
+  KeysMatch<ScheduleNewsletterParams, StripMcpOnly<z.infer<typeof scheduleNewsletterInputSchema>>>
+>;
 type _CreateWebhook = AssertTrue<
   KeysMatch<CreateWebhookParams, StripMcpOnly<z.infer<typeof createWebhookInputSchema>>>
 >;
@@ -151,6 +187,7 @@ type _AllChecks = [
   _SearchDomains,
   _CreateMailbox,
   _UpdateMailbox,
+  _InjectSandboxInbound,
   _CreateMailboxFolder,
   _UpdateMailboxFolder,
   _ResetMailboxPassword,
@@ -163,6 +200,11 @@ type _AllChecks = [
   _SendMessage,
   _ReplyToMessage,
   _ReplyToThread,
+  _CreateNewsletter,
+  _CreateNewsletterFromChangelog,
+  _UpdateNewsletter,
+  _SendNewsletterTest,
+  _ScheduleNewsletter,
   _CreateWebhook,
   _UpdateWebhook,
 ];
@@ -189,7 +231,13 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
     ];
-    if (checks.length !== 19) throw new Error("alignment matrix size changed");
+    if (checks.length !== 25) throw new Error("alignment matrix size changed");
   });
 });

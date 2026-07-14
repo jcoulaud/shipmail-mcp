@@ -32,6 +32,7 @@ describe("registerTools", () => {
       "shipmail_status",
       "shipmail_list_domains",
       "shipmail_get_domain",
+      "shipmail_get_domain_dns_records",
       "shipmail_create_domain",
       "shipmail_update_domain",
       "shipmail_delete_domain",
@@ -42,6 +43,10 @@ describe("registerTools", () => {
       "shipmail_create_mailbox",
       "shipmail_update_mailbox",
       "shipmail_delete_mailbox",
+      "shipmail_suspend_mailbox",
+      "shipmail_resume_mailbox",
+      "shipmail_create_mailbox_export",
+      "shipmail_get_mailbox_export",
       "shipmail_list_mailbox_folders",
       "shipmail_create_mailbox_folder",
       "shipmail_update_mailbox_folder",
@@ -62,6 +67,7 @@ describe("registerTools", () => {
       "shipmail_get_mailbox_import",
       "shipmail_cancel_mailbox_import",
       "shipmail_undo_mailbox_import",
+      "shipmail_inject_sandbox_inbound",
       "shipmail_list_messages",
       "shipmail_get_message",
       "shipmail_send_message",
@@ -79,6 +85,45 @@ describe("registerTools", () => {
       "shipmail_list_webhook_deliveries",
       "shipmail_list_suppressions",
       "shipmail_remove_suppression",
+      "shipmail_list_audiences",
+      "shipmail_get_audience",
+      "shipmail_create_audience",
+      "shipmail_update_audience",
+      "shipmail_delete_audience",
+      "shipmail_list_subscribers",
+      "shipmail_get_subscriber",
+      "shipmail_get_subscriber_by_email",
+      "shipmail_add_subscriber",
+      "shipmail_add_subscribers_batch",
+      "shipmail_update_subscriber",
+      "shipmail_unsubscribe_subscriber",
+      "shipmail_resubscribe_subscriber",
+      "shipmail_remove_subscriber",
+      "shipmail_list_newsletter_domains",
+      "shipmail_list_newsletter_assets",
+      "shipmail_register_newsletter_asset",
+      "shipmail_list_newsletters",
+      "shipmail_get_newsletter",
+      "shipmail_preview_newsletter",
+      "shipmail_create_newsletter",
+      "shipmail_create_newsletter_from_changelog",
+      "shipmail_update_newsletter",
+      "shipmail_run_newsletter_preflight",
+      "shipmail_send_newsletter_test",
+      "shipmail_schedule_newsletter",
+      "shipmail_cancel_newsletter",
+      "shipmail_resume_newsletter",
+      "shipmail_list_calendar_events",
+      "shipmail_get_calendar_event",
+      "shipmail_create_calendar_event",
+      "shipmail_update_calendar_event",
+      "shipmail_delete_calendar_event",
+      "shipmail_get_calendar_availability",
+      "shipmail_list_booking_pages",
+      "shipmail_get_booking_page",
+      "shipmail_create_booking_page",
+      "shipmail_update_booking_page",
+      "shipmail_delete_booking_page",
     ];
     for (const name of expected) {
       expect(result.knownTools).toContain(name);
@@ -93,8 +138,14 @@ describe("registerTools", () => {
   });
 
   test("filters tools when allowlist is given", () => {
-    const { result } = setup(new Set(["shipmail_list_domains", "shipmail_get_thread"]));
-    expect(result.enabledTools).toEqual(["shipmail_list_domains", "shipmail_get_thread"]);
+    const { result } = setup(
+      new Set(["shipmail_list_domains", "shipmail_get_thread", "shipmail_get_newsletter"]),
+    );
+    expect(result.enabledTools).toEqual([
+      "shipmail_list_domains",
+      "shipmail_get_thread",
+      "shipmail_get_newsletter",
+    ]);
     expect(result.knownTools.length).toBeGreaterThan(2);
   });
 

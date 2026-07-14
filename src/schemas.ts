@@ -1,7 +1,9 @@
+import type { NewsletterBlock } from "shipmail";
 import {
   DOMAIN_STATUSES,
   MESSAGE_SOURCES,
   MESSAGE_STATUSES,
+  WEBHOOK_DELIVERY_EVENT_TYPES,
   WEBHOOK_DELIVERY_STATUSES,
   WEBHOOK_EVENT_TYPES,
 } from "shipmail";
@@ -43,6 +45,57 @@ const SYSTEM_FOLDER_NAMES = [
   "trash",
 ] as const;
 const JMAP_KEYWORDS = ["$flagged", "$seen", "$draft", "$answered", "$forwarded"] as const;
+const NEWSLETTER_STATUSES = [
+  "draft",
+  "pending_approval",
+  "approved",
+  "scheduled",
+  "sending",
+  "paused",
+  "sent",
+  "cancelled",
+  "failed",
+] as const;
+const NEWSLETTER_DOMAIN_STATUSES = [
+  "pending",
+  "verifying",
+  "verified",
+  "failed",
+  "disabled",
+] as const;
+const NEWSLETTER_DOMAIN_RECORD_STATUSES = ["pending", "verified", "failed"] as const;
+const NEWSLETTER_ARCHIVE_VISIBILITIES = ["private", "public"] as const;
+const NEWSLETTER_PREFLIGHT_STATUSES = ["not_run", "passed", "warning", "failed"] as const;
+const NEWSLETTER_PREFLIGHT_ITEM_STATUSES = ["pass", "warn", "fail"] as const;
+const NEWSLETTER_TEST_SEND_STATUSES = ["pending", "sent", "failed"] as const;
+const COMMON_MAILBOX_PASSWORDS = new Set([
+  "password",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwerty123",
+  "password1",
+  "iloveyou",
+  "sunshine1",
+  "princess1",
+  "football1",
+  "charlie1",
+  "access14",
+  "trustno1",
+  "letmein1",
+  "master12",
+  "dragon12",
+  "monkey12",
+  "shadow12",
+  "abc12345",
+  "password123",
+  "admin123",
+  "welcome1",
+  "qwerty12",
+  "passw0rd",
+  "p@ssw0rd",
+  "changeme",
+]);
 
 const publicHttpsUrlSchema = z
   .url()
@@ -50,6 +103,26 @@ const publicHttpsUrlSchema = z
   .refine((value) => isPublicHttpsUrl(value), {
     message: "URL must use https and a public host (no localhost, private IPs, or .internal).",
   });
+
+const newsletterLinkUrlSchema = z
+  .url()
+  .max(2048)
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:";
+    } catch {
+      return false;
+    }
+  }, "URL must be absolute http, https, or mailto.");
+
+const newsletterVideoUrlSchema = publicHttpsUrlSchema.refine((value) => {
+  try {
+    return /\.(?:mov|mp4|webm)$/i.test(new URL(value).pathname);
+  } catch {
+    return false;
+  }
+}, "Video URL must be an absolute https MP4, MOV, or WebM URL.");
 
 const emailSchema = z
   .string()
@@ -83,6 +156,24 @@ export const idSchema = z
   .string()
   .regex(ID_REGEX, "ID must be 1-100 characters of [A-Za-z0-9_-].")
   .describe("ShipMail resource ID.");
+
+const calendarIdInputSchema = z
+  .string()
+  .min(1)
+  .max(256)
+  .refine((value) => NO_CONTROL_CHARS.test(value), {
+    message: "Calendar ID must not contain control characters.",
+  })
+  .describe("Opaque calendar ID.");
+
+const calendarEventIdInputSchema = z
+  .string()
+  .min(1)
+  .max(256)
+  .refine((value) => NO_CONTROL_CHARS.test(value), {
+    message: "Calendar event ID must not contain control characters.",
+  })
+  .describe("Opaque calendar event ID.");
 
 export const idempotencyKeySchema = z
   .string()
@@ -132,7 +223,7 @@ export const domainSchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.enum(DOMAIN_STATUSES),
-  managed_by: z.enum(["external", "namecom"] as const),
+  managed_by: z.enum(["external", "shipmail"] as const),
   dns_provider: z.string().nullable(),
   mx_verified: z.boolean(),
   spf_verified: z.boolean(),
@@ -162,10 +253,32 @@ export const mailboxSchema = z.object({
   address: z.string(),
   display_name: z.string().nullable(),
   suspended_at: z.string().nullable(),
+  suspension_reasons: z.array(z.enum(["billing", "manual", "security"] as const)),
   spam_filter_threshold: z.number(),
   auto_reply: autoReplySchema,
   created_at: z.string(),
   updated_at: z.string(),
+});
+
+export const mailboxExportSchema = z.object({
+  object: z.literal("mailbox_export"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  status: z.enum(["pending", "processing", "completed", "failed", "expired"] as const),
+  format: z.literal("zip"),
+  format_version: z.number().int().positive(),
+  file_size: z.number().int().nonnegative().nullable(),
+  message_count: z.number().int().nonnegative().nullable(),
+  folder_count: z.number().int().nonnegative().nullable(),
+  error_code: z
+    .enum(["source_unavailable", "snapshot_changed", "export_failed"] as const)
+    .nullable(),
+  download_url: z.url().nullable(),
+  download_url_expires_at: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  created_at: z.string(),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
 });
 
 export const mailboxFolderSchema = z.object({
@@ -371,6 +484,7 @@ export const mailboxRuleActionSchema = z.union([
     type: z.literal("ai_draft_reply"),
     instructions: noControlString(2000, "instructions").min(1),
     reply_mode: z.enum(["reply", "reply_all"] as const),
+    agent_policy: z.enum(["observe_only", "draft_for_review"] as const),
   }),
 ]);
 
@@ -401,6 +515,24 @@ export const mailboxRulesSchema = z.object({
   folders: z.array(mailboxRuleFolderSchema),
 });
 
+export const mailboxForwardingSchema = z.object({
+  object: z.literal("mailbox_forwarding"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  destination: emailSchema,
+  status: z.enum(["pending", "active"] as const),
+  verification_sent_at: z.string().nullable(),
+  verified_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const mailboxForwardingListSchema = z.object({
+  object: z.literal("mailbox_forwarding_list"),
+  mailbox_id: z.string(),
+  data: z.array(mailboxForwardingSchema).max(3),
+});
+
 export const recipientObjectSchema = z.object({
   address: emailSchema,
   name: recipientNameSchema.nullable().optional(),
@@ -428,11 +560,61 @@ export const attachmentInputSchema = z.object({
     .optional(),
 });
 
+const messageMetadataValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const messageMetadataSchema = z
+  .record(noControlString(64, "metadata key").min(1), messageMetadataValueSchema)
+  .refine((value) => Object.keys(value).length <= 20, {
+    message: "metadata must contain at most 20 keys.",
+  })
+  .refine((value) => Buffer.byteLength(JSON.stringify(value), "utf8") <= 8_192, {
+    message: "metadata must be at most 8 KB.",
+  });
+
+const sourceRfcMessageIdSchema = noControlString(998, "source_rfc_message_id").regex(
+  /^<[^<>\s@]+@[^<>\s@]+>$/,
+  "source_rfc_message_id must be an ASCII RFC Message-ID in <local@domain> form.",
+);
+
+const outboundHeaderSchema = z
+  .object({
+    name: noControlString(78, "header name").regex(/^[A-Za-z0-9-]+$/),
+    value: noControlString(998, "header value").min(1),
+  })
+  .superRefine((header, ctx) => {
+    const name = header.name.toLowerCase();
+    const allowed =
+      name === "list-unsubscribe" ||
+      name === "list-unsubscribe-post" ||
+      (name.startsWith("x-") &&
+        !name.startsWith("x-ses-") &&
+        !name.startsWith("x-sm-") &&
+        !name.startsWith("x-shipmail-"));
+    if (!allowed) {
+      ctx.addIssue({ code: "custom", message: "Header is not allowed." });
+    }
+    if (name === "list-unsubscribe-post" && header.value !== "List-Unsubscribe=One-Click") {
+      ctx.addIssue({
+        code: "custom",
+        message: "List-Unsubscribe-Post must be List-Unsubscribe=One-Click.",
+      });
+    }
+    if (name === "list-unsubscribe" && !/<https:\/\/[^>]+>/i.test(header.value)) {
+      ctx.addIssue({ code: "custom", message: "List-Unsubscribe must contain an HTTPS URL." });
+    }
+  });
+
+const outboundHeadersSchema = z.array(outboundHeaderSchema).max(20);
+
 export const messageSchema = z.object({
   object: z.literal("message"),
   id: z.string(),
   mailbox_id: z.string(),
   thread_id: z.string().nullable(),
+  source_rfc_message_id: z.string().nullable(),
+  delivered_rfc_message_id: z.string().nullable(),
+  client_reference: z.string().nullable(),
+  metadata: z.record(z.string(), messageMetadataValueSchema),
+  headers: outboundHeadersSchema,
   subject: z.string().nullable(),
   from_address: z.string().nullable(),
   to_addresses: z.array(recipientObjectSchema).nullable(),
@@ -448,6 +630,7 @@ export const messageSchema = z.object({
     )
     .nullable(),
   source: z.enum(MESSAGE_SOURCES),
+  mode: z.enum(["live", "test"] as const),
   status: z.enum(MESSAGE_STATUSES),
   scheduled_at: z.string().nullable(),
   created_at: z.string(),
@@ -484,6 +667,26 @@ export const domainVerificationSchema = z.object({
   dmarc_managed_externally: z.boolean(),
 });
 
+export const domainDnsRecordSchema = z.object({
+  key: z.enum(["mx", "spf", "mail_from_mx", "mail_from_spf", "dkim", "dmarc"] as const),
+  type: z.enum(["MX", "TXT"] as const),
+  host: z.string(),
+  value: z.string().nullable(),
+  priority: z.number().int().nullable(),
+  ttl: z.number().int().positive(),
+  status: z.enum(["verified", "not_found", "mismatch", "pending"] as const),
+  found_values: z.array(z.string()),
+});
+
+export const domainDnsRecordSetSchema = z.object({
+  object: z.literal("dns_record_set"),
+  domain_id: z.string(),
+  domain_name: z.string(),
+  all_verified: z.boolean(),
+  checked_at: z.string(),
+  records: z.array(domainDnsRecordSchema),
+});
+
 export const domainSearchResultSchema = z.object({
   domain_name: z.string(),
   available: z.boolean(),
@@ -512,13 +715,20 @@ export const webhookDeliverySchema = z.object({
   object: z.literal("webhook_delivery"),
   id: z.string(),
   event_id: z.string(),
-  event_type: z.enum(WEBHOOK_EVENT_TYPES),
+  event_type: z.enum(WEBHOOK_DELIVERY_EVENT_TYPES),
+  mode: z.enum(["live", "test"] as const),
   status: z.enum(WEBHOOK_DELIVERY_STATUSES),
   attempts: z.number(),
   last_status_code: z.number().nullable(),
   last_error: z.string().nullable(),
   created_at: z.string(),
   delivered_at: z.string().nullable(),
+});
+
+export const webhookDeliveryDetailSchema = webhookDeliverySchema.extend({
+  payload: z.unknown(),
+  next_attempt_at: z.string().nullable(),
+  replayed_from_delivery_id: z.string().nullable(),
 });
 
 export const suppressionSchema = z.object({
@@ -535,7 +745,9 @@ export const acknowledgmentSchema = z.object({
 
 export const statusOutputSchema = z.object({ status: statusSchema });
 export const domainOutputSchema = z.object({ domain: domainSchema });
+export const domainDnsRecordsOutputSchema = z.object({ dns_records: domainDnsRecordSetSchema });
 export const mailboxOutputSchema = z.object({ mailbox: mailboxSchema });
+export const mailboxExportOutputSchema = z.object({ export: mailboxExportSchema });
 export const mailboxFolderOutputSchema = z.object({ folder: mailboxFolderSchema });
 export const mailboxFoldersOutputSchema = z.object({ folders: mailboxFoldersSchema });
 export const mailboxIdentitiesOutputSchema = z.object({ identities: mailboxIdentitiesSchema });
@@ -545,6 +757,10 @@ export const inboxMessageActionOutputSchema = z.object({
   inbox_message_action: inboxMessageActionSchema,
 });
 export const mailboxRulesOutputSchema = z.object({ rules: mailboxRulesSchema });
+export const mailboxForwardingOutputSchema = z.object({ forwarding: mailboxForwardingSchema });
+export const mailboxForwardingListOutputSchema = z.object({
+  forwarding: mailboxForwardingListSchema,
+});
 export const messageOutputSchema = z.object({ message: messageSchema });
 export const webhookOutputSchema = z.object({ webhook: webhookSchema });
 export const webhookWithSecretOutputSchema = z.object({ webhook: webhookWithSecretSchema });
@@ -581,6 +797,9 @@ export const webhooksOutputSchema = z.object({
 export const webhookDeliveriesOutputSchema = z.object({
   data: z.array(webhookDeliverySchema),
   pagination: paginationSchema,
+});
+export const webhookDeliveryDetailOutputSchema = z.object({
+  webhook_delivery: webhookDeliveryDetailSchema,
 });
 export const suppressionsOutputSchema = z.object({
   data: z.array(suppressionSchema),
@@ -625,6 +844,11 @@ export const createMailboxImportInputSchema = z.object({
 export const importScopedInputSchema = z.object({
   id: idSchema,
   import_id: z.string().min(1).describe("Import ID, starts with imp_"),
+});
+
+export const mailboxExportScopedInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  export_id: idSchema.describe("Mailbox export ID, starts with mbexp_."),
 });
 
 const importCountsSchema = z.object({
@@ -713,7 +937,18 @@ export const createMailboxInputSchema = z.object({
     .min(1)
     .max(64)
     .regex(/^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/),
-  display_name: recipientNameSchema.max(200).optional(),
+  password: z
+    .string()
+    .min(8)
+    .max(128)
+    .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter.")
+    .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter.")
+    .refine((value) => /[0-9]/.test(value), "Password must include a number.")
+    .refine(
+      (value) => !COMMON_MAILBOX_PASSWORDS.has(value.toLowerCase()),
+      "This password is too common. Choose something stronger.",
+    ),
+  display_name: recipientNameSchema.max(128).optional(),
   idempotency_key: idempotencyKeySchema,
 });
 export const updateMailboxInputSchema = z.object({
@@ -757,6 +992,15 @@ export const updateMailboxRulesInputSchema = z.object({
   id: idSchema,
   rules: z.array(mailboxRuleSchema).max(50),
   idempotency_key: idempotencyKeySchema,
+});
+export const createMailboxForwardingInputSchema = z.object({
+  id: idSchema,
+  destination: emailSchema,
+  idempotency_key: idempotencyKeySchema,
+});
+export const deleteMailboxForwardingInputSchema = z.object({
+  id: idSchema,
+  forwarding_id: idSchema,
 });
 export const autoReplyInputSchema = z
   .object({
@@ -829,9 +1073,14 @@ export const deleteInboxMessageInputSchema = z.object({
   idempotency_key: idempotencyKeySchema,
 });
 
-export const listMessagesInputSchema = paginationInputSchema.extend({
-  mailbox_id: idSchema,
-});
+export const listMessagesInputSchema = paginationInputSchema
+  .extend({
+    mailbox_id: idSchema.optional(),
+    client_reference: noControlString(255, "client_reference").min(1).optional(),
+  })
+  .refine((value) => Boolean(value.mailbox_id || value.client_reference), {
+    message: "Provide mailbox_id or client_reference.",
+  });
 export const sendMessageInputSchema = z
   .object({
     mailbox_id: idSchema.describe(
@@ -847,7 +1096,12 @@ export const sendMessageInputSchema = z
     in_reply_to: noControlString(998, "in_reply_to").optional(),
     references: z.array(noControlString(998, "references")).max(50).optional(),
     attachments: z.array(attachmentInputSchema).max(10).optional(),
+    client_reference: noControlString(255, "client_reference").min(1).optional(),
+    metadata: messageMetadataSchema.optional(),
+    source_rfc_message_id: sourceRfcMessageIdSchema.optional(),
+    headers: outboundHeadersSchema.optional(),
     scheduled_at: z.iso.datetime().optional(),
+    sandbox_outcome: z.enum(["delivered", "bounced", "complained"] as const).optional(),
     idempotency_key: idempotencyKeySchema,
   })
   .refine((value) => Boolean(value.html || value.text), {
@@ -860,7 +1114,32 @@ export const replyToMessageInputSchema = z
     cc: z.array(recipientInputSchema).max(50).optional(),
     html: z.string().max(512_000).optional(),
     text: z.string().max(256_000).optional(),
+    client_reference: noControlString(255, "client_reference").min(1).optional(),
+    metadata: messageMetadataSchema.optional(),
+    source_rfc_message_id: sourceRfcMessageIdSchema.optional(),
+    headers: outboundHeadersSchema.optional(),
     scheduled_at: z.iso.datetime().optional(),
+    sandbox_outcome: z.enum(["delivered", "bounced", "complained"] as const).optional(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine((value) => Boolean(value.html || value.text), {
+    message: "At least one of html or text is required.",
+  });
+
+export const injectSandboxInboundInputSchema = z
+  .object({
+    id: idSchema.describe("Logical mailbox ID."),
+    from: recipientInputSchema,
+    to: z.array(recipientInputSchema).max(50).optional(),
+    cc: z.array(recipientInputSchema).max(50).optional(),
+    subject: noControlString(998, "subject").min(1),
+    text: z.string().max(256_000).optional(),
+    html: z.string().max(512_000).optional(),
+    message_id: sourceRfcMessageIdSchema.optional(),
+    in_reply_to: sourceRfcMessageIdSchema.optional(),
+    references: z.array(sourceRfcMessageIdSchema).max(50).optional(),
+    received_at: z.iso.datetime().optional(),
+    headers: outboundHeadersSchema.optional(),
     idempotency_key: idempotencyKeySchema,
   })
   .refine((value) => Boolean(value.html || value.text), {
@@ -879,6 +1158,7 @@ export const replyToThreadInputSchema = z
     html: z.string().max(512_000).optional(),
     text: z.string().max(256_000).optional(),
     scheduled_at: z.iso.datetime().optional(),
+    sandbox_outcome: z.enum(["delivered", "bounced", "complained"] as const).optional(),
     idempotency_key: idempotencyKeySchema,
   })
   .refine((value) => Boolean(value.html || value.text), {
@@ -918,8 +1198,861 @@ export const listWebhookDeliveriesInputSchema = paginationInputSchema.extend({
   status: webhookDeliveryStatusSchema.optional(),
   event_type: webhookEventSchema.optional(),
 });
+export const getWebhookDeliveryInputSchema = z.object({
+  id: idSchema.describe("Webhook ID."),
+  delivery_id: idSchema.describe("Webhook delivery ID."),
+});
+export const replayWebhookDeliveryInputSchema = getWebhookDeliveryInputSchema.extend({
+  idempotency_key: idempotencyKeySchema,
+});
 
 export const listSuppressionsInputSchema = paginationInputSchema;
 export const removeSuppressionInputSchema = z.object({
   email: emailSchema,
+});
+
+// --- Audiences / subscribers -------------------------------------------------
+
+const SUBSCRIBER_STATUSES = [
+  "subscribed",
+  "pending",
+  "unsubscribed",
+  "bounced",
+  "complained",
+  "suppressed",
+  "transactional_only",
+] as const;
+const SUBSCRIBER_OUTCOMES = [
+  "created",
+  "updated",
+  "skipped_not_mailable",
+  "skipped_invalid",
+  "skipped_cap",
+  "skipped_quota",
+] as const;
+
+const mergeFieldsSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean(), z.null()]),
+);
+
+const mergeFieldsInputSchema = z
+  .record(
+    noControlString(64, "merge field key"),
+    z.union([noControlString(500, "merge field value"), z.number(), z.boolean(), z.null()]),
+  )
+  .refine((value) => Object.keys(value).length <= 50, {
+    message: "At most 50 merge fields are allowed.",
+  });
+
+export const audienceSchema = z.object({
+  object: z.literal("audience"),
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  member_count: z.number(),
+  subscribed_count: z.number(),
+  consent_source: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const subscriberSchema = z.object({
+  object: z.literal("subscriber"),
+  id: z.string(),
+  audience_id: z.string(),
+  email_address: z.string(),
+  display_name: z.string().nullable(),
+  status: z.enum(SUBSCRIBER_STATUSES),
+  merge_fields: mergeFieldsSchema,
+  consent_source: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const subscriberResultSchema = z.object({
+  email_address: z.string(),
+  outcome: z.enum(SUBSCRIBER_OUTCOMES),
+});
+
+export const audienceOutputSchema = z.object({ audience: audienceSchema });
+export const audiencesOutputSchema = z.object({
+  data: z.array(audienceSchema),
+  pagination: paginationSchema,
+});
+export const subscriberOutputSchema = z.object({ subscriber: subscriberSchema });
+export const subscribersOutputSchema = z.object({
+  data: z.array(subscriberSchema),
+  pagination: paginationSchema,
+});
+export const subscriberResultOutputSchema = subscriberResultSchema;
+export const subscribersBatchOutputSchema = z.object({
+  results: z.array(subscriberResultSchema),
+});
+
+export const listAudiencesInputSchema = paginationInputSchema;
+
+export const createAudienceInputSchema = z.object({
+  name: noControlString(200, "name").min(1).describe("Audience name."),
+  description: noControlString(2000, "description").nullish().describe("Optional description."),
+  consent_source: noControlString(500, "consent_source")
+    .min(1)
+    .describe("Where and how these people opted in. This is a required consent attestation."),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const updateAudienceInputSchema = z.object({
+  id: idSchema,
+  name: noControlString(200, "name").min(1).optional(),
+  description: noControlString(2000, "description").nullish(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const listSubscribersInputSchema = paginationInputSchema.extend({
+  audience_id: idSchema.describe("Audience ID."),
+  status: z.enum(SUBSCRIBER_STATUSES).optional().describe("Filter by subscriber status."),
+  email: emailSchema.optional().describe("Filter to an exact email address."),
+});
+
+const subscriberFieldsSchema = z.object({
+  email_address: emailSchema,
+  display_name: noControlString(200, "display_name").nullish(),
+  merge_fields: mergeFieldsInputSchema.optional(),
+  consent_source: noControlString(500, "consent_source").nullish(),
+  consent_ip: noControlString(64, "consent_ip").nullish(),
+});
+
+export const addSubscriberInputSchema = subscriberFieldsSchema.extend({
+  audience_id: idSchema.describe("Audience ID."),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const addSubscribersBatchInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  subscribers: z.array(subscriberFieldsSchema).min(1).max(1000),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const getSubscriberInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  subscriber_id: idSchema.describe("Subscriber ID."),
+});
+
+export const getSubscriberByEmailInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  email: emailSchema,
+});
+
+export const updateSubscriberInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  subscriber_id: idSchema.describe("Subscriber ID."),
+  display_name: noControlString(200, "display_name").nullish(),
+  merge_fields: mergeFieldsInputSchema.optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const subscriberActionInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  subscriber_id: idSchema.describe("Subscriber ID."),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const resubscribeSubscriberInputSchema = subscriberActionInputSchema.extend({
+  consent_source: noControlString(500, "consent_source")
+    .min(1)
+    .describe("Where and how this subscriber opted in again."),
+});
+
+// --- Newsletters -------------------------------------------------------------
+
+export const newsletterDomainSchema = z.object({
+  object: z.literal("newsletter_domain"),
+  id: z.string(),
+  root_domain_id: z.string(),
+  domain_name: z.string(),
+  from_local_part: z.string(),
+  from_address: z.string(),
+  mail_from_domain: z.string(),
+  reply_to_mailbox_id: z.string().nullable(),
+  status: z.enum(NEWSLETTER_DOMAIN_STATUSES),
+  dkim_status: z.enum(NEWSLETTER_DOMAIN_RECORD_STATUSES),
+  mail_from_status: z.enum(NEWSLETTER_DOMAIN_RECORD_STATUSES),
+  spf_status: z.enum(NEWSLETTER_DOMAIN_RECORD_STATUSES),
+  dmarc_status: z.enum(NEWSLETTER_DOMAIN_RECORD_STATUSES),
+  verified_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const newsletterSchema = z.object({
+  object: z.literal("newsletter"),
+  id: z.string(),
+  audience_id: z.string().nullable(),
+  newsletter_domain_id: z.string(),
+  reply_to_mailbox_id: z.string().nullable(),
+  name: z.string(),
+  subject: z.string().nullable(),
+  preview_text: z.string().nullable(),
+  from_name: z.string().nullable(),
+  from_address: z.string(),
+  reply_to_address: z.string().nullable(),
+  blocks: z.array(z.lazy(() => newsletterBlockInputSchema)).nullable(),
+  body_html: z.string().nullable(),
+  body_text: z.string().nullable(),
+  status: z.enum(NEWSLETTER_STATUSES),
+  archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES),
+  preflight_status: z.enum(NEWSLETTER_PREFLIGHT_STATUSES),
+  preflight_results: z.record(z.string(), z.unknown()),
+  send_window_hours: z.number().int(),
+  send_rate_per_hour: z.number().int(),
+  recipient_count: z.number().int(),
+  sent_count: z.number().int(),
+  delivered_count: z.number().int(),
+  bounced_count: z.number().int(),
+  complained_count: z.number().int(),
+  failed_count: z.number().int(),
+  skipped_count: z.number().int(),
+  last_test_sent_at: z.string().nullable(),
+  last_test_recipient: z.string().nullable(),
+  content_changed_since_test_send: z.boolean(),
+  scheduled_at: z.string().nullable(),
+  approved_at: z.string().nullable(),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+  cancelled_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const newsletterPreflightItemSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(NEWSLETTER_PREFLIGHT_ITEM_STATUSES),
+  message: z.string(),
+});
+
+export const newsletterUrlBreakdownSchema = z.object({
+  href_count: z.number().int(),
+  image_src_count: z.number().int(),
+  video_href_count: z.number().int(),
+  text_url_count: z.number().int(),
+  unique_url_count: z.number().int(),
+  max_unique_urls: z.number().int(),
+  urls: z.array(
+    z.object({
+      url: z.string(),
+      source: z.enum(["href", "image_src", "video_href", "text"]),
+    }),
+  ),
+  offending_urls: z.array(z.string()),
+});
+
+export const newsletterPreflightSchema = z.object({
+  object: z.literal("newsletter_preflight"),
+  newsletter_id: z.string(),
+  status: z.enum(NEWSLETTER_PREFLIGHT_STATUSES),
+  items: z.array(newsletterPreflightItemSchema),
+  url_breakdown: newsletterUrlBreakdownSchema,
+});
+
+export const newsletterPreviewSchema = z.object({
+  object: z.literal("newsletter_preview"),
+  newsletter_id: z.string(),
+  html: z.string(),
+  archive_html: z.string(),
+  text: z.string(),
+  warnings: z.array(
+    z.object({
+      kind: z.string(),
+      severity: z.enum(["fail", "warn"]),
+      message: z.string(),
+    }),
+  ),
+  url_breakdown: newsletterUrlBreakdownSchema,
+});
+
+export const newsletterTestSendSchema = z.object({
+  object: z.literal("newsletter_test_send"),
+  id: z.string(),
+  newsletter_id: z.string(),
+  message_id: z.string().nullable(),
+  recipient_email: z.string(),
+  status: z.enum(NEWSLETTER_TEST_SEND_STATUSES),
+  last_error: z.string().nullable(),
+  sent_at: z.string().nullable(),
+  created_at: z.string(),
+});
+
+export const newsletterAssetSchema = z.object({
+  object: z.literal("newsletter_asset"),
+  id: z.string(),
+  kind: z.enum(["image", "video"]),
+  filename: z.string(),
+  content_type: z.string(),
+  byte_size: z.number().int(),
+  checksum_sha256: z.string(),
+  url: z.string(),
+  image_url: z.string().nullable(),
+  video_url: z.string().nullable(),
+  thumbnail_url: z.string().nullable(),
+  thumbnail_content_type: z.string().nullable(),
+  thumbnail_byte_size: z.number().int().nullable(),
+  duration_seconds: z.number().nullable(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  created_at: z.string(),
+});
+
+export const newsletterAssetStorageUsageSchema = z.object({
+  used_bytes: z.number().int(),
+  limit_bytes: z.number().int(),
+  remaining_bytes: z.number().int(),
+  over_limit: z.boolean(),
+  plan: z.string(),
+  is_in_trial: z.boolean(),
+  next_upgrade: z
+    .object({
+      plan: z.string(),
+      storage_bytes: z.number().int(),
+    })
+    .nullable(),
+});
+
+export const newsletterOutputSchema = z.object({ newsletter: newsletterSchema });
+export const newsletterAssetOutputSchema = z.object({ asset: newsletterAssetSchema });
+export const newsletterAssetsOutputSchema = z.object({
+  data: z.array(newsletterAssetSchema),
+  pagination: paginationSchema,
+  storage: newsletterAssetStorageUsageSchema,
+});
+export const newsletterDomainsOutputSchema = z.object({
+  data: z.array(newsletterDomainSchema),
+  pagination: paginationSchema,
+});
+export const newslettersOutputSchema = z.object({
+  data: z.array(newsletterSchema),
+  pagination: paginationSchema,
+});
+export const newsletterPreflightOutputSchema = z.object({
+  preflight: newsletterPreflightSchema,
+});
+export const newsletterPreviewOutputSchema = z.object({
+  preview: newsletterPreviewSchema,
+});
+export const newsletterTestSendOutputSchema = z.object({
+  test_send: newsletterTestSendSchema,
+});
+
+const newsletterBlockTextSchema = noControlString(10_000, "newsletter block text").min(1);
+const newsletterBlockOptionalTextSchema = noControlString(
+  10_000,
+  "newsletter block text",
+).nullish();
+const newsletterCalloutVariantSchema = z.enum(["accent", "info", "warning", "success"]);
+const newsletterColumnRatioSchema = z.enum(["50-50", "33-67", "67-33"]);
+const newsletterButtonAlignSchema = z.enum(["left", "center", "right"]);
+
+const newsletterColumnContentInputSchema = z.object({
+  title: newsletterBlockOptionalTextSchema,
+  body: newsletterBlockTextSchema,
+  image_url: publicHttpsUrlSchema.nullish(),
+  image_alt: newsletterBlockOptionalTextSchema,
+  cta_label: newsletterBlockOptionalTextSchema,
+  cta_url: newsletterLinkUrlSchema.nullish(),
+});
+
+const newsletterBlockInputSchema: z.ZodType<NewsletterBlock> = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("heading"),
+    text: newsletterBlockTextSchema,
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  }),
+  z.object({
+    type: z.literal("paragraph"),
+    body: newsletterBlockTextSchema,
+  }),
+  z.object({
+    type: z.literal("list"),
+    ordered: z.boolean().optional(),
+    items: z.array(newsletterBlockTextSchema).min(1).max(50),
+  }),
+  z.object({
+    type: z.literal("callout"),
+    title: newsletterBlockOptionalTextSchema,
+    body: newsletterBlockTextSchema,
+    variant: newsletterCalloutVariantSchema.optional(),
+  }),
+  z.object({
+    type: z.literal("button"),
+    label: newsletterBlockTextSchema.max(120),
+    url: newsletterLinkUrlSchema,
+    align: newsletterButtonAlignSchema.optional(),
+  }),
+  z.object({
+    type: z.literal("image"),
+    url: publicHttpsUrlSchema,
+    alt: newsletterBlockTextSchema.max(300),
+    link_url: newsletterLinkUrlSchema.nullish(),
+    caption: newsletterBlockOptionalTextSchema,
+    caption_url: newsletterLinkUrlSchema.nullish(),
+  }),
+  z.object({
+    type: z.literal("video"),
+    video_url: newsletterVideoUrlSchema,
+    thumbnail_url: publicHttpsUrlSchema,
+    label: newsletterBlockTextSchema.max(160),
+  }),
+  z.object({
+    type: z.literal("columns"),
+    ratio: newsletterColumnRatioSchema.optional(),
+    left: newsletterColumnContentInputSchema,
+    right: newsletterColumnContentInputSchema,
+  }),
+  z.object({
+    type: z.literal("link_list"),
+    title: newsletterBlockOptionalTextSchema,
+    items: z
+      .array(
+        z.object({
+          label: newsletterBlockTextSchema.max(180),
+          url: newsletterLinkUrlSchema,
+          description: newsletterBlockOptionalTextSchema,
+        }),
+      )
+      .min(1)
+      .max(20),
+  }),
+  z.object({
+    type: z.literal("quote"),
+    body: newsletterBlockTextSchema,
+    cite: newsletterBlockOptionalTextSchema,
+  }),
+  z.object({
+    type: z.literal("divider"),
+  }),
+  z.object({
+    type: z.literal("spacer"),
+    height: z.number().int().min(8).max(80).optional(),
+  }),
+  z.object({
+    type: z.literal("code"),
+    code: newsletterBlockTextSchema,
+  }),
+  z.object({
+    type: z.literal("custom_html"),
+    html: z.string().trim().min(1).max(250_000),
+  }),
+]);
+
+const newsletterDraftFieldsInputSchema = {
+  audience_id: idSchema.describe("Audience ID."),
+  newsletter_domain_id: idSchema.describe("Newsletter sending domain ID."),
+  name: noControlString(160, "name").min(1).describe("Internal newsletter draft name."),
+  subject: noControlString(200, "subject").min(1).describe("Email subject line."),
+  preview_text: noControlString(240, "preview_text").nullish(),
+  from_name: noControlString(120, "from_name").nullish(),
+  body_html: z.string().max(250_000).nullish(),
+  body_text: z.string().max(250_000).nullish(),
+  blocks: z.array(newsletterBlockInputSchema).min(1).max(200).optional(),
+  send_window_hours: z.number().int().min(1).max(24).optional(),
+  archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES).optional(),
+} as const;
+
+export const createNewsletterInputSchema = z
+  .object({
+    ...newsletterDraftFieldsInputSchema,
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine(
+    (value) => Boolean(value.blocks?.length || value.body_html?.trim() || value.body_text?.trim()),
+    {
+      message: "At least one of blocks, body_html, or body_text is required.",
+    },
+  );
+
+const newsletterChangelogMediaInputSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("image"),
+    url: publicHttpsUrlSchema,
+    alt: noControlString(300, "alt").min(1),
+    caption: noControlString(500, "caption").nullish(),
+    link_url: newsletterLinkUrlSchema.nullish(),
+  }),
+  z.object({
+    kind: z.literal("video"),
+    video_url: newsletterVideoUrlSchema,
+    thumbnail_url: publicHttpsUrlSchema,
+    label: noControlString(160, "label").min(1),
+  }),
+]);
+
+export const createNewsletterFromChangelogInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+  newsletter_domain_id: idSchema.describe("Newsletter sending domain ID."),
+  name: noControlString(160, "name").min(1).describe("Internal newsletter draft name."),
+  subject: noControlString(200, "subject").min(1).describe("Email subject line."),
+  preview_text: noControlString(240, "preview_text").nullish(),
+  from_name: noControlString(120, "from_name").nullish(),
+  tone: z.enum(["concise", "friendly", "technical"]).default("concise"),
+  entries: z
+    .array(
+      z.object({
+        title: noControlString(180, "title").min(1),
+        body: noControlString(5000, "body").nullish(),
+        url: newsletterLinkUrlSchema.nullish(),
+        media: z.array(newsletterChangelogMediaInputSchema).max(6).optional(),
+        cta_label: noControlString(120, "cta_label").nullish(),
+        cta_url: newsletterLinkUrlSchema.nullish(),
+      }),
+    )
+    .min(1)
+    .max(40),
+  final_cta: z
+    .object({
+      label: noControlString(120, "label").min(1),
+      url: newsletterLinkUrlSchema,
+      body: noControlString(1000, "body").nullish(),
+    })
+    .optional(),
+  send_window_hours: z.number().int().min(1).max(24).optional(),
+  archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES).optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const updateNewsletterInputSchema = z
+  .object({
+    id: idSchema.describe("Newsletter ID."),
+    audience_id: newsletterDraftFieldsInputSchema.audience_id.optional(),
+    newsletter_domain_id: newsletterDraftFieldsInputSchema.newsletter_domain_id.optional(),
+    name: newsletterDraftFieldsInputSchema.name.optional(),
+    subject: newsletterDraftFieldsInputSchema.subject.optional(),
+    preview_text: newsletterDraftFieldsInputSchema.preview_text,
+    from_name: newsletterDraftFieldsInputSchema.from_name,
+    body_html: newsletterDraftFieldsInputSchema.body_html,
+    body_text: newsletterDraftFieldsInputSchema.body_text,
+    blocks: newsletterDraftFieldsInputSchema.blocks,
+    send_window_hours: newsletterDraftFieldsInputSchema.send_window_hours,
+    archive_visibility: newsletterDraftFieldsInputSchema.archive_visibility,
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine(
+    (value) =>
+      value.audience_id !== undefined ||
+      value.newsletter_domain_id !== undefined ||
+      value.name !== undefined ||
+      value.subject !== undefined ||
+      value.preview_text !== undefined ||
+      value.from_name !== undefined ||
+      value.body_html !== undefined ||
+      value.body_text !== undefined ||
+      value.blocks !== undefined ||
+      value.send_window_hours !== undefined ||
+      value.archive_visibility !== undefined,
+    {
+      message: "Provide at least one newsletter field to update.",
+    },
+  );
+
+export const listNewslettersInputSchema = paginationInputSchema;
+export const listNewsletterAssetsInputSchema = paginationInputSchema.extend({
+  kind: z.enum(["image", "video"]).optional(),
+  q: z.string().max(120).optional(),
+});
+export const registerNewsletterAssetInputSchema = z.object({
+  url: z.string().url().describe("A Shipmail-hosted newsletter image or video URL to register."),
+  filename: z.string().max(255).optional().describe("Optional display filename for the asset."),
+  thumbnail_url: z
+    .string()
+    .url()
+    .optional()
+    .describe("For a video, its Shipmail-hosted thumbnail image URL."),
+  idempotency_key: idempotencyKeySchema,
+});
+export const previewNewsletterInputSchema = z.object({
+  id: idSchema.describe("Newsletter ID."),
+});
+export const sendNewsletterTestInputSchema = z.object({
+  id: idSchema.describe("Newsletter ID."),
+  recipient_email: emailSchema,
+  idempotency_key: idempotencyKeySchema,
+});
+export const scheduleNewsletterInputSchema = z.object({
+  id: idSchema.describe("Newsletter ID."),
+  scheduled_at: z.iso.datetime().describe("ISO 8601 scheduled send time."),
+  idempotency_key: idempotencyKeySchema,
+});
+
+// --- Calendar ---
+
+const CALENDAR_EVENT_STATUSES = ["confirmed", "tentative", "cancelled"] as const;
+const CALENDAR_FREE_BUSY_STATUSES = ["free", "busy"] as const;
+const CALENDAR_PRIVACIES = ["public", "private", "secret"] as const;
+const RECURRENCE_FREQUENCIES = [
+  "yearly",
+  "monthly",
+  "weekly",
+  "daily",
+  "hourly",
+  "minutely",
+  "secondly",
+] as const;
+const WEEKDAYS = ["mo", "tu", "we", "th", "fr", "sa", "su"] as const;
+
+// A local date-time with no offset, e.g. "2026-07-10T14:00:00".
+const localDateTimeSchema = z
+  .string()
+  .regex(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/,
+    "Must be a local date-time (YYYY-MM-DDTHH:MM:SS).",
+  );
+// An ISO 8601 duration, e.g. "PT1H", "P1D".
+const isoDurationSchema = z.string().regex(/^[-+]?P/, "Must be an ISO 8601 duration (e.g. PT1H).");
+// A UTC instant for time-range queries.
+const utcInstantSchema = z.string().min(1).max(64).describe("UTC instant (ISO 8601).");
+const ianaTimeZoneSchema = z.string().min(1).max(64).describe("IANA time zone.");
+
+export const recurrenceNDaySchema = z.object({
+  day: z.enum(WEEKDAYS),
+  nth_of_period: z.number().int().optional(),
+});
+
+export const recurrenceSchema = z.object({
+  frequency: z.enum(RECURRENCE_FREQUENCIES),
+  interval: z.number().int().min(1).optional(),
+  count: z.number().int().min(1).optional(),
+  until: z.string().optional(),
+  by_day: z.array(recurrenceNDaySchema).optional(),
+});
+
+export const reminderSchema = z.object({
+  minutes_before: z.number().int().min(0),
+});
+
+const calendarPersonSchema = z.object({ email: z.string(), name: z.string().nullable() });
+const calendarAttendeeSchema = calendarPersonSchema.extend({
+  status: z.enum(["needs-action", "accepted", "declined", "tentative"]),
+});
+
+export const calendarEventSchema = z.object({
+  object: z.literal("calendar_event"),
+  id: z.string(),
+  mailbox: z.string(),
+  calendar_id: z.string().nullable(),
+  uid: z.string().nullable(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  location: z.string().nullable(),
+  video_url: z.string().nullable(),
+  all_day: z.boolean(),
+  start: z.string(),
+  end: z.string(),
+  timezone: z.string().nullable(),
+  duration: z.string().nullable(),
+  status: z.enum(CALENDAR_EVENT_STATUSES).nullable(),
+  free_busy_status: z.enum(CALENDAR_FREE_BUSY_STATUSES).nullable(),
+  privacy: z.enum(CALENDAR_PRIVACIES).nullable(),
+  color: z.string().nullable(),
+  recurrence: recurrenceSchema.nullable(),
+  recurrence_id: z.string().nullable(),
+  reminders: z.array(reminderSchema),
+  organizer: calendarPersonSchema.nullable(),
+  attendees: z.array(calendarAttendeeSchema),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
+});
+
+export const calendarAvailabilitySlotSchema = z.object({
+  start: z.string(),
+  end: z.string(),
+});
+
+export const calendarAvailabilitySchema = z.object({
+  object: z.literal("calendar_availability"),
+  mailbox: z.string(),
+  from: z.string(),
+  to: z.string(),
+  duration_minutes: z.number(),
+  timezone: z.string(),
+  slots: z.array(calendarAvailabilitySlotSchema),
+});
+
+export const bookingPageSchema = z.object({
+  object: z.literal("booking_page"),
+  id: z.string(),
+  mailbox: z.string(),
+  slug: z.string(),
+  url: z.string().nullable(),
+  name: z.string(),
+  description: z.string().nullable(),
+  duration_minutes: z.number(),
+  availability_days: z.array(z.number()),
+  window_start_minutes: z.number(),
+  window_end_minutes: z.number(),
+  timezone: z.string(),
+  buffer_minutes: z.number(),
+  minimum_notice_minutes: z.number(),
+  max_advance_days: z.number(),
+  active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const calendarEventOutputSchema = z.object({ event: calendarEventSchema });
+export const calendarEventsOutputSchema = z.object({
+  data: z.array(calendarEventSchema),
+  pagination: paginationSchema,
+});
+export const calendarAvailabilityOutputSchema = z.object({
+  availability: calendarAvailabilitySchema,
+});
+export const bookingPageOutputSchema = z.object({ booking_page: bookingPageSchema });
+export const bookingPagesOutputSchema = z.object({
+  data: z.array(bookingPageSchema),
+  pagination: paginationSchema,
+});
+
+const recurrenceInputSchema = z.object({
+  frequency: z.enum(RECURRENCE_FREQUENCIES),
+  interval: z.number().int().min(1).optional(),
+  count: z.number().int().min(1).optional(),
+  until: localDateTimeSchema.optional(),
+  by_day: z
+    .array(z.object({ day: z.enum(WEEKDAYS), nth_of_period: z.number().int().optional() }))
+    .max(7)
+    .optional(),
+});
+
+const reminderInputSchema = z.object({
+  minutes_before: z.number().int().min(0).max(40_320),
+});
+
+const attendeeInputSchema = z.object({
+  email: emailSchema,
+  name: noControlString(255, "attendee name").optional(),
+});
+
+const mailboxAddressInputSchema = emailSchema.describe("The mailbox (calendar owner) address.");
+
+export const listCalendarEventsInputSchema = paginationInputSchema.extend({
+  mailbox: mailboxAddressInputSchema,
+  from: utcInstantSchema.describe("Start of the time range (UTC instant)."),
+  to: utcInstantSchema.describe("End of the time range (UTC instant)."),
+  expand: z.boolean().optional().describe("Expand recurring events into individual instances."),
+  calendar_id: calendarIdInputSchema.optional().describe("Restrict to a single calendar."),
+});
+
+export const getCalendarEventInputSchema = z.object({
+  id: calendarEventIdInputSchema.describe("Calendar event ID."),
+  mailbox: mailboxAddressInputSchema,
+});
+
+export const deleteCalendarEventInputSchema = z.object({
+  id: calendarEventIdInputSchema.describe("Calendar event ID."),
+  mailbox: mailboxAddressInputSchema,
+});
+
+export const createCalendarEventInputSchema = z.object({
+  mailbox: mailboxAddressInputSchema,
+  calendar_id: calendarIdInputSchema
+    .optional()
+    .describe("Target calendar. Defaults to the default calendar."),
+  title: noControlString(1024, "title").min(1),
+  start: localDateTimeSchema.describe("Local date-time; its zone is given by timezone."),
+  description: noControlString(32768, "description").optional(),
+  timezone: ianaTimeZoneSchema.optional(),
+  duration: isoDurationSchema.optional().describe("ISO 8601 duration, e.g. PT1H."),
+  all_day: z.boolean().optional(),
+  location: noControlString(1024, "location").optional(),
+  video_url: z.string().max(2048).optional(),
+  color: noControlString(64, "color").optional(),
+  status: z.enum(CALENDAR_EVENT_STATUSES).optional(),
+  free_busy_status: z.enum(CALENDAR_FREE_BUSY_STATUSES).optional(),
+  privacy: z.enum(CALENDAR_PRIVACIES).optional(),
+  recurrence: recurrenceInputSchema.optional(),
+  reminders: z.array(reminderInputSchema).max(5).optional(),
+  attendees: z.array(attendeeInputSchema).max(50).optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const updateCalendarEventInputSchema = z.object({
+  id: calendarEventIdInputSchema.describe("Calendar event ID."),
+  mailbox: mailboxAddressInputSchema,
+  title: noControlString(1024, "title").min(1).optional(),
+  description: noControlString(32768, "description").nullish(),
+  start: localDateTimeSchema.optional(),
+  timezone: ianaTimeZoneSchema.nullish(),
+  duration: isoDurationSchema.optional(),
+  all_day: z.boolean().optional(),
+  location: noControlString(1024, "location").nullish(),
+  video_url: z.string().max(2048).nullish(),
+  color: noControlString(64, "color").optional(),
+  status: z.enum(CALENDAR_EVENT_STATUSES).optional(),
+  free_busy_status: z.enum(CALENDAR_FREE_BUSY_STATUSES).optional(),
+  privacy: z.enum(CALENDAR_PRIVACIES).optional(),
+  recurrence: recurrenceInputSchema.nullish(),
+  reminders: z.array(reminderInputSchema).max(5).nullish(),
+  attendees: z.array(attendeeInputSchema).max(50).optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const calendarAvailabilityInputSchema = z.object({
+  mailbox: mailboxAddressInputSchema,
+  from: utcInstantSchema.describe("Start of the range (UTC instant)."),
+  to: utcInstantSchema.describe("End of the range (UTC instant)."),
+  duration: z.number().int().min(5).max(480).default(30).describe("Meeting length in minutes."),
+  interval: z.number().int().min(5).max(480).optional().describe("Step between slot starts."),
+  timezone: ianaTimeZoneSchema.optional().describe("Zone the window is defined in (default UTC)."),
+  days: z
+    .array(z.number().int().min(0).max(6))
+    .max(7)
+    .optional()
+    .describe("Weekdays offered, 0=Sunday..6=Saturday (default Mon-Fri)."),
+  window_start: z.number().int().min(0).max(1440).optional().describe("Minutes from midnight."),
+  window_end: z.number().int().min(0).max(1440).optional().describe("Minutes from midnight."),
+  buffer: z.number().int().min(0).max(240).optional(),
+  minimum_notice: z.number().int().min(0).optional(),
+});
+
+export const listBookingPagesInputSchema = paginationInputSchema;
+export const bookingPageByIdInputSchema = z.object({ id: idSchema.describe("Booking page ID.") });
+
+const bookingSlugSchema = z
+  .string()
+  .min(1)
+  .max(48)
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "Slug must be lowercase letters, numbers, hyphens.");
+
+export const createBookingPageInputSchema = z.object({
+  name: noControlString(120, "name").min(1),
+  mailbox: mailboxAddressInputSchema,
+  slug: bookingSlugSchema,
+  duration_minutes: z.number().int().min(5).max(480),
+  availability_days: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+  window_start_minutes: z.number().int().min(0).max(1440),
+  window_end_minutes: z.number().int().min(0).max(1440),
+  timezone: ianaTimeZoneSchema,
+  description: noControlString(2000, "description").nullish(),
+  buffer_minutes: z.number().int().min(0).max(240).optional(),
+  minimum_notice_minutes: z.number().int().min(0).optional(),
+  max_advance_days: z.number().int().min(1).max(365).optional(),
+  active: z.boolean().optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const updateBookingPageInputSchema = z.object({
+  id: idSchema.describe("Booking page ID."),
+  name: noControlString(120, "name").min(1).optional(),
+  mailbox: mailboxAddressInputSchema.optional(),
+  slug: bookingSlugSchema.optional(),
+  duration_minutes: z.number().int().min(5).max(480).optional(),
+  availability_days: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+  window_start_minutes: z.number().int().min(0).max(1440).optional(),
+  window_end_minutes: z.number().int().min(0).max(1440).optional(),
+  timezone: ianaTimeZoneSchema.optional(),
+  description: noControlString(2000, "description").nullish(),
+  buffer_minutes: z.number().int().min(0).max(240).optional(),
+  minimum_notice_minutes: z.number().int().min(0).optional(),
+  max_advance_days: z.number().int().min(1).max(365).optional(),
+  active: z.boolean().optional(),
+  idempotency_key: idempotencyKeySchema,
 });
