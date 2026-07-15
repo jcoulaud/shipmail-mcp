@@ -64,6 +64,7 @@ function bookingPayload() {
     buffer_minutes: 0,
     minimum_notice_minutes: 0,
     max_advance_days: 30,
+    conferencing_provider: "google_meet",
     active: true,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
@@ -190,12 +191,25 @@ describe("calendar + booking MCP tools", () => {
         window_start_minutes: 540,
         window_end_minutes: 1020,
         timezone: "America/New_York",
+        conferencing_provider: "google_meet",
       },
     });
     expect(result.isError).toBeFalsy();
     expect(new URL(captured[0]?.url ?? "").pathname).toBe("/api/v1/booking-pages");
+    expect(captured[0]?.body).toMatchObject({ conferencing_provider: "google_meet" });
     const sc = (result.structuredContent ?? {}) as { booking_page?: { id?: string } };
     expect(sc.booking_page?.id).toBe("bkp_1");
+  });
+
+  test("update_booking_page clears conferencing with null", async () => {
+    const client = await buildPair(() => bookingPayload());
+    const result = await client.callTool({
+      name: "shipmail_update_booking_page",
+      arguments: { id: "bkp_1", conferencing_provider: null },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(captured[0]?.method).toBe("PATCH");
+    expect(captured[0]?.body).toEqual({ conferencing_provider: null });
   });
 
   test("delete_calendar_event issues DELETE with mailbox and returns ok", async () => {

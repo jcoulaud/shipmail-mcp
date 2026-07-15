@@ -10,6 +10,7 @@
 // `KeysMatch` from sdk-alignment.test.ts.
 import { describe, test } from "bun:test";
 import type {
+  CreateBookingPageParams,
   CreateDomainParams,
   CreateMailboxFolderParams,
   CreateMailboxParams,
@@ -27,6 +28,7 @@ import type {
   SendMessageParams,
   SendNewsletterTestParams,
   UpdateAutoReplyParams,
+  UpdateBookingPageParams,
   UpdateDomainParams,
   UpdateInboxMessageParams,
   UpdateMailboxFolderParams,
@@ -40,6 +42,7 @@ import type { z } from "zod/v4";
 
 import type {
   autoReplyInputSchema,
+  createBookingPageInputSchema,
   createDomainInputSchema,
   createMailboxFolderInputSchema,
   createMailboxInputSchema,
@@ -57,6 +60,7 @@ import type {
   sendMessageInputSchema,
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
+  updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
@@ -93,6 +97,12 @@ type AssertTrue<T extends true> = T;
 // One assertion per (SDK request type, MCP input schema) pair.
 type _CreateDomain = AssertTrue<
   KeysMatch<CreateDomainParams, StripMcpOnly<z.infer<typeof createDomainInputSchema>>>
+>;
+type _CreateBookingPage = AssertTrue<
+  KeysMatch<CreateBookingPageParams, StripMcpOnly<z.infer<typeof createBookingPageInputSchema>>>
+>;
+type _UpdateBookingPage = AssertTrue<
+  KeysMatch<UpdateBookingPageParams, StripMcpOnly<z.infer<typeof updateBookingPageInputSchema>>>
 >;
 type _UpdateDomain = AssertTrue<
   KeysMatch<UpdateDomainParams, StripMcpOnly<z.infer<typeof updateDomainInputSchema>>>
@@ -182,6 +192,8 @@ type _UpdateWebhook = AssertTrue<
 // Suppress unused-type warnings; the type aliases above are what enforce the
 // assertion at compile time.
 type _AllChecks = [
+  _CreateBookingPage,
+  _UpdateBookingPage,
   _CreateDomain,
   _UpdateDomain,
   _SearchDomains,
@@ -237,7 +249,9 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
     ];
-    if (checks.length !== 25) throw new Error("alignment matrix size changed");
+    if (checks.length !== 27) throw new Error("alignment matrix size changed");
   });
 });

@@ -4,6 +4,7 @@ import { performance } from "node:perf_hooks";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  type CreateMailboxParams,
   type ListMessagesParams,
   type MethodOptions,
   type ShipMailClient,
@@ -34,12 +35,14 @@ import {
   createBookingPageInputSchema,
   createCalendarEventInputSchema,
   createDomainInputSchema,
+  createdPartnerOrganizationOutputSchema,
   createMailboxFolderInputSchema,
   createMailboxForwardingInputSchema,
   createMailboxImportInputSchema,
   createMailboxInputSchema,
   createNewsletterFromChangelogInputSchema,
   createNewsletterInputSchema,
+  createPartnerOrganizationInputSchema,
   createWebhookInputSchema,
   deleteCalendarEventInputSchema,
   deleteInboxMessageInputSchema,
@@ -99,12 +102,18 @@ import {
   newsletterPreviewOutputSchema,
   newslettersOutputSchema,
   newsletterTestSendOutputSchema,
+  partnerInvitationOutputSchema,
+  partnerOrganizationByIdInputSchema,
+  partnerOrganizationOutputSchema,
+  partnerOrganizationsOutputSchema,
+  partnerUsageOutputSchema,
   previewNewsletterInputSchema,
   registerNewsletterAssetInputSchema,
   removeSuppressionInputSchema,
   replayWebhookDeliveryInputSchema,
   replyToMessageInputSchema,
   replyToThreadInputSchema,
+  resendPartnerInvitationInputSchema,
   resetPasswordInputSchema,
   resubscribeSubscriberInputSchema,
   scheduleNewsletterInputSchema,
@@ -130,6 +139,7 @@ import {
   updateMailboxInputSchema,
   updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
+  updatePartnerOrganizationInputSchema,
   updateSubscriberInputSchema,
   updateWebhookInputSchema,
   verificationOutputSchema,
@@ -221,6 +231,12 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_create_booking_page: 20,
   shipmail_update_booking_page: 20,
   shipmail_delete_booking_page: 10,
+  shipmail_create_partner_organization: 20,
+  shipmail_update_partner_organization: 50,
+  shipmail_resend_partner_ownership_invitation: 20,
+  shipmail_suspend_partner_organization: 20,
+  shipmail_resume_partner_organization: 20,
+  shipmail_offboard_partner_organization: 10,
 };
 // Hard ceiling on total tool calls per session, regardless of which tools are
 // hit. Catches runaway pagination loops on read tools that don't have explicit
@@ -646,9 +662,25 @@ export function registerTools(
         },
       },
       async (args) =>
-        runTool("shipmail_create_mailbox", mailboxOutputSchema, async () => ({
-          mailbox: await client.mailboxes.create(stripIdempotencyKey(args), mutationOptions(args)),
-        })),
+        runTool("shipmail_create_mailbox", mailboxOutputSchema, async () => {
+          const base = {
+            domain_id: args.domain_id,
+            address: args.address,
+            ...(args.display_name === undefined ? {} : { display_name: args.display_name }),
+          };
+          let params: CreateMailboxParams;
+          if (args.generate_password === true) {
+            params = { ...base, generate_password: true };
+          } else if (args.password !== undefined) {
+            params = { ...base, password: args.password };
+          } else {
+            throw new Error("Mailbox password validation failed.");
+          }
+
+          return {
+            mailbox: await client.mailboxes.create(params, mutationOptions(args)),
+          };
+        }),
     );
   });
 
@@ -2612,7 +2644,7 @@ export function registerTools(
       {
         title: "Create Booking Page",
         description:
-          "Create a booking page exposing one mailbox's availability. availability_days is 0=Sunday..6=Saturday.",
+          "Create a booking page exposing one mailbox's availability. availability_days is 0=Sunday..6=Saturday. conferencing_provider is opt-in and must already be connected to the mailbox.",
         inputSchema: createBookingPageInputSchema,
         outputSchema: bookingPageOutputSchema,
         annotations: {
@@ -2637,7 +2669,8 @@ export function registerTools(
       "shipmail_update_booking_page",
       {
         title: "Update Booking Page",
-        description: "Update a booking page. All fields optional; provide at least one.",
+        description:
+          "Update a booking page. All fields optional; provide at least one. Set conferencing_provider to null to stop creating meeting links.",
         inputSchema: updateBookingPageInputSchema,
         outputSchema: bookingPageOutputSchema,
         annotations: {
@@ -2677,6 +2710,183 @@ export function registerTools(
           await client.bookingPages.delete(id);
           return { result: { ok: true, id } };
         }),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_partner_organizations", () => {
+    server.registerTool(
+      "shipmail_list_partner_organizations",
+      {
+        title: "List Partner Organizations",
+        description: "List operator-owned organizations connected to the partner account.",
+        outputSchema: partnerOrganizationsOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () =>
+        runTool("shipmail_list_partner_organizations", partnerOrganizationsOutputSchema, () =>
+          client.partner.listOrganizations(),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_create_partner_organization", () => {
+    server.registerTool(
+      "shipmail_create_partner_organization",
+      {
+        title: "Create Partner Organization",
+        description:
+          "Create an operator organization and email its ownership invitation. No domain or mailbox is created.",
+        inputSchema: createPartnerOrganizationInputSchema,
+        outputSchema: createdPartnerOrganizationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_create_partner_organization",
+          createdPartnerOrganizationOutputSchema,
+          async () => ({
+            organization: await client.partner.createOrganization(
+              stripIdempotencyKey(args),
+              mutationOptions(args),
+            ),
+          }),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_get_partner_organization", () => {
+    server.registerTool(
+      "shipmail_get_partner_organization",
+      {
+        title: "Get Partner Organization",
+        description: "Get one partner child relationship and its ownership state.",
+        inputSchema: partnerOrganizationByIdInputSchema,
+        outputSchema: partnerOrganizationOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ id }) =>
+        runTool("shipmail_get_partner_organization", partnerOrganizationOutputSchema, async () => ({
+          organization: await client.partner.getOrganization(id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_update_partner_organization", () => {
+    server.registerTool(
+      "shipmail_update_partner_organization",
+      {
+        title: "Update Partner Organization",
+        description: "Update an operator organization name or mailbox allocation.",
+        inputSchema: updatePartnerOrganizationInputSchema,
+        outputSchema: partnerOrganizationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_update_partner_organization",
+          partnerOrganizationOutputSchema,
+          async () => {
+            const { id, idempotency_key: _key, ...params } = args;
+            return {
+              organization: await client.partner.updateOrganization(
+                id,
+                params,
+                mutationOptions(args),
+              ),
+            };
+          },
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_resend_partner_ownership_invitation", () => {
+    server.registerTool(
+      "shipmail_resend_partner_ownership_invitation",
+      {
+        title: "Resend Partner Ownership Invitation",
+        description: "Revoke the pending ownership link and email a new single-use link.",
+        inputSchema: resendPartnerInvitationInputSchema,
+        outputSchema: partnerInvitationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_resend_partner_ownership_invitation",
+          partnerInvitationOutputSchema,
+          async () => ({
+            invitation: await client.partner.resendOwnershipInvitation(
+              args.id,
+              { owner_email: args.owner_email },
+              mutationOptions(args),
+            ),
+          }),
+        ),
+    );
+  });
+
+  for (const transition of ["suspend", "resume", "offboard"] as const) {
+    const toolName = `shipmail_${transition}_partner_organization`;
+    registerIfAllowed(toolName, () => {
+      server.registerTool(
+        toolName,
+        {
+          title: `${transition[0]?.toUpperCase() ?? ""}${transition.slice(1)} Partner Organization`,
+          description:
+            transition === "suspend"
+              ? "Suspend outbound sending for one operator organization. Inbound mail and storage continue."
+              : transition === "resume"
+                ? "Resume partner-managed outbound sending for one operator organization."
+                : "Start non-destructive offboarding and immediately remove delegated access.",
+          inputSchema: partnerOrganizationByIdInputSchema,
+          outputSchema: partnerOrganizationOutputSchema,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: transition !== "resume",
+            idempotentHint: true,
+            openWorldHint: false,
+          },
+        },
+        async ({ id }) =>
+          runTool(toolName, partnerOrganizationOutputSchema, async () => ({
+            organization:
+              transition === "suspend"
+                ? await client.partner.suspendOrganization(id)
+                : transition === "resume"
+                  ? await client.partner.resumeOrganization(id)
+                  : await client.partner.offboardOrganization(id),
+          })),
+      );
+    });
+  }
+
+  registerIfAllowed("shipmail_get_partner_usage", () => {
+    server.registerTool(
+      "shipmail_get_partner_usage",
+      {
+        title: "Get Partner Usage",
+        description: "Get consolidated child and mailbox usage for the current UTC month.",
+        outputSchema: partnerUsageOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () =>
+        runTool("shipmail_get_partner_usage", partnerUsageOutputSchema, async () => ({
+          usage: await client.partner.usage(),
+        })),
     );
   });
 

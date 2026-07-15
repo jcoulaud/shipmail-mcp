@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.10](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.2.9...shipmail-mcp-v0.2.10) (2026-07-14)
+
+
+### Features
+
+* **api:** expose conferencing_provider on booking pages ([#772](https://github.com/jcoulaud/ShipMail/issues/772)) ([3fb48e5](https://github.com/jcoulaud/ShipMail/commit/3fb48e5a2159f9e30e301d5f7d6bcec56aeccf98))
+* **partner:** add invite-only reseller beta ([#786](https://github.com/jcoulaud/ShipMail/issues/786)) ([e2c98a4](https://github.com/jcoulaud/ShipMail/commit/e2c98a4d06121c82abe6238695f3dd4b3ffaf574))
+
 ## [0.2.9](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.2.8...shipmail-mcp-v0.2.9) (2026-07-13)
 
 

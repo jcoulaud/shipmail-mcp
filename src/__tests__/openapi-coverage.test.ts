@@ -127,6 +127,16 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   getBookingPage: "shipmail_get_booking_page",
   updateBookingPage: "shipmail_update_booking_page",
   deleteBookingPage: "shipmail_delete_booking_page",
+  // Partner beta
+  listPartnerOrganizations: "shipmail_list_partner_organizations",
+  createPartnerOrganization: "shipmail_create_partner_organization",
+  getPartnerOrganization: "shipmail_get_partner_organization",
+  updatePartnerOrganization: "shipmail_update_partner_organization",
+  resendPartnerOwnershipInvitation: "shipmail_resend_partner_ownership_invitation",
+  suspendPartnerOrganization: "shipmail_suspend_partner_organization",
+  resumePartnerOrganization: "shipmail_resume_partner_organization",
+  offboardPartnerOrganization: "shipmail_offboard_partner_organization",
+  getPartnerUsage: "shipmail_get_partner_usage",
 };
 
 const INTENTIONALLY_EXCLUDED: Readonly<Record<string, string>> = {

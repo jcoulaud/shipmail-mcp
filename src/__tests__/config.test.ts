@@ -5,6 +5,7 @@ import { readConfig } from "../config.js";
 const ENV_KEYS = [
   "SHIPMAIL_API_KEY",
   "SHIPMAIL_BASE_URL",
+  "SHIPMAIL_ORGANIZATION_ID",
   "SHIPMAIL_MCP_TOOLS",
   "SHIPMAIL_ALLOW_INSECURE_BASE_URL",
 ] as const;
@@ -38,6 +39,12 @@ describe("readConfig", () => {
     expect(config.apiKey).toBe("sk_test");
     expect(config.baseUrl).toBeUndefined();
     expect(config.selectedTools).toBeUndefined();
+  });
+
+  test("reads the delegated organization id", () => {
+    process.env["SHIPMAIL_API_KEY"] = "sk_test";
+    process.env["SHIPMAIL_ORGANIZATION_ID"] = "org_child_123";
+    expect(readConfig([]).organizationId).toBe("org_child_123");
   });
 
   test("--tools overrides SHIPMAIL_MCP_TOOLS env var", () => {

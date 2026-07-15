@@ -14,6 +14,7 @@
 // test discovery) keeps it in CI.
 import { describe, test } from "bun:test";
 import type {
+  BookingPage,
   Domain,
   DomainSearchResult,
   DomainVerificationResult,
@@ -45,6 +46,7 @@ import type {
 import type { z } from "zod/v4";
 
 import {
+  bookingPageSchema,
   domainSchema,
   domainSearchResultSchema,
   domainVerificationSchema,
@@ -89,6 +91,7 @@ type AssertTrue<T extends true> = T;
 // One assertion per (SDK type, MCP schema) pair. Adding a field on either
 // side and forgetting to mirror it on the other will fail this typecheck.
 type _DomainKeys = AssertTrue<KeysMatch<Domain, z.infer<typeof domainSchema>>>;
+type _BookingPageKeys = AssertTrue<KeysMatch<BookingPage, z.infer<typeof bookingPageSchema>>>;
 type _MailboxKeys = AssertTrue<KeysMatch<Mailbox, z.infer<typeof mailboxSchema>>>;
 type _MailboxExportKeys = AssertTrue<KeysMatch<MailboxExport, z.infer<typeof mailboxExportSchema>>>;
 type _MailboxFolderKeys = AssertTrue<KeysMatch<MailboxFolder, z.infer<typeof mailboxFolderSchema>>>;
@@ -150,6 +153,7 @@ type _DomainVerificationKeys = AssertTrue<
 // what enforces the assertion at compile time.
 type _AllChecks = [
   _DomainKeys,
+  _BookingPageKeys,
   _MailboxKeys,
   _MailboxExportKeys,
   _MailboxFolderKeys,
@@ -210,7 +214,8 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
+      true,
     ];
-    if (checks.length !== 27) throw new Error("alignment matrix size changed");
+    if (checks.length !== 28) throw new Error("alignment matrix size changed");
   });
 });

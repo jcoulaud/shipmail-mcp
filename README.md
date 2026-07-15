@@ -192,6 +192,7 @@ All tools are namespaced with `shipmail_` to avoid collisions with peer MCP serv
 | Suppressions         | `shipmail_list_suppressions`, `shipmail_remove_suppression`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Audiences            | `shipmail_list_audiences`, `shipmail_get_audience`, `shipmail_create_audience`, `shipmail_update_audience`, `shipmail_delete_audience`, `shipmail_list_subscribers`, `shipmail_get_subscriber`, `shipmail_get_subscriber_by_email`, `shipmail_add_subscriber`, `shipmail_add_subscribers_batch`, `shipmail_update_subscriber`, `shipmail_unsubscribe_subscriber`, `shipmail_resubscribe_subscriber`, `shipmail_remove_subscriber`                                                                                                                                                                                                                                             |
 | Newsletters          | `shipmail_list_newsletter_domains`, `shipmail_list_newsletter_assets`, `shipmail_list_newsletters`, `shipmail_get_newsletter`, `shipmail_preview_newsletter`, `shipmail_create_newsletter`, `shipmail_create_newsletter_from_changelog`, `shipmail_update_newsletter`, `shipmail_run_newsletter_preflight`, `shipmail_send_newsletter_test`, `shipmail_schedule_newsletter`, `shipmail_cancel_newsletter`, `shipmail_resume_newsletter`                                                                                                                                                                                                                                       |
+| Partner beta         | `shipmail_list_partner_organizations`, `shipmail_create_partner_organization`, `shipmail_get_partner_organization`, `shipmail_update_partner_organization`, `shipmail_resend_partner_ownership_invitation`, `shipmail_suspend_partner_organization`, `shipmail_resume_partner_organization`, `shipmail_offboard_partner_organization`, `shipmail_get_partner_usage`                                                                                                                                                                                                                                                                                                           |
 
 Message send and reply tools accept optional `client_reference`, scalar `metadata`,
 `source_rfc_message_id`, and validated safe `headers`. `shipmail_list_messages` accepts either a
@@ -240,14 +241,18 @@ Pre-built prompts the agent can use as guided workflows:
 
 ## Configuration
 
-| Variable                           | Required                         | Description                                                                                                                                                 |
-| ---------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SHIPMAIL_API_KEY`                 | Yes (or `SHIPMAIL_API_KEY_FILE`) | Shipmail API key (`sm_live_...`).                                                                                                                           |
-| `SHIPMAIL_API_KEY_FILE`            | No                               | Path to a file containing the API key. Takes precedence over `SHIPMAIL_API_KEY`. Reduces env-trace leak surface (Docker secrets, systemd `LoadCredential`). |
-| `SHIPMAIL_BASE_URL`                | No                               | Override the API base URL. Must be https on a `shipmail.to` host. Defaults to `https://shipmail.to/api/v1`.                                                 |
-| `SHIPMAIL_MCP_TOOLS`               | No                               | Comma-separated tool allowlist. The `--tools` flag overrides this.                                                                                          |
-| `SHIPMAIL_ALLOW_INSECURE_BASE_URL` | No                               | Set to `1` to permit a non-https or non-`shipmail.to` base URL. Local development only.                                                                     |
-| `SHIPMAIL_MCP_DEBUG`               | No                               | Set to `1` to include `request_id` and `status` in stderr tool-call logs.                                                                                   |
+| Variable                   | Required                         | Description                                                                                                                                                 |
+| -------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SHIPMAIL_API_KEY`         | Yes (or `SHIPMAIL_API_KEY_FILE`) | Shipmail API key (`sm_live_...`).                                                                                                                           |
+| `SHIPMAIL_API_KEY_FILE`    | No                               | Path to a file containing the API key. Takes precedence over `SHIPMAIL_API_KEY`. Reduces env-trace leak surface (Docker secrets, systemd `LoadCredential`). |
+| `SHIPMAIL_BASE_URL`        | No                               | Override the API base URL. Must be https on a `shipmail.to` host. Defaults to `https://shipmail.to/api/v1`.                                                 |
+| `SHIPMAIL_ORGANIZATION_ID` | No                               | Delegated child organization for an approved infrastructure-only MCP session.                                                                               |
+
+In a delegated partner session, call `shipmail_create_mailbox` with `generate_password: true`.
+Shipmail generates the primary credential and never returns it to the partner.
+| `SHIPMAIL_MCP_TOOLS` | No | Comma-separated tool allowlist. The `--tools` flag overrides this. |
+| `SHIPMAIL_ALLOW_INSECURE_BASE_URL` | No | Set to `1` to permit a non-https or non-`shipmail.to` base URL. Local development only. |
+| `SHIPMAIL_MCP_DEBUG` | No | Set to `1` to include `request_id` and `status` in stderr tool-call logs. |
 
 ## Security
 

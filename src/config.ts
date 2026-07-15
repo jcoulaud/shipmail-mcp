@@ -7,6 +7,7 @@ export type McpConfig = {
   readonly apiKey: string;
   readonly baseUrl: string | undefined;
   readonly selectedTools: ReadonlySet<string> | undefined;
+  readonly organizationId: string | undefined;
 };
 
 export const HELP_TEXT = `shipmail-mcp
@@ -20,6 +21,8 @@ Environment:
                         SHIPMAIL_API_KEY when set; reduces env-trace leak surface for hosts that
                         log environment variables.
   SHIPMAIL_BASE_URL     Optional API base URL. Must be https. Defaults to ${DEFAULT_BASE_URL}.
+  SHIPMAIL_ORGANIZATION_ID
+                        Optional delegated child organization ID for infrastructure tools.
   SHIPMAIL_MCP_TOOLS    Optional comma-separated tool allowlist. --tools overrides this.
   SHIPMAIL_ALLOW_INSECURE_BASE_URL=1
                         Permit non-https or non-shipmail.to base URL (development only).`;
@@ -117,6 +120,7 @@ export function readConfig(argv: readonly string[] = process.argv.slice(2)): Mcp
   return {
     apiKey,
     baseUrl,
+    organizationId: env["SHIPMAIL_ORGANIZATION_ID"] || undefined,
     selectedTools: parseToolsArg(argv) ?? parseToolsList(env["SHIPMAIL_MCP_TOOLS"]),
   };
 }

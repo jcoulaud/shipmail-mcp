@@ -3,6 +3,8 @@ import type { z } from "zod/v4";
 
 import {
   attachmentInputSchema,
+  bookingPageSchema,
+  createBookingPageInputSchema,
   createDomainInputSchema,
   createMailboxFolderInputSchema,
   createMailboxInputSchema,
@@ -30,6 +32,7 @@ import {
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
   suppressionSchema,
+  updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
@@ -37,6 +40,58 @@ import {
   updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
 } from "../schemas.js";
+
+describe("booking page schemas", () => {
+  test("accept conferencing providers and null clearing", () => {
+    const page = bookingPageSchema.parse({
+      object: "booking_page",
+      id: "bkp_1",
+      mailbox: "hello@example.com",
+      slug: "intro",
+      url: "https://shipmail.to/book/example.com/intro",
+      name: "Intro",
+      description: null,
+      duration_minutes: 30,
+      availability_days: [1, 2, 3, 4, 5],
+      window_start_minutes: 540,
+      window_end_minutes: 1020,
+      timezone: "America/New_York",
+      buffer_minutes: 0,
+      minimum_notice_minutes: 0,
+      max_advance_days: 30,
+      conferencing_provider: "zoom",
+      active: true,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    });
+    expect(page.conferencing_provider).toBe("zoom");
+    expect(
+      createBookingPageInputSchema.parse({
+        name: "Intro",
+        mailbox: "hello@example.com",
+        slug: "intro",
+        duration_minutes: 30,
+        availability_days: [1, 2, 3, 4, 5],
+        window_start_minutes: 540,
+        window_end_minutes: 1020,
+        timezone: "America/New_York",
+        conferencing_provider: "google_meet",
+      }).conferencing_provider,
+    ).toBe("google_meet");
+    expect(
+      updateBookingPageInputSchema.parse({
+        id: "bkp_1",
+        conferencing_provider: null,
+      }).conferencing_provider,
+    ).toBeNull();
+    expect(() =>
+      updateBookingPageInputSchema.parse({
+        id: "bkp_1",
+        conferencing_provider: "teams",
+      }),
+    ).toThrow();
+  });
+});
 
 describe("idSchema (via getByIdInputSchema)", () => {
   test("accepts valid prefixed id", () => {
@@ -84,7 +139,7 @@ describe("idempotencyKeySchema", () => {
 });
 
 describe("createMailboxInputSchema", () => {
-  test("requires the same strong password shape as the API", () => {
+  test("requires a strong password or server-generated password mode", () => {
     expect(
       createMailboxInputSchema.parse({
         domain_id: "dom_123",
@@ -94,6 +149,21 @@ describe("createMailboxInputSchema", () => {
     ).toBe("StrongPass123");
     expect(() =>
       createMailboxInputSchema.parse({ domain_id: "dom_123", address: "hello" }),
+    ).toThrow();
+    expect(
+      createMailboxInputSchema.parse({
+        domain_id: "dom_123",
+        address: "hello",
+        generate_password: true,
+      }).generate_password,
+    ).toBe(true);
+    expect(() =>
+      createMailboxInputSchema.parse({
+        domain_id: "dom_123",
+        address: "hello",
+        password: "StrongPass123",
+        generate_password: true,
+      }),
     ).toThrow();
     expect(() =>
       createMailboxInputSchema.parse({

@@ -35,6 +35,7 @@ export function createShipMailMcpServer(config: McpConfig): McpServer {
   const client = new ShipMailClient({
     apiKey: config.apiKey,
     ...(config.baseUrl ? { baseUrl: config.baseUrl } : {}),
+    ...(config.organizationId ? { organizationId: config.organizationId } : {}),
     defaultHeaders,
   });
 

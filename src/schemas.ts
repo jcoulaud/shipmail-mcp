@@ -1,5 +1,6 @@
 import type { NewsletterBlock } from "shipmail";
 import {
+  CONFERENCING_PROVIDER_IDS,
   DOMAIN_STATUSES,
   MESSAGE_SOURCES,
   MESSAGE_STATUSES,
@@ -930,27 +931,39 @@ export const searchDomainsInputSchema = z.object({
 export const listMailboxesInputSchema = paginationInputSchema.extend({
   domain_id: idSchema.optional().describe("Filter mailboxes by domain ID."),
 });
-export const createMailboxInputSchema = z.object({
-  domain_id: idSchema,
-  address: z
-    .string()
-    .min(1)
-    .max(64)
-    .regex(/^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/),
-  password: z
-    .string()
-    .min(8)
-    .max(128)
-    .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter.")
-    .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter.")
-    .refine((value) => /[0-9]/.test(value), "Password must include a number.")
-    .refine(
-      (value) => !COMMON_MAILBOX_PASSWORDS.has(value.toLowerCase()),
-      "This password is too common. Choose something stronger.",
-    ),
-  display_name: recipientNameSchema.max(128).optional(),
-  idempotency_key: idempotencyKeySchema,
-});
+export const createMailboxInputSchema = z
+  .object({
+    domain_id: idSchema,
+    address: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/),
+    password: z
+      .string()
+      .min(8)
+      .max(128)
+      .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter.")
+      .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter.")
+      .refine((value) => /[0-9]/.test(value), "Password must include a number.")
+      .refine(
+        (value) => !COMMON_MAILBOX_PASSWORDS.has(value.toLowerCase()),
+        "This password is too common. Choose something stronger.",
+      )
+      .optional(),
+    generate_password: z.literal(true).optional(),
+    display_name: recipientNameSchema.max(128).optional(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .superRefine((value, ctx) => {
+    if (Boolean(value.password) === Boolean(value.generate_password)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["password"],
+        message: "Provide password or set generate_password to true, but not both.",
+      });
+    }
+  });
 export const updateMailboxInputSchema = z.object({
   id: idSchema,
   display_name: recipientNameSchema
@@ -1892,6 +1905,7 @@ export const bookingPageSchema = z.object({
   buffer_minutes: z.number(),
   minimum_notice_minutes: z.number(),
   max_advance_days: z.number(),
+  conferencing_provider: z.enum(CONFERENCING_PROVIDER_IDS).nullable(),
   active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -2035,6 +2049,12 @@ export const createBookingPageInputSchema = z.object({
   buffer_minutes: z.number().int().min(0).max(240).optional(),
   minimum_notice_minutes: z.number().int().min(0).optional(),
   max_advance_days: z.number().int().min(1).max(365).optional(),
+  conferencing_provider: z
+    .enum(CONFERENCING_PROVIDER_IDS)
+    .nullish()
+    .describe(
+      "Opt-in meeting provider. It must already be connected to the page's mailbox. Null means no meeting link.",
+    ),
   active: z.boolean().optional(),
   idempotency_key: idempotencyKeySchema,
 });
@@ -2053,6 +2073,104 @@ export const updateBookingPageInputSchema = z.object({
   buffer_minutes: z.number().int().min(0).max(240).optional(),
   minimum_notice_minutes: z.number().int().min(0).optional(),
   max_advance_days: z.number().int().min(1).max(365).optional(),
+  conferencing_provider: z
+    .enum(CONFERENCING_PROVIDER_IDS)
+    .nullish()
+    .describe(
+      "Opt-in meeting provider. It must already be connected to the page's mailbox. Set null to stop creating meeting links.",
+    ),
   active: z.boolean().optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+// --- Partner beta ---
+
+export const partnerOrganizationSchema = z.object({
+  object: z.literal("partner_organization"),
+  id: z.string(),
+  organization_id: z.string(),
+  name: z.string(),
+  external_reference: z.string(),
+  owner_email: z.string(),
+  owner_user_id: z.string().nullable(),
+  status: z.enum(["pending_owner", "active", "suspended", "offboarding", "disconnected"]),
+  data_classification: z.enum(["internal_test", "customer"]),
+  mailbox_limit: z.number().int(),
+  delegated_permissions: z.array(z.string()),
+  owner_accepted_at: z.string().nullable(),
+  activated_at: z.string().nullable(),
+  suspended_at: z.string().nullable(),
+  disconnected_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const partnerOrganizationOutputSchema = z.object({
+  organization: partnerOrganizationSchema,
+});
+export const createdPartnerOrganizationSchema = partnerOrganizationSchema.extend({
+  ownership_invitation: z
+    .object({
+      object: z.literal("partner_ownership_invitation"),
+      owner_email: z.string(),
+      email_sent: z.boolean(),
+      expires_at: z.string(),
+    })
+    .nullable(),
+});
+export const createdPartnerOrganizationOutputSchema = z.object({
+  organization: createdPartnerOrganizationSchema,
+});
+export const partnerOrganizationsOutputSchema = z.object({
+  data: z.array(partnerOrganizationSchema),
+});
+export const partnerInvitationOutputSchema = z.object({
+  invitation: z.object({
+    object: z.literal("partner_ownership_invitation"),
+    owner_email: z.string(),
+    email_sent: z.boolean(),
+    expires_at: z.string(),
+  }),
+});
+export const partnerUsageOutputSchema = z.object({
+  usage: z.object({
+    object: z.literal("partner_usage"),
+    period_start: z.string(),
+    period_end: z.string(),
+    closed_through: z.string().nullable(),
+    active_children: z.number().int(),
+    active_mailboxes: z.number().int(),
+    child_active_seconds: z.number().int(),
+    mailbox_active_seconds: z.number().int(),
+    child_subtotal: z.number().int(),
+    mailbox_subtotal: z.number().int(),
+    minimum_shortfall: z.number().int(),
+    projected_total: z.number().int(),
+    currency: z.string(),
+  }),
+});
+
+export const createPartnerOrganizationInputSchema = z.object({
+  name: noControlString(120, "name").min(1),
+  external_reference: noControlString(200, "external reference").min(1),
+  owner_email: emailSchema,
+  mailbox_limit: z.number().int().min(1).max(50).default(3),
+  data_classification: z.enum(["internal_test", "customer"]).default("customer"),
+  idempotency_key: idempotencyKeySchema,
+});
+export const partnerOrganizationByIdInputSchema = z.object({
+  id: idSchema.describe("Partner organization relationship ID."),
+});
+export const updatePartnerOrganizationInputSchema = partnerOrganizationByIdInputSchema
+  .extend({
+    name: noControlString(120, "name").min(1).optional(),
+    mailbox_limit: z.number().int().min(1).max(50).optional(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine((value) => value.name !== undefined || value.mailbox_limit !== undefined, {
+    message: "Provide name or mailbox_limit.",
+  });
+export const resendPartnerInvitationInputSchema = partnerOrganizationByIdInputSchema.extend({
+  owner_email: emailSchema.optional(),
   idempotency_key: idempotencyKeySchema,
 });
