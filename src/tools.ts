@@ -816,7 +816,7 @@ export function registerTools(
       {
         title: "Import a Mailbox",
         description:
-          "Start importing mail from another provider into a shipmail mailbox over IMAP. Use an app password for the source account. Outlook sources require the dashboard's Sign in with Microsoft and cannot be started here. The import runs in the background; poll shipmail_get_mailbox_import for progress.",
+          "Start importing mail from another provider into a shipmail mailbox over IMAP. Use an app or device password for the source account. Outlook sources require the dashboard's Sign in with Microsoft and cannot be started here. The import runs in the background; poll shipmail_get_mailbox_import for progress.",
         inputSchema: createMailboxImportInputSchema,
         outputSchema: importOutputSchema,
         annotations: {

@@ -875,22 +875,38 @@ export const idempotentByIdInputSchema = z.object({
 export const createMailboxImportInputSchema = z.object({
   id: idSchema,
   provider: z
-    .enum(["gmail", "yahoo", "aol", "icloud", "fastmail", "zoho", "imap"])
+    .enum([
+      "gmail",
+      "yahoo",
+      "aol",
+      "icloud",
+      "fastmail",
+      "zoho",
+      "infomaniak",
+      "ovh",
+      "gandi",
+      "imap",
+    ])
     .describe("Source provider. Outlook imports require the dashboard's Microsoft sign-in."),
   email: z.string().min(3).max(320).describe("Address of the source mailbox"),
   password: z
     .string()
     .min(1)
     .max(1024)
-    .describe("App password (preferred) or IMAP password for the source mailbox"),
-  host: z.string().min(1).max(253).optional().describe("IMAP server, only for provider 'imap'"),
+    .describe("App password, device password, or IMAP password for the source mailbox"),
+  host: z
+    .string()
+    .min(1)
+    .max(253)
+    .optional()
+    .describe("IMAP server. Required for 'imap'; optional OVHcloud server override for 'ovh'."),
   port: z
     .number()
     .int()
     .min(1)
     .max(65535)
     .optional()
-    .describe("IMAP port, only for provider 'imap'"),
+    .describe("IMAP port. Used for 'imap' and optional OVHcloud overrides."),
   range: z
     .enum(["all", "12m", "3m", "1m"])
     .optional()

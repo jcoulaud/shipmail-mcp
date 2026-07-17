@@ -3353,7 +3353,7 @@
       "post": {
         "operationId": "createMailboxImport",
         "summary": "Start a mailbox import",
-        "description": "Import mail from another provider into this mailbox. IMAP sources run over the source provider's IMAP with an app password. File sources import staged uploads (Google Takeout MBOX, Proton or Tuta EML exports, generic MBOX or EML zips). The import runs in the background, preserves folders, read state, and dates, deduplicates, and can be re-run safely.",
+        "description": "Import mail from another provider into this mailbox. IMAP sources run over the source provider's IMAP with an app or device password. File sources import staged uploads (Google Takeout MBOX, Proton or Tuta EML exports, generic MBOX or EML zips). The import runs in the background, preserves folders, read state, and dates, deduplicates, and can be re-run safely.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "write",
         "x-scope": "mailboxes:write",
@@ -8865,6 +8865,9 @@
               "icloud",
               "fastmail",
               "zoho",
+              "infomaniak",
+              "ovh",
+              "gandi",
               "imap",
               "takeout",
               "proton",
@@ -9005,7 +9008,18 @@
                   },
                   "provider": {
                     "type": "string",
-                    "enum": ["gmail", "yahoo", "aol", "icloud", "fastmail", "zoho", "imap"],
+                    "enum": [
+                      "gmail",
+                      "yahoo",
+                      "aol",
+                      "icloud",
+                      "fastmail",
+                      "zoho",
+                      "infomaniak",
+                      "ovh",
+                      "gandi",
+                      "imap"
+                    ],
                     "description": "Outlook imports require the dashboard's Sign in with Microsoft and cannot be started via the API."
                   },
                   "email": {
@@ -9013,11 +9027,11 @@
                   },
                   "password": {
                     "type": "string",
-                    "description": "App password (preferred) or IMAP password. Encrypted at rest, used only for this import, and deleted when it finishes."
+                    "description": "App password, device password, or IMAP password. Encrypted at rest, used only for this import, and deleted when it finishes."
                   },
                   "host": {
                     "type": "string",
-                    "description": "Required for provider imap."
+                    "description": "Required for provider imap. Optional for provider ovh to override the European MX Plan default."
                   },
                   "port": {
                     "type": "integer",

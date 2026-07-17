@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.0...shipmail-mcp-v0.3.1) (2026-07-17)
+
+
+### Features
+
+* **import:** add Infomaniak, OVHcloud, and Gandi migrations ([#825](https://github.com/jcoulaud/ShipMail/issues/825)) ([fd6a6bd](https://github.com/jcoulaud/ShipMail/commit/fd6a6bd86e7b1f59bab4bcfb745bc5581da7176c))
+* improve AI agent readiness ([#824](https://github.com/jcoulaud/ShipMail/issues/824)) ([f2d6763](https://github.com/jcoulaud/ShipMail/commit/f2d67636968f7f7d2373689a21b083d12818b939))
+
 ## [0.3.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.2.10...shipmail-mcp-v0.3.0) (2026-07-16)
 
 
