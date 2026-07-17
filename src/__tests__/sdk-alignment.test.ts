@@ -15,6 +15,7 @@
 import { describe, test } from "bun:test";
 import type {
   BookingPage,
+  CreatedMailboxAppPassword,
   Domain,
   DomainSearchResult,
   DomainVerificationResult,
@@ -24,6 +25,7 @@ import type {
   InboxMessages,
   InboxThread,
   Mailbox,
+  MailboxAppPassword,
   MailboxExport,
   MailboxFolder,
   MailboxFolders,
@@ -38,6 +40,7 @@ import type {
   NewsletterPreflightItem,
   NewsletterPreview,
   NewsletterTestSend,
+  PartnerMailboxCredential,
   Suppression,
   Webhook,
   WebhookDelivery,
@@ -47,6 +50,7 @@ import type { z } from "zod/v4";
 
 import {
   bookingPageSchema,
+  createdMailboxAppPasswordSchema,
   domainSchema,
   domainSearchResultSchema,
   domainVerificationSchema,
@@ -55,6 +59,7 @@ import {
   inboxMessageSchema,
   inboxMessagesSchema,
   inboxThreadSchema,
+  mailboxAppPasswordSchema,
   mailboxExportSchema,
   mailboxFolderSchema,
   mailboxFoldersSchema,
@@ -70,6 +75,7 @@ import {
   newsletterPreviewSchema,
   newsletterSchema,
   newsletterTestSendSchema,
+  partnerMailboxCredentialSchema,
   suppressionSchema,
   webhookDeliveryDetailSchema,
   webhookDeliverySchema,
@@ -93,6 +99,15 @@ type AssertTrue<T extends true> = T;
 type _DomainKeys = AssertTrue<KeysMatch<Domain, z.infer<typeof domainSchema>>>;
 type _BookingPageKeys = AssertTrue<KeysMatch<BookingPage, z.infer<typeof bookingPageSchema>>>;
 type _MailboxKeys = AssertTrue<KeysMatch<Mailbox, z.infer<typeof mailboxSchema>>>;
+type _MailboxAppPasswordKeys = AssertTrue<
+  KeysMatch<MailboxAppPassword, z.infer<typeof mailboxAppPasswordSchema>>
+>;
+type _CreatedMailboxAppPasswordKeys = AssertTrue<
+  KeysMatch<CreatedMailboxAppPassword, z.infer<typeof createdMailboxAppPasswordSchema>>
+>;
+type _PartnerMailboxCredentialKeys = AssertTrue<
+  KeysMatch<PartnerMailboxCredential, z.infer<typeof partnerMailboxCredentialSchema>>
+>;
 type _MailboxExportKeys = AssertTrue<KeysMatch<MailboxExport, z.infer<typeof mailboxExportSchema>>>;
 type _MailboxFolderKeys = AssertTrue<KeysMatch<MailboxFolder, z.infer<typeof mailboxFolderSchema>>>;
 type _MailboxFoldersKeys = AssertTrue<
@@ -155,6 +170,9 @@ type _AllChecks = [
   _DomainKeys,
   _BookingPageKeys,
   _MailboxKeys,
+  _MailboxAppPasswordKeys,
+  _CreatedMailboxAppPasswordKeys,
+  _PartnerMailboxCredentialKeys,
   _MailboxExportKeys,
   _MailboxFolderKeys,
   _MailboxFoldersKeys,
@@ -215,7 +233,10 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
+      true,
     ];
-    if (checks.length !== 28) throw new Error("alignment matrix size changed");
+    if (checks.length !== 31) throw new Error("alignment matrix size changed");
   });
 });

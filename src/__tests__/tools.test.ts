@@ -40,6 +40,9 @@ describe("registerTools", () => {
       "shipmail_search_domains",
       "shipmail_list_mailboxes",
       "shipmail_get_mailbox",
+      "shipmail_list_mailbox_app_passwords",
+      "shipmail_create_mailbox_app_password",
+      "shipmail_revoke_mailbox_app_password",
       "shipmail_create_mailbox",
       "shipmail_update_mailbox",
       "shipmail_delete_mailbox",
@@ -124,6 +127,7 @@ describe("registerTools", () => {
       "shipmail_create_booking_page",
       "shipmail_update_booking_page",
       "shipmail_delete_booking_page",
+      "shipmail_consume_partner_mailbox_credential_grant",
     ];
     for (const name of expected) {
       expect(result.knownTools).toContain(name);

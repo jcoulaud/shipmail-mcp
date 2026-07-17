@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.2.10...shipmail-mcp-v0.3.0) (2026-07-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **stalwart:** prepare v0.16 hard cutover ([#791](https://github.com/jcoulaud/ShipMail/issues/791))
+
+### Features
+
+* **partner:** complete embedded mailbox credentials ([#799](https://github.com/jcoulaud/ShipMail/issues/799)) ([6675da4](https://github.com/jcoulaud/ShipMail/commit/6675da4641ff2c99189f49e3d3c99938c0cd26e1))
+* **stalwart:** prepare v0.16 hard cutover ([#791](https://github.com/jcoulaud/ShipMail/issues/791)) ([8063f21](https://github.com/jcoulaud/ShipMail/commit/8063f21fbb232dfa84555574fd9ae0dfcc93e081))
+
 ## [0.2.10](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.2.9...shipmail-mcp-v0.2.10) (2026-07-14)
 
 

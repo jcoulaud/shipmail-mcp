@@ -31,11 +31,14 @@ import {
   calendarAvailabilityOutputSchema,
   calendarEventOutputSchema,
   calendarEventsOutputSchema,
+  consumePartnerMailboxCredentialGrantInputSchema,
   createAudienceInputSchema,
   createBookingPageInputSchema,
   createCalendarEventInputSchema,
+  createdMailboxAppPasswordOutputSchema,
   createDomainInputSchema,
   createdPartnerOrganizationOutputSchema,
+  createMailboxAppPasswordInputSchema,
   createMailboxFolderInputSchema,
   createMailboxForwardingInputSchema,
   createMailboxImportInputSchema,
@@ -81,6 +84,7 @@ import {
   listThreadsInputSchema,
   listWebhookDeliveriesInputSchema,
   listWebhooksInputSchema,
+  mailboxAppPasswordsOutputSchema,
   mailboxesOutputSchema,
   mailboxExportOutputSchema,
   mailboxExportScopedInputSchema,
@@ -103,6 +107,8 @@ import {
   newslettersOutputSchema,
   newsletterTestSendOutputSchema,
   partnerInvitationOutputSchema,
+  partnerMailboxCredentialGrantsOutputSchema,
+  partnerMailboxCredentialOutputSchema,
   partnerOrganizationByIdInputSchema,
   partnerOrganizationOutputSchema,
   partnerOrganizationsOutputSchema,
@@ -116,6 +122,7 @@ import {
   resendPartnerInvitationInputSchema,
   resetPasswordInputSchema,
   resubscribeSubscriberInputSchema,
+  revokeMailboxAppPasswordInputSchema,
   scheduleNewsletterInputSchema,
   searchDomainsInputSchema,
   sendMessageInputSchema,
@@ -183,6 +190,8 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_create_domain: 10,
   shipmail_create_mailbox: 20,
   shipmail_create_mailbox_export: 5,
+  shipmail_create_mailbox_app_password: 10,
+  shipmail_revoke_mailbox_app_password: 20,
   shipmail_create_mailbox_import: 5,
   shipmail_cancel_mailbox_import: 10,
   shipmail_undo_mailbox_import: 10,
@@ -237,6 +246,7 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_suspend_partner_organization: 20,
   shipmail_resume_partner_organization: 20,
   shipmail_offboard_partner_organization: 10,
+  shipmail_consume_partner_mailbox_credential_grant: 20,
 };
 // Hard ceiling on total tool calls per session, regardless of which tools are
 // hit. Catches runaway pagination loops on read tools that don't have explicit
@@ -596,6 +606,81 @@ export function registerTools(
         runTool("shipmail_get_mailbox", mailboxOutputSchema, async () => ({
           mailbox: await client.mailboxes.get(id),
         })),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_mailbox_app_passwords", () => {
+    server.registerTool(
+      "shipmail_list_mailbox_app_passwords",
+      {
+        title: "List Mailbox App Passwords",
+        description:
+          "List app-password metadata for one mailbox. Secret values are never returned by this read operation.",
+        inputSchema: getByIdInputSchema,
+        outputSchema: mailboxAppPasswordsOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ id }) =>
+        runTool(
+          "shipmail_list_mailbox_app_passwords",
+          mailboxAppPasswordsOutputSchema,
+          async () => ({ app_passwords: await client.mailboxes.listAppPasswords(id) }),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_create_mailbox_app_password", () => {
+    server.registerTool(
+      "shipmail_create_mailbox_app_password",
+      {
+        title: "Create Mailbox App Password",
+        description:
+          "Create a revocable mailbox credential for an email client. The secret is returned exactly once in this tool result, so only call after explicit operator approval and store it securely.",
+        inputSchema: createMailboxAppPasswordInputSchema,
+        outputSchema: createdMailboxAppPasswordOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_create_mailbox_app_password",
+          createdMailboxAppPasswordOutputSchema,
+          async () => ({
+            app_password: await client.mailboxes.createAppPassword(args.id, {
+              name: args.name,
+              ...(args.expires_at ? { expires_at: args.expires_at } : {}),
+              ...(args.allowed_cidrs ? { allowed_cidrs: args.allowed_cidrs } : {}),
+            }),
+          }),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_revoke_mailbox_app_password", () => {
+    server.registerTool(
+      "shipmail_revoke_mailbox_app_password",
+      {
+        title: "Revoke Mailbox App Password",
+        description:
+          "Permanently revoke one mailbox app password. The associated client will lose access immediately.",
+        inputSchema: revokeMailboxAppPasswordInputSchema,
+        outputSchema: acknowledgmentOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async ({ id, app_password_id }) =>
+        runTool("shipmail_revoke_mailbox_app_password", acknowledgmentOutputSchema, async () => {
+          await client.mailboxes.revokeAppPassword(id, app_password_id);
+          return { result: { ok: true, id: app_password_id } };
+        }),
     );
   });
 
@@ -2873,6 +2958,56 @@ export function registerTools(
       );
     });
   }
+
+  registerIfAllowed("shipmail_consume_partner_mailbox_credential_grant", () => {
+    server.registerTool(
+      "shipmail_consume_partner_mailbox_credential_grant",
+      {
+        title: "Consume Partner Mailbox Credential Grant",
+        description:
+          "Consume an operator-approved, single-use grant and issue an embedded-webmail credential. The secret is returned exactly once and the operator is notified. Call only after explicit partner approval.",
+        inputSchema: consumePartnerMailboxCredentialGrantInputSchema,
+        outputSchema: partnerMailboxCredentialOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_consume_partner_mailbox_credential_grant",
+          partnerMailboxCredentialOutputSchema,
+          async () => ({
+            credential: await client.partner.consumeMailboxCredentialGrant(args.grant_id, {
+              ...(args.name ? { name: args.name } : {}),
+              ...(args.expires_at ? { expires_at: args.expires_at } : {}),
+              ...(args.allowed_cidrs ? { allowed_cidrs: args.allowed_cidrs } : {}),
+            }),
+          }),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_partner_mailbox_credential_grants", () => {
+    server.registerTool(
+      "shipmail_list_partner_mailbox_credential_grants",
+      {
+        title: "List Partner Mailbox Credential Grants",
+        description:
+          "List active ten-minute mailbox approvals created by operator owners. Grant metadata contains no app-password secret.",
+        outputSchema: partnerMailboxCredentialGrantsOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () =>
+        runTool(
+          "shipmail_list_partner_mailbox_credential_grants",
+          partnerMailboxCredentialGrantsOutputSchema,
+          async () => ({ grants: await client.partner.listMailboxCredentialGrants() }),
+        ),
+    );
+  });
 
   registerIfAllowed("shipmail_get_partner_usage", () => {
     server.registerTool(

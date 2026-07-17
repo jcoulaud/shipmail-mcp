@@ -1259,6 +1259,105 @@
         }
       }
     },
+    "/mailboxes/{id}/app-passwords": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "listMailboxAppPasswords",
+        "summary": "List mailbox app passwords",
+        "description": "List revocable app-password metadata for one mailbox. Secret values are never returned. Delegated partner organization headers are not accepted.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailbox_credentials:read",
+        "responses": {
+          "200": {
+            "description": "Active and recoverable app-password metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["object", "data"],
+                  "properties": {
+                    "object": { "type": "string", "const": "list" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/MailboxAppPassword" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      },
+      "post": {
+        "operationId": "createMailboxAppPassword",
+        "summary": "Create a mailbox app password",
+        "description": "Create a revocable IMAP, SMTP, and JMAP credential. A mailbox can have at most five active app passwords. The secret is returned once in the 201 response and is never stored by Shipmail. Expiration defaults to 90 days and cannot exceed one year. Idempotency-Key is rejected because replaying a cached plaintext secret would violate the one-time-secret guarantee.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailbox_credentials:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateMailboxAppPasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "App password created. Save the secret now.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreatedMailboxAppPassword" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/mailboxes/{id}/app-passwords/{app_password_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "name": "app_password_id",
+          "in": "path",
+          "required": true,
+          "description": "Mailbox app-password ID.",
+          "schema": { "type": "string", "pattern": "^appwd_[0-9a-z]+$" }
+        }
+      ],
+      "delete": {
+        "operationId": "revokeMailboxAppPassword",
+        "summary": "Revoke a mailbox app password",
+        "description": "Permanently revoke one app password. The connected client loses access immediately.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailbox_credentials:write",
+        "responses": {
+          "204": { "description": "App password revoked." },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
     "/mailboxes/{id}/exports": {
       "parameters": [
         {
@@ -5089,6 +5188,85 @@
         }
       }
     },
+    "/partner/mailbox-credential-grants": {
+      "get": {
+        "operationId": "listPartnerMailboxCredentialGrants",
+        "summary": "List pending mailbox credential grants",
+        "description": "List active, unexpired mailbox approvals created by operator owners. Returned metadata never includes an app-password secret.",
+        "tags": ["Partner Beta"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "partner:mailbox_credentials:issue",
+        "responses": {
+          "200": {
+            "description": "Pending operator approvals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["object", "data"],
+                  "properties": {
+                    "object": { "type": "string", "const": "list" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PartnerMailboxCredentialGrant"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/partner/mailbox-credential-grants/{grant_id}/consume": {
+      "post": {
+        "operationId": "consumePartnerMailboxCredentialGrant",
+        "summary": "Consume a mailbox credential grant",
+        "description": "Consume an active operator-approved, single-use grant and create an embedded-webmail app password. The operator is notified. The secret is returned exactly once and is never stored by Shipmail. Idempotency-Key is rejected because replaying a cached plaintext secret would violate the one-time-secret guarantee.",
+        "tags": ["Partner Beta"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "partner:mailbox_credentials:issue",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "description": "Single-use mailbox credential grant ID.",
+            "schema": { "type": "string", "pattern": "^pcg_[0-9a-z]+$" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumePartnerMailboxCredentialGrantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Credential created. Save the secret now.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerMailboxCredential" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
     "/partner/usage": {
       "get": {
         "operationId": "getPartnerUsage",
@@ -5307,6 +5485,76 @@
           "email_sent": { "type": "boolean" },
           "expires_at": { "type": "string", "format": "date-time" }
         }
+      },
+      "ConsumePartnerMailboxCredentialGrantRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "default": "Embedded webmail"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional expiry. Defaults to 90 days and cannot exceed one year."
+          },
+          "allowed_cidrs": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "description": "IPv4 or IPv6 CIDR range."
+            }
+          }
+        }
+      },
+      "PartnerMailboxCredentialGrant": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "partner_organization_id",
+          "organization_id",
+          "organization_name",
+          "external_reference",
+          "operator_email",
+          "mailbox_id",
+          "mailbox_address",
+          "disclosure_version",
+          "expires_at",
+          "consented_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "partner_mailbox_credential_grant" },
+          "id": { "type": "string", "pattern": "^pcg_[0-9a-z]+$" },
+          "partner_organization_id": { "type": "string", "pattern": "^pch_[0-9a-z]+$" },
+          "organization_id": { "type": "string" },
+          "organization_name": { "type": "string" },
+          "external_reference": { "type": "string" },
+          "operator_email": { "type": "string", "format": "email" },
+          "mailbox_id": { "type": "string" },
+          "mailbox_address": { "type": "string", "format": "email" },
+          "disclosure_version": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "consented_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PartnerMailboxCredential": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CreatedMailboxAppPassword" },
+          {
+            "type": "object",
+            "required": ["operator_notified"],
+            "properties": {
+              "operator_notified": {
+                "type": "boolean",
+                "description": "Whether the operator notification email was accepted for delivery."
+              }
+            }
+          }
+        ]
       },
       "PartnerUsage": {
         "type": "object",
@@ -6445,6 +6693,79 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "MailboxAppPassword": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "name",
+          "state",
+          "purpose",
+          "expires_at",
+          "allowed_cidrs",
+          "last_used_at",
+          "created_at",
+          "revoked_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "mailbox_app_password" },
+          "id": { "type": "string", "pattern": "^appwd_[0-9a-z]+$" },
+          "mailbox_id": { "type": "string" },
+          "name": { "type": "string" },
+          "state": {
+            "type": "string",
+            "enum": ["pending_create", "active", "pending_revoke", "revoked", "failed"]
+          },
+          "purpose": {
+            "type": "string",
+            "enum": ["operator_client", "partner_embedded_webmail"]
+          },
+          "expires_at": { "type": ["string", "null"], "format": "date-time" },
+          "allowed_cidrs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "last_used_at": { "type": ["string", "null"], "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "revoked_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "CreatedMailboxAppPassword": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MailboxAppPassword" },
+          {
+            "type": "object",
+            "required": ["secret"],
+            "properties": {
+              "secret": {
+                "type": "string",
+                "description": "One-time plaintext secret. Shipmail does not store or return it again."
+              }
+            }
+          }
+        ]
+      },
+      "CreateMailboxAppPasswordRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional expiry. Defaults to 90 days and cannot exceed one year."
+          },
+          "allowed_cidrs": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "description": "IPv4 or IPv6 CIDR range."
+            }
           }
         }
       },

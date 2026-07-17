@@ -282,6 +282,43 @@ export const mailboxExportSchema = z.object({
   completed_at: z.string().nullable(),
 });
 
+export const mailboxAppPasswordSchema = z.object({
+  object: z.literal("mailbox_app_password"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  name: z.string(),
+  state: z.enum(["pending_create", "active", "pending_revoke", "revoked", "failed"] as const),
+  purpose: z.enum(["operator_client", "partner_embedded_webmail"] as const),
+  expires_at: z.string().nullable(),
+  allowed_cidrs: z.array(z.string()),
+  last_used_at: z.string().nullable(),
+  created_at: z.string(),
+  revoked_at: z.string().nullable(),
+});
+
+export const createdMailboxAppPasswordSchema = mailboxAppPasswordSchema.extend({
+  secret: z.string(),
+});
+
+export const partnerMailboxCredentialSchema = createdMailboxAppPasswordSchema.extend({
+  operator_notified: z.boolean(),
+});
+
+export const partnerMailboxCredentialGrantSchema = z.object({
+  object: z.literal("partner_mailbox_credential_grant"),
+  id: z.string(),
+  partner_organization_id: z.string(),
+  organization_id: z.string(),
+  organization_name: z.string(),
+  external_reference: z.string(),
+  operator_email: z.string(),
+  mailbox_id: z.string(),
+  mailbox_address: z.string(),
+  disclosure_version: z.string(),
+  expires_at: z.string(),
+  consented_at: z.string(),
+});
+
 export const mailboxFolderSchema = z.object({
   object: z.literal("mailbox_folder"),
   id: z.string(),
@@ -749,6 +786,26 @@ export const domainOutputSchema = z.object({ domain: domainSchema });
 export const domainDnsRecordsOutputSchema = z.object({ dns_records: domainDnsRecordSetSchema });
 export const mailboxOutputSchema = z.object({ mailbox: mailboxSchema });
 export const mailboxExportOutputSchema = z.object({ export: mailboxExportSchema });
+export const mailboxAppPasswordOutputSchema = z.object({
+  app_password: mailboxAppPasswordSchema,
+});
+export const createdMailboxAppPasswordOutputSchema = z.object({
+  app_password: createdMailboxAppPasswordSchema,
+});
+export const mailboxAppPasswordsOutputSchema = z.object({
+  app_passwords: z.object({
+    object: z.literal("list"),
+    data: z.array(mailboxAppPasswordSchema),
+  }),
+});
+export const partnerMailboxCredentialOutputSchema = z.object({
+  credential: partnerMailboxCredentialSchema,
+});
+export const partnerMailboxCredentialGrantsOutputSchema = z.object({
+  grants: z.object({
+    data: z.array(partnerMailboxCredentialGrantSchema),
+  }),
+});
 export const mailboxFolderOutputSchema = z.object({ folder: mailboxFolderSchema });
 export const mailboxFoldersOutputSchema = z.object({ folders: mailboxFoldersSchema });
 export const mailboxIdentitiesOutputSchema = z.object({ identities: mailboxIdentitiesSchema });
@@ -971,6 +1028,20 @@ export const updateMailboxInputSchema = z.object({
     .nullable()
     .describe("New display name, or null to clear."),
   idempotency_key: idempotencyKeySchema,
+});
+const appPasswordCidrInputSchema = z.union([
+  z.cidrv4("Must be a valid IPv4 CIDR range."),
+  z.cidrv6("Must be a valid IPv6 CIDR range."),
+]);
+export const createMailboxAppPasswordInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  name: noControlString(100, "name").trim().min(1),
+  expires_at: z.iso.datetime().optional(),
+  allowed_cidrs: z.array(appPasswordCidrInputSchema).max(20).optional(),
+});
+export const revokeMailboxAppPasswordInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  app_password_id: idSchema.describe("App password ID."),
 });
 export const createMailboxFolderInputSchema = z.object({
   id: idSchema,
@@ -2173,4 +2244,10 @@ export const updatePartnerOrganizationInputSchema = partnerOrganizationByIdInput
 export const resendPartnerInvitationInputSchema = partnerOrganizationByIdInputSchema.extend({
   owner_email: emailSchema.optional(),
   idempotency_key: idempotencyKeySchema,
+});
+export const consumePartnerMailboxCredentialGrantInputSchema = z.object({
+  grant_id: idSchema.describe("Single-use mailbox credential grant ID."),
+  name: noControlString(100, "name").trim().min(1).optional(),
+  expires_at: z.iso.datetime().optional(),
+  allowed_cidrs: z.array(appPasswordCidrInputSchema).max(20).optional(),
 });

@@ -10,8 +10,10 @@
 // `KeysMatch` from sdk-alignment.test.ts.
 import { describe, test } from "bun:test";
 import type {
+  ConsumePartnerMailboxCredentialGrantParams,
   CreateBookingPageParams,
   CreateDomainParams,
+  CreateMailboxAppPasswordParams,
   CreateMailboxFolderParams,
   CreateMailboxParams,
   CreateNewsletterFromChangelogParams,
@@ -42,8 +44,10 @@ import type { z } from "zod/v4";
 
 import type {
   autoReplyInputSchema,
+  consumePartnerMailboxCredentialGrantInputSchema,
   createBookingPageInputSchema,
   createDomainInputSchema,
+  createMailboxAppPasswordInputSchema,
   createMailboxFolderInputSchema,
   createMailboxInputSchema,
   createNewsletterFromChangelogInputSchema,
@@ -79,6 +83,7 @@ import type {
 // - `folder_id` and `message_id` are second path parameters for nested tools.
 type StripMcpOnly<T> = Omit<T, "idempotency_key" | "id" | "folder_id" | "message_id">;
 type StripMcpOnlyKeepFolderId<T> = Omit<T, "idempotency_key" | "id">;
+type StripPartnerGrantPath<T> = Omit<T, "idempotency_key" | "grant_id">;
 
 // SDK fields that the MCP intentionally does not expose. Keep this list
 // honest: every entry should match a documented design choice. If the list
@@ -112,6 +117,18 @@ type _SearchDomains = AssertTrue<
 >;
 type _CreateMailbox = AssertTrue<
   KeysMatch<CreateMailboxParams, StripMcpOnly<z.infer<typeof createMailboxInputSchema>>>
+>;
+type _CreateMailboxAppPassword = AssertTrue<
+  KeysMatch<
+    CreateMailboxAppPasswordParams,
+    StripMcpOnly<z.infer<typeof createMailboxAppPasswordInputSchema>>
+  >
+>;
+type _ConsumePartnerMailboxCredentialGrant = AssertTrue<
+  KeysMatch<
+    ConsumePartnerMailboxCredentialGrantParams,
+    StripPartnerGrantPath<z.infer<typeof consumePartnerMailboxCredentialGrantInputSchema>>
+  >
 >;
 type _UpdateMailbox = AssertTrue<
   KeysMatch<UpdateMailboxParams, StripMcpOnly<z.infer<typeof updateMailboxInputSchema>>>
@@ -198,6 +215,8 @@ type _AllChecks = [
   _UpdateDomain,
   _SearchDomains,
   _CreateMailbox,
+  _CreateMailboxAppPassword,
+  _ConsumePartnerMailboxCredentialGrant,
   _UpdateMailbox,
   _InjectSandboxInbound,
   _CreateMailboxFolder,
@@ -251,7 +270,9 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
     ];
-    if (checks.length !== 27) throw new Error("alignment matrix size changed");
+    if (checks.length !== 29) throw new Error("alignment matrix size changed");
   });
 });

@@ -32,6 +32,9 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   createMailbox: "shipmail_create_mailbox",
   listMailboxes: "shipmail_list_mailboxes",
   getMailbox: "shipmail_get_mailbox",
+  listMailboxAppPasswords: "shipmail_list_mailbox_app_passwords",
+  createMailboxAppPassword: "shipmail_create_mailbox_app_password",
+  revokeMailboxAppPassword: "shipmail_revoke_mailbox_app_password",
   suspendMailbox: "shipmail_suspend_mailbox",
   resumeMailbox: "shipmail_resume_mailbox",
   createMailboxExport: "shipmail_create_mailbox_export",
@@ -136,6 +139,8 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   suspendPartnerOrganization: "shipmail_suspend_partner_organization",
   resumePartnerOrganization: "shipmail_resume_partner_organization",
   offboardPartnerOrganization: "shipmail_offboard_partner_organization",
+  listPartnerMailboxCredentialGrants: "shipmail_list_partner_mailbox_credential_grants",
+  consumePartnerMailboxCredentialGrant: "shipmail_consume_partner_mailbox_credential_grant",
   getPartnerUsage: "shipmail_get_partner_usage",
 };
 
