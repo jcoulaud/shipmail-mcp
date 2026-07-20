@@ -882,6 +882,13 @@ export const createMailboxImportInputSchema = z.object({
       "icloud",
       "fastmail",
       "zoho",
+      "titan",
+      "namecheap",
+      "migadu",
+      "gmx",
+      "mail_com",
+      "mailbox_org",
+      "mxroute",
       "infomaniak",
       "ovh",
       "gandi",
@@ -899,14 +906,16 @@ export const createMailboxImportInputSchema = z.object({
     .min(1)
     .max(253)
     .optional()
-    .describe("IMAP server. Required for 'imap'; optional OVHcloud server override for 'ovh'."),
+    .describe(
+      "IMAP server. Required for 'imap' and 'mxroute'; optional Titan or OVHcloud server override.",
+    ),
   port: z
     .number()
     .int()
     .min(1)
     .max(65535)
     .optional()
-    .describe("IMAP port. Used for 'imap' and optional OVHcloud overrides."),
+    .describe("IMAP port. Used for custom IMAP, MXroute, Titan, and OVHcloud overrides."),
   range: z
     .enum(["all", "12m", "3m", "1m"])
     .optional()
@@ -1142,6 +1151,39 @@ export const getMailboxInboxThreadInputSchema = z.object({
   thread_id: noControlString(256, "thread_id").min(1).describe("JMAP inbox thread ID."),
 });
 
+const inboxReplyFields = {
+  to: z.array(recipientInputSchema).min(1).max(50),
+  cc: z.array(recipientInputSchema).max(50).optional(),
+  html: z.string().max(512_000).optional(),
+  text: z.string().max(256_000).optional(),
+  client_reference: noControlString(255, "client_reference").min(1).optional(),
+  metadata: messageMetadataSchema.optional(),
+  source_rfc_message_id: sourceRfcMessageIdSchema.optional(),
+  headers: outboundHeadersSchema.optional(),
+  scheduled_at: z.iso.datetime().optional(),
+  idempotency_key: idempotencyKeySchema,
+} as const;
+
+export const replyToInboxMessageInputSchema = z
+  .object({
+    id: idSchema.describe("Mailbox ID."),
+    message_id: noControlString(256, "message_id").min(1).describe("JMAP inbox message ID."),
+    ...inboxReplyFields,
+  })
+  .refine((value) => Boolean(value.html || value.text), {
+    message: "At least one of html or text is required.",
+  });
+
+export const replyToInboxThreadInputSchema = z
+  .object({
+    id: idSchema.describe("Mailbox ID."),
+    thread_id: noControlString(256, "thread_id").min(1).describe("JMAP inbox thread ID."),
+    ...inboxReplyFields,
+  })
+  .refine((value) => Boolean(value.html || value.text), {
+    message: "At least one of html or text is required.",
+  });
+
 export const updateInboxMessageInputSchema = z
   .object({
     id: idSchema.describe("Mailbox ID."),
@@ -1249,11 +1291,15 @@ export const injectSandboxInboundInputSchema = z
 export const listThreadsInputSchema = paginationInputSchema.extend({
   mailbox_id: idSchema,
 });
-export const getThreadInputSchema = paginationInputSchema.extend({ id: idSchema });
+export const getThreadInputSchema = paginationInputSchema.extend({
+  id: idSchema,
+  mailbox_id: idSchema,
+});
 export const replyToThreadInputSchema = z
   .object({
     id: idSchema.describe("Thread ID to reply to."),
-    to: z.array(recipientInputSchema).max(50).optional(),
+    mailbox_id: idSchema.describe("Mailbox that owns the thread."),
+    to: z.array(recipientInputSchema).min(1).max(50),
     cc: z.array(recipientInputSchema).max(50).optional(),
     html: z.string().max(512_000).optional(),
     text: z.string().max(256_000).optional(),

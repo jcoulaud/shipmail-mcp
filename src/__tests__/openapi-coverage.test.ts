@@ -48,6 +48,8 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   listMailboxIdentities: "shipmail_list_mailbox_identities",
   listMailboxInboxMessages: "shipmail_list_mailbox_inbox_messages",
   getMailboxInboxThread: "shipmail_get_mailbox_inbox_thread",
+  replyToMailboxInboxMessage: "shipmail_reply_to_inbox_message",
+  replyToMailboxInboxThread: "shipmail_reply_to_inbox_thread",
   updateMailboxInboxMessage: "shipmail_update_inbox_message",
   moveMailboxInboxMessage: "shipmail_move_inbox_message",
   deleteMailboxInboxMessage: "shipmail_delete_inbox_message",

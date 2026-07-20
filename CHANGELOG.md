@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.1...shipmail-mcp-v0.3.2) (2026-07-19)
+
+
+### Features
+
+* **newsletters:** add team collaboration ([#874](https://github.com/jcoulaud/ShipMail/issues/874)) ([9be0b22](https://github.com/jcoulaud/ShipMail/commit/9be0b2290c94f1afd84bf1fec1d2b351cfa07823))
+
 ## [0.3.1](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.0...shipmail-mcp-v0.3.1) (2026-07-17)
 
 

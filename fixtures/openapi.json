@@ -2286,7 +2286,7 @@
       "post": {
         "operationId": "replyToMessage",
         "summary": "Reply to a message",
-        "description": "Reply to a message by its ID. Looks up the message's thread and sends a reply using the same mailbox.",
+        "description": "Reply to a stored ShipMail message by its msg_ ID. Looks up the message's thread and sends a reply using the same mailbox. JMAP IDs returned by mailbox inbox endpoints must use the mailbox-scoped inbox reply endpoint.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "send",
         "x-scope": "messages:write",
@@ -2400,11 +2400,20 @@
       "get": {
         "operationId": "getThread",
         "summary": "Get thread messages",
-        "description": "List all messages in a thread with cursor-based pagination.",
+        "description": "List all messages in a thread within its mailbox scope with cursor-based pagination.",
         "tags": ["Threads"],
         "x-rate-limit-tier": "read",
         "x-scope": "threads:read",
         "parameters": [
+          {
+            "name": "mailbox_id",
+            "in": "query",
+            "required": true,
+            "description": "Mailbox that owns the thread. Thread IDs are only unique within a mailbox.",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "$ref": "#/components/parameters/Cursor"
           },
@@ -2453,7 +2462,7 @@
       "post": {
         "operationId": "replyToThread",
         "summary": "Reply to a thread",
-        "description": "Send a reply within an existing thread. At least one of html or text is required. Total recipients (to + cc) must not exceed 50.",
+        "description": "Send a reply within an existing stored thread. mailbox_id is required because thread IDs are only unique within a mailbox. At least one of html or text is required. Total recipients (to + cc) must not exceed 50.",
         "tags": ["Threads"],
         "x-rate-limit-tier": "send",
         "x-scope": "messages:write",
@@ -2467,7 +2476,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReplyToThreadRequest"
+                "$ref": "#/components/schemas/ReplyToStoredThreadRequest"
               }
             }
           }
@@ -3234,6 +3243,69 @@
         }
       }
     },
+    "/mailboxes/{id}/inbox/messages/{message_id}/reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxMessageId"
+        }
+      ],
+      "post": {
+        "operationId": "replyToMailboxInboxMessage",
+        "summary": "Reply to mailbox inbox message",
+        "description": "Reply to the exact inbound JMAP message identified by message_id within the mailbox identified by id. Both IDs are returned by the mailbox inbox message endpoints.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyToThreadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply queued for delivery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/mailboxes/{id}/inbox/threads/{thread_id}": {
       "parameters": [
         {
@@ -3269,6 +3341,69 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/threads/{thread_id}/reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxThreadId"
+        }
+      ],
+      "post": {
+        "operationId": "replyToMailboxInboxThread",
+        "summary": "Reply to mailbox inbox thread",
+        "description": "Reply to the latest message in the inbound JMAP thread identified by thread_id within the mailbox identified by id. Both IDs are returned by the mailbox inbox endpoints.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyToThreadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply queued for delivery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
@@ -4411,7 +4546,7 @@
       "patch": {
         "operationId": "updateNewsletter",
         "summary": "Update a newsletter",
-        "description": "Update an editable draft newsletter or a scheduled newsletter whose send time is still in the future. Sending and sent newsletters cannot be edited.",
+        "description": "Update an editable draft newsletter or a scheduled newsletter whose send time is still in the future. Sending and sent newsletters cannot be edited. The server applies an internal revision check and returns 409 if another save wins concurrently; fetch the latest newsletter before retrying.",
         "tags": ["Newsletters"],
         "x-rate-limit-tier": "write",
         "x-scope": "newsletters:write",
@@ -4448,6 +4583,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
@@ -8158,6 +8296,23 @@
           }
         }
       },
+      "ReplyToStoredThreadRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ReplyToThreadRequest"
+          },
+          {
+            "type": "object",
+            "required": ["mailbox_id"],
+            "properties": {
+              "mailbox_id": {
+                "type": "string",
+                "description": "Mailbox that owns the thread."
+              }
+            }
+          }
+        ]
+      },
       "InjectSandboxInboundRequest": {
         "type": "object",
         "required": ["from", "subject"],
@@ -8865,6 +9020,13 @@
               "icloud",
               "fastmail",
               "zoho",
+              "titan",
+              "namecheap",
+              "migadu",
+              "gmx",
+              "mail_com",
+              "mailbox_org",
+              "mxroute",
               "infomaniak",
               "ovh",
               "gandi",
@@ -9015,6 +9177,13 @@
                       "icloud",
                       "fastmail",
                       "zoho",
+                      "titan",
+                      "namecheap",
+                      "migadu",
+                      "gmx",
+                      "mail_com",
+                      "mailbox_org",
+                      "mxroute",
                       "infomaniak",
                       "ovh",
                       "gandi",
@@ -9031,7 +9200,7 @@
                   },
                   "host": {
                     "type": "string",
-                    "description": "Required for provider imap. Optional for provider ovh to override the European MX Plan default."
+                    "description": "Required for providers imap and mxroute. Optional for provider titan or ovh to override the default server."
                   },
                   "port": {
                     "type": "integer",

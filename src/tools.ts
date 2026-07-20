@@ -117,6 +117,8 @@ import {
   registerNewsletterAssetInputSchema,
   removeSuppressionInputSchema,
   replayWebhookDeliveryInputSchema,
+  replyToInboxMessageInputSchema,
+  replyToInboxThreadInputSchema,
   replyToMessageInputSchema,
   replyToThreadInputSchema,
   resendPartnerInvitationInputSchema,
@@ -179,6 +181,8 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_send_message: 10,
   shipmail_reply_to_message: 10,
   shipmail_reply_to_thread: 10,
+  shipmail_reply_to_inbox_message: 10,
+  shipmail_reply_to_inbox_thread: 10,
   shipmail_delete_domain: 3,
   shipmail_delete_mailbox: 5,
   shipmail_suspend_mailbox: 20,
@@ -1140,6 +1144,68 @@ export function registerTools(
     );
   });
 
+  registerIfAllowed("shipmail_reply_to_inbox_message", () => {
+    server.registerTool(
+      "shipmail_reply_to_inbox_message",
+      {
+        title: "Reply To Inbox Message",
+        description:
+          "Reply to a JMAP inbox message within its mailbox. Use the mailbox and message IDs returned by shipmail_list_mailbox_inbox_messages, and only send after the user approves the exact recipients and content.",
+        inputSchema: replyToInboxMessageInputSchema,
+        outputSchema: messageOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_reply_to_inbox_message", messageOutputSchema, async () => {
+          const { id, message_id, ...rest } = stripIdempotencyKey(args);
+          return {
+            message: await client.mailboxes.replyToInboxMessage(
+              id,
+              message_id,
+              rest,
+              mutationOptions(args),
+            ),
+          };
+        }),
+    );
+  });
+
+  registerIfAllowed("shipmail_reply_to_inbox_thread", () => {
+    server.registerTool(
+      "shipmail_reply_to_inbox_thread",
+      {
+        title: "Reply To Inbox Thread",
+        description:
+          "Reply to a JMAP inbox thread within its mailbox. Use the mailbox and thread IDs returned by inbox tools, and only send after the user approves the exact recipients and content.",
+        inputSchema: replyToInboxThreadInputSchema,
+        outputSchema: messageOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_reply_to_inbox_thread", messageOutputSchema, async () => {
+          const { id, thread_id, ...rest } = stripIdempotencyKey(args);
+          return {
+            message: await client.mailboxes.replyToInboxThread(
+              id,
+              thread_id,
+              rest,
+              mutationOptions(args),
+            ),
+          };
+        }),
+    );
+  });
+
   registerIfAllowed("shipmail_update_inbox_message", () => {
     server.registerTool(
       "shipmail_update_inbox_message",
@@ -1542,7 +1608,7 @@ export function registerTools(
       {
         title: "Reply To Message",
         description:
-          "Reply to a specific message. Use only after the user approves the exact recipients and content.",
+          "Reply to a stored ShipMail message whose ID starts with msg_. For JMAP inbox IDs, use shipmail_reply_to_inbox_message. Use only after the user approves the exact recipients and content.",
         inputSchema: replyToMessageInputSchema,
         outputSchema: messageOutputSchema,
         annotations: {
@@ -1591,7 +1657,10 @@ export function registerTools(
       },
       async (args) =>
         runTool("shipmail_get_thread", threadMessagesOutputSchema, async () => {
-          const params: { cursor?: string; limit: number } = { limit: args.limit };
+          const params: { mailbox_id: string; cursor?: string; limit: number } = {
+            mailbox_id: args.mailbox_id,
+            limit: args.limit,
+          };
           if (args.cursor !== undefined) params.cursor = args.cursor;
           return client.threads.get(args.id, params);
         }),
@@ -1604,7 +1673,7 @@ export function registerTools(
       {
         title: "Reply To Thread",
         description:
-          "Reply to a thread. Use only after the user approves the exact recipients and content.",
+          "Reply to a stored ShipMail thread within its required mailbox scope. For JMAP inbox thread IDs, use shipmail_reply_to_inbox_thread. Use only after the user approves the exact recipients and content.",
         inputSchema: replyToThreadInputSchema,
         outputSchema: messageOutputSchema,
         annotations: {
@@ -2071,7 +2140,7 @@ export function registerTools(
       {
         title: "Update Newsletter",
         description:
-          "Update an editable newsletter draft or future scheduled newsletter. Prefer blocks for body content. When blocks already exist, body_text alone updates the plain-text override. Sending and sent newsletters cannot be edited.",
+          "Update an editable newsletter draft or future scheduled newsletter. Prefer blocks for body content. When blocks already exist, body_text alone updates the plain-text override. Sending and sent newsletters cannot be edited. A concurrent save returns conflict (409); read the latest newsletter before retrying.",
         inputSchema: updateNewsletterInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {

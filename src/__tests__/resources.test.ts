@@ -47,6 +47,7 @@ describe("MCP resources", () => {
     expect(templates).toContain("shipmail://mailboxes/{id}/rules");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/messages");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/threads/{thread_id}");
+    expect(templates).toContain("shipmail://mailboxes/{mailbox_id}/threads/{id}");
   });
 
   test("reads mailbox rules as sanitized JSON", async () => {

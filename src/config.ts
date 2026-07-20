@@ -13,7 +13,7 @@ export type McpConfig = {
 export const HELP_TEXT = `shipmail-mcp
 
 Usage:
-  shipmail-mcp [--tools shipmail_list_domains,shipmail_get_thread,shipmail_reply_to_thread]
+  shipmail-mcp [--tools shipmail_list_mailbox_inbox_messages,shipmail_get_mailbox_inbox_thread,shipmail_reply_to_inbox_thread]
 
 Environment:
   SHIPMAIL_API_KEY      Required ShipMail API key (or use SHIPMAIL_API_KEY_FILE).
