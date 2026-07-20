@@ -93,11 +93,10 @@ describe("MCP resources", () => {
         address: "support@example.com",
         data: [],
         pagination: {
-          position: 0,
           limit: 25,
           total: 0,
           has_more: false,
-          next_position: null,
+          next_cursor: null,
         },
       });
     });
@@ -114,11 +113,10 @@ describe("MCP resources", () => {
       address: "support@example.com",
       data: [],
       pagination: {
-        position: 0,
         limit: 25,
         total: 0,
         has_more: false,
-        next_position: null,
+        next_cursor: null,
       },
     });
   });

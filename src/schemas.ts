@@ -413,11 +413,136 @@ export const inboxMessagesSchema = z.object({
   address: z.string(),
   data: z.array(inboxFullMessageSchema),
   pagination: z.object({
-    position: z.number(),
     limit: z.number(),
     total: z.number(),
     has_more: z.boolean(),
-    next_position: z.number().nullable(),
+    next_cursor: z.string().nullable(),
+  }),
+});
+
+// The list tool returns summaries instead of full messages: a single page of
+// full bodies from a real mailbox is multiple megabytes, which exceeds every
+// MCP host's tool-result budget. Full content stays on the single-message tool.
+export const inboxMessageSummariesSchema = inboxMessagesSchema.extend({
+  data: z.array(inboxMessageSchema),
+});
+
+const inboxThreadReplyStateSchema = z.enum([
+  "needs_reply",
+  "waiting_on_contact",
+  "resolved",
+  "no_reply_expected",
+] as const);
+
+export const inboxThreadSummarySchema = z.object({
+  object: z.literal("inbox_thread_summary"),
+  id: z.string(),
+  thread_id: z.string(),
+  reply_state: inboxThreadReplyStateSchema,
+  reply_version: z.number().int(),
+  needs_reply_since: z.string().nullable(),
+  subject: z.string().nullable(),
+  latest_from_address: z.string().nullable(),
+  message_count: z.number().int(),
+  first_message_at: z.string(),
+  last_message_at: z.string(),
+  latest_message_id: z.string().nullable(),
+  latest_email_id: z.string().nullable(),
+  latest_inbound_message_id: z.string().nullable(),
+  latest_inbound_email_id: z.string().nullable(),
+  latest_inbound_at: z.string().nullable(),
+  latest_outbound_message_id: z.string().nullable(),
+  latest_outbound_email_id: z.string().nullable(),
+  latest_outbound_at: z.string().nullable(),
+});
+
+export const inboxThreadsSchema = z.object({
+  object: z.literal("inbox_threads"),
+  mailbox_id: z.string(),
+  data: z.array(inboxThreadSummarySchema),
+  summary: z.record(inboxThreadReplyStateSchema, z.number().int()),
+  pagination: z.object({
+    limit: z.number().int(),
+    has_more: z.boolean(),
+    next_cursor: z.string().nullable(),
+    snapshot_at: z.string(),
+  }),
+});
+
+export const inboxThreadReplyStateResultSchema = z.object({
+  object: z.literal("inbox_thread_reply_state"),
+  id: z.string(),
+  thread_id: z.string(),
+  reply_state: inboxThreadReplyStateSchema,
+  reply_version: z.number().int(),
+  needs_reply_since: z.string().nullable(),
+});
+
+const replyDraftStatusSchema = z.enum([
+  "draft",
+  "sending",
+  "sent",
+  "invalidated",
+  "failed",
+] as const);
+const replyDraftRecipientSchema = z.object({ address: z.string(), name: z.string().nullable() });
+export const inboxReplyDraftSchema = z.object({
+  object: z.literal("inbox_reply_draft"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  thread_id: z.string(),
+  based_on_message_id: z.string().nullable(),
+  expected_reply_version: z.number().int(),
+  reply_mode: z.enum(["reply", "reply_all"] as const),
+  status: replyDraftStatusSchema,
+  to: z.array(replyDraftRecipientSchema),
+  cc: z.array(replyDraftRecipientSchema),
+  created_at: z.string(),
+});
+
+export const inboxReplyDraftSendSchema = z.object({
+  object: z.literal("inbox_reply_draft_send"),
+  draft_id: z.string(),
+  status: replyDraftStatusSchema,
+  message: z.lazy(() => messageSchema),
+});
+
+export const replyScanSchema = z.object({
+  object: z.literal("reply_scan"),
+  id: z.string(),
+  mailbox_ids: z.array(z.string()),
+  after: z.string(),
+  before: z.string(),
+  snapshot_at: z.string(),
+  status: z.literal("completed"),
+  candidate_count: z.number().int(),
+  completed_at: z.string(),
+  created_at: z.string(),
+});
+
+export const replyScanCandidateSchema = z.object({
+  object: z.literal("reply_scan_candidate"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  thread_id: z.string(),
+  tracked_thread_id: z.string(),
+  latest_message_id: z.string().nullable(),
+  latest_email_id: z.string().nullable(),
+  latest_inbound_message_id: z.string().nullable(),
+  latest_inbound_email_id: z.string().nullable(),
+  reply_version: z.number().int(),
+  needs_reply_since: z.string(),
+  subject: z.string().nullable(),
+});
+
+export const replyScanResultsSchema = z.object({
+  object: z.literal("reply_scan_results"),
+  scan_id: z.string(),
+  data: z.array(replyScanCandidateSchema),
+  pagination: z.object({
+    limit: z.number().int(),
+    has_more: z.boolean(),
+    next_cursor: z.string().nullable(),
   }),
 });
 
@@ -810,7 +935,23 @@ export const mailboxFolderOutputSchema = z.object({ folder: mailboxFolderSchema 
 export const mailboxFoldersOutputSchema = z.object({ folders: mailboxFoldersSchema });
 export const mailboxIdentitiesOutputSchema = z.object({ identities: mailboxIdentitiesSchema });
 export const inboxMessagesOutputSchema = z.object({ inbox_messages: inboxMessagesSchema });
+export const inboxMessageSummariesOutputSchema = z.object({
+  inbox_messages: inboxMessageSummariesSchema,
+});
+export const inboxMessageOutputSchema = z.object({ inbox_message: inboxFullMessageSchema });
+export const inboxThreadsOutputSchema = z.object({ inbox_threads: inboxThreadsSchema });
 export const inboxThreadOutputSchema = z.object({ inbox_thread: inboxThreadSchema });
+export const inboxThreadReplyStateOutputSchema = z.object({
+  inbox_thread_reply_state: inboxThreadReplyStateResultSchema,
+});
+export const inboxReplyDraftOutputSchema = z.object({ inbox_reply_draft: inboxReplyDraftSchema });
+export const inboxReplyDraftSendOutputSchema = z.object({
+  inbox_reply_draft_send: inboxReplyDraftSendSchema,
+});
+export const replyScanOutputSchema = z.object({ reply_scan: replyScanSchema });
+export const replyScanResultsOutputSchema = z.object({
+  reply_scan_results: replyScanResultsSchema,
+});
 export const inboxMessageActionOutputSchema = z.object({
   inbox_message_action: inboxMessageActionSchema,
 });
@@ -1137,7 +1278,9 @@ export const listMailboxInboxMessagesInputSchema = z
     folder_id: folderIdSchema.optional(),
     folder_role: z.enum(SYSTEM_FOLDER_NAMES).optional(),
     search_text: noControlString(500, "search_text").optional(),
-    position: z.number().int().min(0).default(0),
+    cursor: z.string().optional(),
+    after: z.iso.datetime().optional(),
+    before: z.iso.datetime().optional(),
     limit: z.number().int().min(1).max(100).default(50),
     has_keyword: z.enum(JMAP_KEYWORDS).optional(),
     not_keyword: z.enum(JMAP_KEYWORDS).optional(),
@@ -1146,9 +1289,68 @@ export const listMailboxInboxMessagesInputSchema = z
     message: "Use either folder_id or folder_role, not both.",
   });
 
+export const getMailboxInboxMessageInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  message_id: noControlString(256, "message_id").min(1).describe("JMAP inbox message ID."),
+});
+
+export const listMailboxInboxThreadsInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  reply_state: inboxThreadReplyStateSchema.default("needs_reply"),
+  sort_by: z.enum(["needs_reply_since", "last_message_at"] as const).default("needs_reply_since"),
+  order: z.enum(["asc", "desc"] as const).default("asc"),
+  after: z.iso.datetime().optional(),
+  before: z.iso.datetime().optional(),
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+});
+
 export const getMailboxInboxThreadInputSchema = z.object({
   id: idSchema.describe("Mailbox ID."),
   thread_id: noControlString(256, "thread_id").min(1).describe("JMAP inbox thread ID."),
+});
+
+export const updateInboxThreadReplyStateInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  thread_id: noControlString(256, "thread_id").min(1),
+  reply_state: z.enum(["needs_reply", "resolved", "no_reply_expected"] as const),
+  expected_reply_version: z.number().int().min(1),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const createInboxReplyDraftInputSchema = z
+  .object({
+    id: idSchema.describe("Mailbox ID."),
+    thread_id: noControlString(256, "thread_id").min(1),
+    text: z.string().max(256_000).optional(),
+    html: z.string().max(512_000).optional(),
+    reply_mode: z.enum(["reply", "reply_all"] as const).default("reply"),
+    expected_reply_version: z.number().int().min(1),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine((value) => Boolean(value.text || value.html), {
+    message: "At least one of html or text is required.",
+  });
+
+export const sendInboxReplyDraftInputSchema = z.object({
+  id: idSchema.describe("Mailbox ID."),
+  thread_id: noControlString(256, "thread_id").min(1),
+  draft_id: idSchema,
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const createReplyScanInputSchema = z.object({
+  mailbox_ids: z.array(idSchema).min(1).max(100),
+  after: z.iso.datetime(),
+  before: z.iso.datetime().optional(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const getReplyScanInputSchema = z.object({ scan_id: idSchema });
+export const listReplyScanResultsInputSchema = z.object({
+  scan_id: idSchema,
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(100).default(50),
 });
 
 const inboxReplyFields = {

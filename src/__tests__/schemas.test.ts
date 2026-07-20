@@ -176,15 +176,16 @@ describe("createMailboxInputSchema", () => {
 });
 
 describe("listMailboxInboxMessagesInputSchema", () => {
-  test("accepts position pagination and keyword filters", () => {
+  test("accepts cursor and date pagination with keyword filters", () => {
     const out = listMailboxInboxMessagesInputSchema.parse({
       id: "mbx_abc123",
       folder_role: "inbox",
-      position: 10,
+      cursor: "cur_10",
+      after: "2026-01-01T00:00:00.000Z",
       limit: 25,
       has_keyword: "$seen",
     });
-    expect(out.position).toBe(10);
+    expect(out.cursor).toBe("cur_10");
     expect(out.has_keyword).toBe("$seen");
   });
 

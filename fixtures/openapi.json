@@ -2203,7 +2203,7 @@
         "description": "Send an email from a mailbox. Provide from (email address) or mailbox_id to identify the sender. Prefer from when you know the mailbox email address; Shipmail resolves it to a mailbox ID. At least one of html or text is required. Total recipients (to + cc + bcc) must not exceed 50. Attachments are base64-encoded, max 20 files, 3 MB per file, 3 MB total.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "send",
-        "x-scope": "messages:write",
+        "x-scope": "messages:send",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2289,7 +2289,7 @@
         "description": "Reply to a stored ShipMail message by its msg_ ID. Looks up the message's thread and sends a reply using the same mailbox. JMAP IDs returned by mailbox inbox endpoints must use the mailbox-scoped inbox reply endpoint.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "send",
-        "x-scope": "messages:write",
+        "x-scope": "messages:send",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2465,7 +2465,7 @@
         "description": "Send a reply within an existing stored thread. mailbox_id is required because thread IDs are only unique within a mailbox. At least one of html or text is required. Total recipients (to + cc) must not exceed 50.",
         "tags": ["Threads"],
         "x-rate-limit-tier": "send",
-        "x-scope": "messages:write",
+        "x-scope": "messages:send",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2996,6 +2996,103 @@
         }
       }
     },
+    "/reply-scans": {
+      "post": {
+        "operationId": "createReplyScan",
+        "summary": "Create a historical unanswered-thread scan",
+        "description": "Atomically captures the current needs_reply threads in the requested window. The completed candidate set is frozen, retained for 30 days, limited to 5,000 rows, and cursor-paged. Windows are limited to 366 days.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:read",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateReplyScanRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Completed reply scan snapshot created.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScan" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/reply-scans/{scan_id}": {
+      "parameters": [
+        {
+          "name": "scan_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "pattern": "^rsc_" }
+        }
+      ],
+      "get": {
+        "operationId": "getReplyScan",
+        "summary": "Get reply scan metadata",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "responses": {
+          "200": {
+            "description": "Reply scan status.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScan" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/reply-scans/{scan_id}/results": {
+      "parameters": [
+        {
+          "name": "scan_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "pattern": "^rsc_" }
+        }
+      ],
+      "get": {
+        "operationId": "listReplyScanResults",
+        "summary": "List completed reply scan candidates",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reply scan candidates.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScanResults" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
     "/mailboxes/{id}/inbox/messages": {
       "parameters": [
         {
@@ -3005,7 +3102,7 @@
       "get": {
         "operationId": "listMailboxInboxMessages",
         "summary": "List mailbox inbox messages",
-        "description": "List inbound JMAP messages for a mailbox with folder, keyword, search, and position-based pagination filters. Rows include body parts and attachment metadata.",
+        "description": "List JMAP messages for a mailbox with opaque cursor, date, folder, keyword, and search filters. The first page fixes the before cutoff. The cursor is bound to the mailbox and filters; send it unchanged and never parse or fabricate it.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "read",
         "x-scope": "messages:read",
@@ -3039,14 +3136,19 @@
             }
           },
           {
-            "name": "position",
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "name": "after",
             "in": "query",
-            "description": "Zero-based JMAP result position. Default 0.",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0
-            }
+            "description": "Only messages received at or after this instant.",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "Only messages received before this instant. Defaults to the first-page snapshot time.",
+            "schema": { "type": "string", "format": "date-time" }
           },
           {
             "name": "limit",
@@ -3114,6 +3216,26 @@
           "$ref": "#/components/parameters/InboxMessageId"
         }
       ],
+      "get": {
+        "operationId": "getMailboxInboxMessage",
+        "summary": "Get one exact mailbox inbox message",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "responses": {
+          "200": {
+            "description": "Exact full inbox message.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/InboxFullMessage" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      },
       "patch": {
         "operationId": "updateMailboxInboxMessage",
         "summary": "Update mailbox inbox message",
@@ -3258,7 +3380,7 @@
         "description": "Reply to the exact inbound JMAP message identified by message_id within the mailbox identified by id. Both IDs are returned by the mailbox inbox message endpoints.",
         "tags": ["Mailboxes", "Messages"],
         "x-rate-limit-tier": "send",
-        "x-scope": "messages:write",
+        "x-scope": "messages:send",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -3306,6 +3428,59 @@
         }
       }
     },
+    "/mailboxes/{id}/inbox/threads": {
+      "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+      "get": {
+        "operationId": "listMailboxInboxThreads",
+        "summary": "List mailbox inbox thread reply states",
+        "description": "Lists the deterministic reply queue with cursor-bound keyset pagination, anchored to the first page's message-time cutoff. Live state changes may add or remove rows; use reply-scans when a frozen historical candidate set is required. Defaults to needs_reply, oldest first.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "reply_state",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/InboxThreadReplyState" }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["needs_reply_since", "last_message_at"],
+              "default": "needs_reply_since"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "asc" }
+          },
+          { "name": "after", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reply queue page and state counts.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/InboxThreads" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
     "/mailboxes/{id}/inbox/threads/{thread_id}": {
       "parameters": [
         {
@@ -3349,6 +3524,110 @@
             "$ref": "#/components/responses/RateLimitError"
           }
         }
+      },
+      "patch": {
+        "operationId": "updateMailboxInboxThreadReplyState",
+        "summary": "Update an inbox thread reply state",
+        "description": "Resolve, suppress, or reopen a thread using optimistic reply_version concurrency.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "messages:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateInboxThreadReplyStateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated reply state.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InboxThreadReplyStateResult" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/threads/{thread_id}/drafts": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ResourceId" },
+        { "$ref": "#/components/parameters/InboxThreadId" }
+      ],
+      "post": {
+        "operationId": "createMailboxInboxReplyDraft",
+        "summary": "Create a recipient-safe inbox reply draft",
+        "description": "ShipMail derives To/Cc from the latest inbound message and binds the draft to expected_reply_version.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "drafts:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateInboxReplyDraftRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved reply draft and derived recipients.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/InboxReplyDraft" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/mailboxes/{id}/inbox/threads/{thread_id}/drafts/{draft_id}/send": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ResourceId" },
+        { "$ref": "#/components/parameters/InboxThreadId" },
+        {
+          "name": "draft_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "pattern": "^drf_" }
+        }
+      ],
+      "post": {
+        "operationId": "sendMailboxInboxReplyDraft",
+        "summary": "Send an approved inbox reply draft",
+        "description": "Returns 409 without sending when the thread reply_version changed after draft creation.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:send",
+        "responses": {
+          "201": {
+            "description": "Draft sent.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InboxReplyDraftSend" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationError" },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
       }
     },
     "/mailboxes/{id}/inbox/threads/{thread_id}/reply": {
@@ -3366,7 +3645,7 @@
         "description": "Reply to the latest message in the inbound JMAP thread identified by thread_id within the mailbox identified by id. Both IDs are returned by the mailbox inbox endpoints.",
         "tags": ["Mailboxes", "Messages"],
         "x-rate-limit-tier": "send",
-        "x-scope": "messages:write",
+        "x-scope": "messages:send",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -5458,7 +5737,7 @@
       "Cursor": {
         "name": "cursor",
         "in": "query",
-        "description": "Pagination cursor from a previous response.",
+        "description": "Opaque pagination cursor returned by the same list operation. Send it unchanged; do not parse, modify, or fabricate it.",
         "schema": {
           "type": "string"
         }
@@ -7627,7 +7906,7 @@
           },
           "source": {
             "type": "string",
-            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp"]
+            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp", "agent"]
           },
           "mode": {
             "$ref": "#/components/schemas/DataMode"
@@ -7836,6 +8115,7 @@
           "message.delivered",
           "message.bounced",
           "message.complained",
+          "thread.needs_reply",
           "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
@@ -7854,6 +8134,7 @@
           "message.delivered",
           "message.bounced",
           "message.complained",
+          "thread.needs_reply",
           "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
@@ -8770,14 +9051,10 @@
           }
         }
       },
-      "InboxPositionPagination": {
+      "InboxCursorPagination": {
         "type": "object",
-        "required": ["position", "limit", "total", "has_more", "next_position"],
+        "required": ["limit", "total", "has_more", "next_cursor"],
         "properties": {
-          "position": {
-            "type": "integer",
-            "minimum": 0
-          },
           "limit": {
             "type": "integer",
             "minimum": 1,
@@ -8790,9 +9067,8 @@
           "has_more": {
             "type": "boolean"
           },
-          "next_position": {
-            "type": ["integer", "null"],
-            "minimum": 0
+          "next_cursor": {
+            "type": ["string", "null"]
           }
         }
       },
@@ -8818,8 +9094,283 @@
             }
           },
           "pagination": {
-            "$ref": "#/components/schemas/InboxPositionPagination"
+            "$ref": "#/components/schemas/InboxCursorPagination"
           }
+        }
+      },
+      "CreateReplyScanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mailbox_ids", "after"],
+        "properties": {
+          "mailbox_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "after": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive lower bound. The window through before must not exceed 366 days."
+          },
+          "before": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive upper bound; defaults to snapshot creation time."
+          }
+        }
+      },
+      "ReplyScan": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_ids",
+          "after",
+          "before",
+          "snapshot_at",
+          "status",
+          "candidate_count",
+          "completed_at",
+          "created_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "reply_scan" },
+          "id": { "type": "string" },
+          "mailbox_ids": { "type": "array", "items": { "type": "string" } },
+          "after": { "type": "string", "format": "date-time" },
+          "before": { "type": "string", "format": "date-time" },
+          "snapshot_at": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "const": "completed" },
+          "candidate_count": { "type": "integer", "minimum": 0 },
+          "completed_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ReplyScanCandidate": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "thread_id",
+          "tracked_thread_id",
+          "reply_version",
+          "needs_reply_since"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "reply_scan_candidate" },
+          "id": { "type": "string" },
+          "mailbox_id": { "type": "string" },
+          "thread_id": { "type": "string" },
+          "tracked_thread_id": { "type": "string" },
+          "latest_message_id": { "type": ["string", "null"] },
+          "latest_email_id": { "type": ["string", "null"] },
+          "latest_inbound_message_id": { "type": ["string", "null"] },
+          "latest_inbound_email_id": { "type": ["string", "null"] },
+          "reply_version": { "type": "integer", "minimum": 1 },
+          "needs_reply_since": { "type": "string", "format": "date-time" },
+          "subject": { "type": ["string", "null"] }
+        }
+      },
+      "ReplyScanResults": {
+        "type": "object",
+        "required": ["object", "scan_id", "data", "pagination"],
+        "properties": {
+          "object": { "type": "string", "const": "reply_scan_results" },
+          "scan_id": { "type": "string" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReplyScanCandidate" }
+          },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "InboxThreadReplyState": {
+        "type": "string",
+        "enum": ["needs_reply", "waiting_on_contact", "resolved", "no_reply_expected"]
+      },
+      "InboxThreadSummary": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "thread_id",
+          "reply_state",
+          "reply_version",
+          "needs_reply_since",
+          "subject",
+          "latest_from_address",
+          "message_count",
+          "first_message_at",
+          "last_message_at",
+          "latest_message_id",
+          "latest_email_id",
+          "latest_inbound_message_id",
+          "latest_inbound_email_id",
+          "latest_inbound_at",
+          "latest_outbound_message_id",
+          "latest_outbound_email_id",
+          "latest_outbound_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "inbox_thread_summary" },
+          "id": { "type": "string" },
+          "thread_id": { "type": "string" },
+          "reply_state": { "$ref": "#/components/schemas/InboxThreadReplyState" },
+          "reply_version": { "type": "integer", "minimum": 1 },
+          "needs_reply_since": { "type": ["string", "null"], "format": "date-time" },
+          "subject": { "type": ["string", "null"] },
+          "latest_from_address": { "type": ["string", "null"] },
+          "message_count": { "type": "integer", "minimum": 0 },
+          "first_message_at": { "type": "string", "format": "date-time" },
+          "last_message_at": { "type": "string", "format": "date-time" },
+          "latest_message_id": {
+            "type": ["string", "null"],
+            "description": "ShipMail tracked message ID."
+          },
+          "latest_email_id": {
+            "type": ["string", "null"],
+            "description": "Provider/JMAP email ID."
+          },
+          "latest_inbound_message_id": { "type": ["string", "null"] },
+          "latest_inbound_email_id": { "type": ["string", "null"] },
+          "latest_inbound_at": { "type": ["string", "null"], "format": "date-time" },
+          "latest_outbound_message_id": { "type": ["string", "null"] },
+          "latest_outbound_email_id": { "type": ["string", "null"] },
+          "latest_outbound_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "InboxThreads": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "data", "summary", "pagination"],
+        "properties": {
+          "object": { "type": "string", "const": "inbox_threads" },
+          "mailbox_id": { "type": "string" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/InboxThreadSummary" }
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          },
+          "pagination": {
+            "type": "object",
+            "required": ["limit", "has_more", "next_cursor", "snapshot_at"],
+            "properties": {
+              "limit": { "type": "integer" },
+              "has_more": { "type": "boolean" },
+              "next_cursor": { "type": ["string", "null"] },
+              "snapshot_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "UpdateInboxThreadReplyStateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reply_state", "expected_reply_version"],
+        "properties": {
+          "reply_state": {
+            "type": "string",
+            "enum": ["needs_reply", "resolved", "no_reply_expected"]
+          },
+          "expected_reply_version": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "InboxThreadReplyStateResult": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "thread_id",
+          "reply_state",
+          "reply_version",
+          "needs_reply_since"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "inbox_thread_reply_state" },
+          "id": { "type": "string" },
+          "thread_id": { "type": "string" },
+          "reply_state": { "$ref": "#/components/schemas/InboxThreadReplyState" },
+          "reply_version": { "type": "integer" },
+          "needs_reply_since": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "CreateInboxReplyDraftRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expected_reply_version"],
+        "anyOf": [{ "required": ["text"] }, { "required": ["html"] }],
+        "properties": {
+          "text": { "type": "string", "maxLength": 256000 },
+          "html": { "type": "string", "maxLength": 512000 },
+          "reply_mode": { "type": "string", "enum": ["reply", "reply_all"], "default": "reply" },
+          "expected_reply_version": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "InboxReplyDraft": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "thread_id",
+          "based_on_message_id",
+          "expected_reply_version",
+          "reply_mode",
+          "status",
+          "to",
+          "cc",
+          "created_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "const": "inbox_reply_draft" },
+          "id": { "type": "string" },
+          "mailbox_id": { "type": "string" },
+          "thread_id": { "type": "string" },
+          "based_on_message_id": { "type": ["string", "null"] },
+          "expected_reply_version": { "type": "integer" },
+          "reply_mode": { "type": "string", "enum": ["reply", "reply_all"] },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "sending", "sent", "invalidated", "failed"]
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["address", "name"],
+              "properties": {
+                "address": { "type": "string", "format": "email" },
+                "name": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["address", "name"],
+              "properties": {
+                "address": { "type": "string", "format": "email" },
+                "name": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "InboxReplyDraftSend": {
+        "type": "object",
+        "required": ["object", "draft_id", "status", "message"],
+        "properties": {
+          "object": { "type": "string", "const": "inbox_reply_draft_send" },
+          "draft_id": { "type": "string" },
+          "status": { "type": "string", "const": "sent" },
+          "message": { "$ref": "#/components/schemas/Message" }
         }
       },
       "InboxThread": {

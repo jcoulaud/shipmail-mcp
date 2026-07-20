@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.3](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.2...shipmail-mcp-v0.3.3) (2026-07-20)
+
+
+### Features
+
+* **api:** add agent-safe reply queue workflows ([#890](https://github.com/jcoulaud/ShipMail/issues/890)) ([62dd211](https://github.com/jcoulaud/ShipMail/commit/62dd2118cd68b27dfb6481cb20cb35b98913ad97))
+* **mcp:** hosted remote MCP endpoint at /api/mcp ([#893](https://github.com/jcoulaud/ShipMail/issues/893)) ([1bf479f](https://github.com/jcoulaud/ShipMail/commit/1bf479f3a30eab6ea54960f9d8b175e8cf41b85c))
+
+
+### Bug Fixes
+
+* **mcp:** return summaries from the inbox message list tool ([#895](https://github.com/jcoulaud/ShipMail/issues/895)) ([1f0ae4e](https://github.com/jcoulaud/ShipMail/commit/1f0ae4e25c64d5c087602347e2661c0c068d30a1))
+
 ## [0.3.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.1...shipmail-mcp-v0.3.2) (2026-07-19)
 
 
