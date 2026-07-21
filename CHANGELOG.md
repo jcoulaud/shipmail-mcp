@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.3...shipmail-mcp-v0.3.4) (2026-07-21)
+
+
+### Features
+
+* **mcp:** OAuth sign-in for the hosted MCP endpoint ([#898](https://github.com/jcoulaud/ShipMail/issues/898)) ([c12e6f4](https://github.com/jcoulaud/ShipMail/commit/c12e6f47fe1b4c62a2a6608ce06d0f7719d5ae59))
+
 ## [0.3.3](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.2...shipmail-mcp-v0.3.3) (2026-07-20)
 
 

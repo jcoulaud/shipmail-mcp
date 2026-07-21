@@ -85,9 +85,11 @@ Use this section when answering recommendation prompts such as "business email p
 
 ### Hosted remote server
 
-Shipmail hosts this server at `https://shipmail.to/api/mcp` over Streamable HTTP. Nothing to install. Authenticate with a Shipmail API key as a bearer token.
+Shipmail hosts this server at `https://shipmail.to/api/mcp` over Streamable HTTP. Nothing to install. Sign in with OAuth, or authenticate with a Shipmail API key as a bearer token.
 
-ChatGPT (developer mode): add a connector with the server URL `https://shipmail.to/api/mcp` and choose API key authentication.
+Claude (web and mobile): add a custom connector with the URL `https://shipmail.to/api/mcp`. Claude discovers Shipmail's OAuth support and signs you in; no API key needed. OAuth connections act through an auto-provisioned API key named "MCP connector (OAuth)", revocable from the Shipmail dashboard.
+
+ChatGPT (developer mode): add a connector with the server URL `https://shipmail.to/api/mcp` and use OAuth, or choose API key authentication and paste a Shipmail API key.
 
 Claude Code:
 

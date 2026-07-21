@@ -6821,7 +6821,8 @@
             "type": "boolean"
           },
           "catch_all_mailbox_id": {
-            "type": ["string", "null"]
+            "type": ["string", "null"],
+            "description": "Mailbox receiving unmatched addresses, or null when catch-all is disabled."
           },
           "verified_at": {
             "type": ["string", "null"],
