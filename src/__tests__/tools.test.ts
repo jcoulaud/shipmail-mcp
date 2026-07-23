@@ -62,8 +62,6 @@ describe("registerTools", () => {
       "shipmail_update_inbox_message",
       "shipmail_move_inbox_message",
       "shipmail_delete_inbox_message",
-      "shipmail_get_mailbox_rules",
-      "shipmail_set_mailbox_rules",
       "shipmail_reset_mailbox_password",
       "shipmail_set_auto_reply",
       "shipmail_set_spam_filter",

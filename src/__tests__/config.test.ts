@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { readConfig } from "../config.js";
+import { readConfig, SAFE_DEFAULT_TOOLS } from "../config.js";
 
 const ENV_KEYS = [
   "SHIPMAIL_API_KEY",
@@ -38,7 +38,11 @@ describe("readConfig", () => {
     const config = readConfig([]);
     expect(config.apiKey).toBe("sk_test");
     expect(config.baseUrl).toBeUndefined();
-    expect(config.selectedTools).toBeUndefined();
+    expect(config.selectedTools).toEqual(SAFE_DEFAULT_TOOLS);
+    const selectedTools = config.selectedTools;
+    if (!selectedTools) throw new Error("safe default tools are required");
+    expect(selectedTools.has("shipmail_send_message")).toBe(false);
+    expect(selectedTools.has("shipmail_create_inbox_reply_draft")).toBe(true);
   });
 
   test("reads the delegated organization id", () => {

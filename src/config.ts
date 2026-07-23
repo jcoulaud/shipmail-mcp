@@ -10,6 +10,24 @@ export type McpConfig = {
   readonly organizationId: string | undefined;
 };
 
+export const SAFE_DEFAULT_TOOLS: ReadonlySet<string> = new Set([
+  "shipmail_status",
+  "shipmail_list_mailboxes",
+  "shipmail_get_mailbox",
+  "shipmail_list_mailbox_folders",
+  "shipmail_list_mailbox_identities",
+  "shipmail_list_mailbox_inbox_messages",
+  "shipmail_get_mailbox_inbox_thread",
+  "shipmail_create_inbox_reply_draft",
+  "shipmail_list_messages",
+  "shipmail_get_message",
+  "shipmail_list_threads",
+  "shipmail_get_thread",
+  "shipmail_list_calendar_events",
+  "shipmail_get_calendar_event",
+  "shipmail_get_calendar_availability",
+]);
+
 export const HELP_TEXT = `shipmail-mcp
 
 Usage:
@@ -24,6 +42,9 @@ Environment:
   SHIPMAIL_ORGANIZATION_ID
                         Optional delegated child organization ID for infrastructure tools.
   SHIPMAIL_MCP_TOOLS    Optional comma-separated tool allowlist. --tools overrides this.
+                        Without either, ShipMail exposes only the safe read + reply-draft defaults.
+                        Sending, deletion, secrets, permissions, billing, and settings require an
+                        explicit tool list and the corresponding API-key scopes.
   SHIPMAIL_ALLOW_INSECURE_BASE_URL=1
                         Permit non-https or non-shipmail.to base URL (development only).`;
 
@@ -121,6 +142,7 @@ export function readConfig(argv: readonly string[] = process.argv.slice(2)): Mcp
     apiKey,
     baseUrl,
     organizationId: env["SHIPMAIL_ORGANIZATION_ID"] || undefined,
-    selectedTools: parseToolsArg(argv) ?? parseToolsList(env["SHIPMAIL_MCP_TOOLS"]),
+    selectedTools:
+      parseToolsArg(argv) ?? parseToolsList(env["SHIPMAIL_MCP_TOOLS"]) ?? SAFE_DEFAULT_TOOLS,
   };
 }

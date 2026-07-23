@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.4...shipmail-mcp-v0.4.0) (2026-07-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **assistant:** replace Agent OS with admin-only AI assistant ([#924](https://github.com/jcoulaud/ShipMail/issues/924))
+
+### Features
+
+* **assistant:** replace Agent OS with admin-only AI assistant ([#924](https://github.com/jcoulaud/ShipMail/issues/924)) ([70b4c1e](https://github.com/jcoulaud/ShipMail/commit/70b4c1e824ea72587c7bb78c54c265993ddf8d49))
+
 ## [0.3.4](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.3...shipmail-mcp-v0.3.4) (2026-07-21)
 
 

@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { z } from "zod/v4";
 
 import {
   attachmentInputSchema,
@@ -19,8 +18,6 @@ import {
   listWebhookDeliveriesInputSchema,
   mailboxFoldersSchema,
   mailboxIdentitiesSchema,
-  mailboxRuleSchema,
-  mailboxRulesSchema,
   moveInboxMessageInputSchema,
   newsletterDomainSchema,
   newsletterSchema,
@@ -37,7 +34,6 @@ import {
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
-  updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
 } from "../schemas.js";
 
@@ -422,56 +418,6 @@ describe("update schemas use nullable instead of refine", () => {
         idempotency_key: "k",
       }),
     ).toThrow();
-  });
-
-  test("mailbox rules use public snake_case fields", () => {
-    const rule: z.infer<typeof mailboxRuleSchema> = {
-      id: "4f5a9d74-b0f1-49a7-bbfb-1f2af841f5b2",
-      name: "VIP",
-      enabled: true,
-      position: 0,
-      match_mode: "all",
-      stop: false,
-      conditions: [
-        {
-          type: "group",
-          match_mode: "any",
-          conditions: [{ type: "from_contains", value: "@example.com" }],
-        },
-      ],
-      actions: [
-        { type: "move", target: { kind: "custom", folder_id: "fld_123" } },
-        { type: "send_webhook" },
-        {
-          type: "ai_draft_reply",
-          instructions: "Write a concise support reply.",
-          reply_mode: "reply",
-          agent_policy: "draft_for_review",
-        },
-      ],
-    };
-
-    expect(updateMailboxRulesInputSchema.parse({ id: "mbx_abc", rules: [rule] }).rules[0]).toEqual(
-      rule,
-    );
-    expect(
-      mailboxRulesSchema.parse({
-        object: "mailbox_rules",
-        mailbox_id: "mbx_abc",
-        address: "hello@example.com",
-        rules: [rule],
-        folders: [{ id: "fld_123", name: "VIP", parent_id: null, role: null, kind: "custom" }],
-      }).rules[0]?.actions,
-    ).toEqual([
-      { type: "move", target: { kind: "custom", folder_id: "fld_123" } },
-      { type: "send_webhook" },
-      {
-        type: "ai_draft_reply",
-        instructions: "Write a concise support reply.",
-        reply_mode: "reply",
-        agent_policy: "draft_for_review",
-      },
-    ]);
   });
 
   test("mailbox folders use public snake_case fields", () => {

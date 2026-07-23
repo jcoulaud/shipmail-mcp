@@ -31,7 +31,6 @@ import type {
   MailboxFolders,
   MailboxIdentities,
   MailboxIdentity,
-  MailboxRules,
   Message,
   Newsletter,
   NewsletterAsset,
@@ -65,7 +64,6 @@ import {
   mailboxFoldersSchema,
   mailboxIdentitiesSchema,
   mailboxIdentitySchema,
-  mailboxRulesSchema,
   mailboxSchema,
   messageSchema,
   newsletterAssetSchema,
@@ -128,7 +126,6 @@ type _InboxFullMessageKeys = AssertTrue<
 >;
 type _InboxMessagesKeys = AssertTrue<KeysMatch<InboxMessages, z.infer<typeof inboxMessagesSchema>>>;
 type _InboxThreadKeys = AssertTrue<KeysMatch<InboxThread, z.infer<typeof inboxThreadSchema>>>;
-type _MailboxRulesKeys = AssertTrue<KeysMatch<MailboxRules, z.infer<typeof mailboxRulesSchema>>>;
 type _MessageKeys = AssertTrue<KeysMatch<Message, z.infer<typeof messageSchema>>>;
 type _NewsletterDomainKeys = AssertTrue<
   KeysMatch<NewsletterDomain, z.infer<typeof newsletterDomainSchema>>
@@ -183,7 +180,6 @@ type _AllChecks = [
   _InboxFullMessageKeys,
   _InboxMessagesKeys,
   _InboxThreadKeys,
-  _MailboxRulesKeys,
   _MessageKeys,
   _NewsletterDomainKeys,
   _NewsletterKeys,
@@ -235,8 +231,7 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
-      true,
     ];
-    if (checks.length !== 31) throw new Error("alignment matrix size changed");
+    if (checks.length !== 30) throw new Error("alignment matrix size changed");
   });
 });

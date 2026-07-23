@@ -106,7 +106,6 @@ import {
   mailboxForwardingOutputSchema,
   mailboxIdentitiesOutputSchema,
   mailboxOutputSchema,
-  mailboxRulesOutputSchema,
   messageOutputSchema,
   messagesOutputSchema,
   moveInboxMessageInputSchema,
@@ -162,7 +161,6 @@ import {
   updateInboxThreadReplyStateInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
-  updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
   updatePartnerOrganizationInputSchema,
   updateSubscriberInputSchema,
@@ -227,7 +225,6 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_update_webhook: 20,
   shipmail_delete_mailbox_folder: 10,
   shipmail_reset_mailbox_password: 10,
-  shipmail_set_mailbox_rules: 20,
   shipmail_create_mailbox_forwarding: 10,
   shipmail_delete_mailbox_forwarding: 10,
   shipmail_set_auto_reply: 20,
@@ -714,7 +711,7 @@ export function registerTools(
       {
         title: "Suspend Mailbox",
         description:
-          "Manually suspend a mailbox. Authentication, sending, receiving, and mailbox rules are blocked until the manual suspension is removed.",
+          "Manually suspend a mailbox. Authentication, sending, receiving, and Assistant automation execution are blocked until the manual suspension is removed.",
         inputSchema: idempotentByIdInputSchema,
         outputSchema: mailboxOutputSchema,
         annotations: {
@@ -1006,7 +1003,7 @@ export function registerTools(
       {
         title: "List Mailbox Folders",
         description:
-          "List system and custom folders for a mailbox, including unread counts and folder IDs for rules.",
+          "List system and custom folders for a mailbox, including unread counts and folder IDs for Assistant automations.",
         inputSchema: getByIdInputSchema,
         outputSchema: mailboxFoldersOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -1051,7 +1048,7 @@ export function registerTools(
       {
         title: "Update Mailbox Folder",
         description:
-          "Rename a custom mailbox folder. System folders cannot be renamed; rules targeting the folder are resynced.",
+          "Rename a custom mailbox folder. System folders cannot be renamed; Assistant automations keep the stable folder ID.",
         inputSchema: updateMailboxFolderInputSchema,
         outputSchema: mailboxFolderOutputSchema,
         annotations: {
@@ -1079,7 +1076,7 @@ export function registerTools(
       {
         title: "Delete Mailbox Folder",
         description:
-          "Delete a custom mailbox folder after moving its messages to Trash. Folders referenced by rules must be removed from rules first.",
+          "Delete a custom mailbox folder after moving its messages to Trash. Folders referenced by Assistant automations must be removed from those automations first.",
         inputSchema: deleteMailboxFolderInputSchema,
         outputSchema: acknowledgmentOutputSchema,
         annotations: {
@@ -1464,50 +1461,6 @@ export function registerTools(
           );
           return { result: { ok: true, id: args.message_id } };
         }),
-    );
-  });
-
-  registerIfAllowed("shipmail_get_mailbox_rules", () => {
-    server.registerTool(
-      "shipmail_get_mailbox_rules",
-      {
-        title: "Get Mailbox Rules",
-        description: "Fetch server-side inbox rules and available target folders for a mailbox.",
-        inputSchema: getByIdInputSchema,
-        outputSchema: mailboxRulesOutputSchema,
-        annotations: { readOnlyHint: true, openWorldHint: false },
-      },
-      async ({ id }) =>
-        runTool("shipmail_get_mailbox_rules", mailboxRulesOutputSchema, async () => ({
-          rules: await client.mailboxes.getRules(id),
-        })),
-    );
-  });
-
-  registerIfAllowed("shipmail_set_mailbox_rules", () => {
-    server.registerTool(
-      "shipmail_set_mailbox_rules",
-      {
-        title: "Set Mailbox Rules",
-        description:
-          "Replace all server-side inbox rules for a mailbox. Use shipmail_get_mailbox_rules first to inspect existing rules and folder IDs.",
-        inputSchema: updateMailboxRulesInputSchema,
-        outputSchema: mailboxRulesOutputSchema,
-        annotations: {
-          readOnlyHint: false,
-          destructiveHint: true,
-          idempotentHint: true,
-          openWorldHint: false,
-        },
-      },
-      async (args) =>
-        runTool("shipmail_set_mailbox_rules", mailboxRulesOutputSchema, async () => ({
-          rules: await client.mailboxes.updateRules(
-            args.id,
-            { rules: args.rules },
-            mutationOptions(args),
-          ),
-        })),
     );
   });
 

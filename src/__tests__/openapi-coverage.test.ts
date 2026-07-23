@@ -58,8 +58,6 @@ const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
   updateMailboxInboxMessage: "shipmail_update_inbox_message",
   moveMailboxInboxMessage: "shipmail_move_inbox_message",
   deleteMailboxInboxMessage: "shipmail_delete_inbox_message",
-  getMailboxRules: "shipmail_get_mailbox_rules",
-  updateMailboxRules: "shipmail_set_mailbox_rules",
   listMailboxForwarding: "shipmail_list_mailbox_forwarding",
   createMailboxForwarding: "shipmail_create_mailbox_forwarding",
   deleteMailboxForwarding: "shipmail_delete_mailbox_forwarding",

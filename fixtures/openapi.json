@@ -637,7 +637,11 @@
       }
     },
     "/domains": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DelegatedOrganizationId"
+        }
+      ],
       "post": {
         "operationId": "createDomain",
         "summary": "Create a domain",
@@ -722,7 +726,6 @@
       }
     },
     "/domains/{id}": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -813,7 +816,6 @@
       }
     },
     "/domains/{id}/verification": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -847,7 +849,6 @@
       }
     },
     "/domains/{id}/dns-records": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -1001,7 +1002,11 @@
       }
     },
     "/mailboxes": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DelegatedOrganizationId"
+        }
+      ],
       "post": {
         "operationId": "createMailbox",
         "summary": "Create a mailbox",
@@ -1097,7 +1102,6 @@
       }
     },
     "/mailboxes/{id}": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -1186,7 +1190,6 @@
       }
     },
     "/mailboxes/{id}/suspend": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -1195,7 +1198,7 @@
       "post": {
         "operationId": "suspendMailbox",
         "summary": "Suspend a mailbox",
-        "description": "Add a manual suspension. Authentication, sending, receiving, and mailbox rules are blocked. Billing and security suspension reasons remain independent.",
+        "description": "Add a manual suspension. Authentication, sending, receiving, and Assistant automation execution are blocked. Billing and security suspension reasons remain independent.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "write",
         "x-scope": "mailboxes:write",
@@ -1223,7 +1226,6 @@
       }
     },
     "/mailboxes/{id}/resume": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -1281,20 +1283,33 @@
                   "type": "object",
                   "required": ["object", "data"],
                   "properties": {
-                    "object": { "type": "string", "const": "list" },
+                    "object": {
+                      "type": "string",
+                      "const": "list"
+                    },
                     "data": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/MailboxAppPassword" }
+                      "items": {
+                        "$ref": "#/components/schemas/MailboxAppPassword"
+                      }
                     }
                   }
                 }
               }
             }
           },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       },
       "post": {
@@ -1308,7 +1323,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateMailboxAppPasswordRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailboxAppPasswordRequest"
+              }
             }
           }
         },
@@ -1317,15 +1334,27 @@
             "description": "App password created. Save the secret now.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CreatedMailboxAppPassword" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMailboxAppPassword"
+                }
               }
             }
           },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -1339,7 +1368,10 @@
           "in": "path",
           "required": true,
           "description": "Mailbox app-password ID.",
-          "schema": { "type": "string", "pattern": "^appwd_[0-9a-z]+$" }
+          "schema": {
+            "type": "string",
+            "pattern": "^appwd_[0-9a-z]+$"
+          }
         }
       ],
       "delete": {
@@ -1350,11 +1382,21 @@
         "x-rate-limit-tier": "write",
         "x-scope": "mailbox_credentials:write",
         "responses": {
-          "204": { "description": "App password revoked." },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "204": {
+            "description": "App password revoked."
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -1854,95 +1896,7 @@
         }
       }
     },
-    "/mailboxes/{id}/rules": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/ResourceId"
-        }
-      ],
-      "get": {
-        "operationId": "getMailboxRules",
-        "summary": "Get mailbox rules",
-        "description": "Fetch server-side inbox rules and available target folders for a mailbox.",
-        "tags": ["Mailboxes"],
-        "x-rate-limit-tier": "read",
-        "x-scope": "mailboxes:read",
-        "responses": {
-          "200": {
-            "description": "Mailbox rules and folder options.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MailboxRules"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/AuthenticationError"
-          },
-          "403": {
-            "$ref": "#/components/responses/AuthorizationError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
-          }
-        }
-      },
-      "put": {
-        "operationId": "updateMailboxRules",
-        "summary": "Replace mailbox rules",
-        "description": "Replace all server-side inbox rules for a mailbox. Call GET first to inspect existing rules and folder IDs.",
-        "tags": ["Mailboxes"],
-        "x-rate-limit-tier": "write",
-        "x-scope": "mailboxes:write",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMailboxRulesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated mailbox rules.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MailboxRules"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/AuthenticationError"
-          },
-          "403": {
-            "$ref": "#/components/responses/AuthorizationError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimitError"
-          }
-        }
-      }
-    },
     "/mailboxes/{id}/forwarding": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -2030,7 +1984,6 @@
       }
     },
     "/mailboxes/{id}/forwarding/{forwarding_id}": {
-      "parameters": [{ "$ref": "#/components/parameters/DelegatedOrganizationId" }],
       "parameters": [
         {
           "$ref": "#/components/parameters/ResourceId"
@@ -2852,7 +2805,9 @@
           "in": "path",
           "required": true,
           "description": "Webhook delivery ID.",
-          "schema": { "type": "string" }
+          "schema": {
+            "type": "string"
+          }
         }
       ],
       "get": {
@@ -2867,12 +2822,18 @@
             "description": "Webhook delivery detail.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WebhookDeliveryDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryDetail"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -2886,7 +2847,9 @@
           "in": "path",
           "required": true,
           "description": "Failed webhook delivery ID.",
-          "schema": { "type": "string" }
+          "schema": {
+            "type": "string"
+          }
         }
       ],
       "post": {
@@ -2896,20 +2859,34 @@
         "tags": ["Webhooks"],
         "x-rate-limit-tier": "write",
         "x-scope": "webhooks:write",
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "responses": {
           "201": {
             "description": "Replay delivery created.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/WebhookDeliveryDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryDetail"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -3008,7 +2985,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateReplyScanRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateReplyScanRequest"
+              }
             }
           }
         },
@@ -3016,15 +2995,31 @@
           "201": {
             "description": "Completed reply scan snapshot created.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScan" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyScan"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -3034,7 +3029,10 @@
           "name": "scan_id",
           "in": "path",
           "required": true,
-          "schema": { "type": "string", "pattern": "^rsc_" }
+          "schema": {
+            "type": "string",
+            "pattern": "^rsc_"
+          }
         }
       ],
       "get": {
@@ -3047,14 +3045,28 @@
           "200": {
             "description": "Reply scan status.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScan" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyScan"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -3064,7 +3076,10 @@
           "name": "scan_id",
           "in": "path",
           "required": true,
-          "schema": { "type": "string", "pattern": "^rsc_" }
+          "schema": {
+            "type": "string",
+            "pattern": "^rsc_"
+          }
         }
       ],
       "get": {
@@ -3074,22 +3089,42 @@
         "x-rate-limit-tier": "read",
         "x-scope": "messages:read",
         "parameters": [
-          { "$ref": "#/components/parameters/Cursor" },
-          { "$ref": "#/components/parameters/Limit" }
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Reply scan candidates.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ReplyScanResults" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyScanResults"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -3142,13 +3177,19 @@
             "name": "after",
             "in": "query",
             "description": "Only messages received at or after this instant.",
-            "schema": { "type": "string", "format": "date-time" }
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
           {
             "name": "before",
             "in": "query",
             "description": "Only messages received before this instant. Defaults to the first-page snapshot time.",
-            "schema": { "type": "string", "format": "date-time" }
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
           {
             "name": "limit",
@@ -3226,14 +3267,28 @@
           "200": {
             "description": "Exact full inbox message.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/InboxFullMessage" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxFullMessage"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       },
       "patch": {
@@ -3429,7 +3484,11 @@
       }
     },
     "/mailboxes/{id}/inbox/threads": {
-      "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
       "get": {
         "operationId": "listMailboxInboxThreads",
         "summary": "List mailbox inbox thread reply states",
@@ -3441,7 +3500,9 @@
           {
             "name": "reply_state",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/InboxThreadReplyState" }
+            "schema": {
+              "$ref": "#/components/schemas/InboxThreadReplyState"
+            }
           },
           {
             "name": "sort_by",
@@ -3455,29 +3516,61 @@
           {
             "name": "order",
             "in": "query",
-            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "asc" }
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            }
           },
-          { "name": "after", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
           {
             "name": "before",
             "in": "query",
-            "schema": { "type": "string", "format": "date-time" }
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
-          { "$ref": "#/components/parameters/Cursor" },
-          { "$ref": "#/components/parameters/Limit" }
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
         ],
         "responses": {
           "200": {
             "description": "Reply queue page and state counts.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/InboxThreads" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxThreads"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -3536,7 +3629,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateInboxThreadReplyStateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInboxThreadReplyStateRequest"
+              }
             }
           }
         },
@@ -3545,23 +3640,41 @@
             "description": "Updated reply state.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/InboxThreadReplyStateResult" }
+                "schema": {
+                  "$ref": "#/components/schemas/InboxThreadReplyStateResult"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
     "/mailboxes/{id}/inbox/threads/{thread_id}/drafts": {
       "parameters": [
-        { "$ref": "#/components/parameters/ResourceId" },
-        { "$ref": "#/components/parameters/InboxThreadId" }
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxThreadId"
+        }
       ],
       "post": {
         "operationId": "createMailboxInboxReplyDraft",
@@ -3574,7 +3687,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateInboxReplyDraftRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateInboxReplyDraftRequest"
+              }
             }
           }
         },
@@ -3582,27 +3697,50 @@
           "201": {
             "description": "Saved reply draft and derived recipients.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/InboxReplyDraft" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxReplyDraft"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
     "/mailboxes/{id}/inbox/threads/{thread_id}/drafts/{draft_id}/send": {
       "parameters": [
-        { "$ref": "#/components/parameters/ResourceId" },
-        { "$ref": "#/components/parameters/InboxThreadId" },
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/InboxThreadId"
+        },
         {
           "name": "draft_id",
           "in": "path",
           "required": true,
-          "schema": { "type": "string", "pattern": "^drf_" }
+          "schema": {
+            "type": "string",
+            "pattern": "^drf_"
+          }
         }
       ],
       "post": {
@@ -3617,16 +3755,30 @@
             "description": "Draft sent.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/InboxReplyDraftSend" }
+                "schema": {
+                  "$ref": "#/components/schemas/InboxReplyDraftSend"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5398,13 +5550,21 @@
             "description": "Operator organizations.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganizationList" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganizationList"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       },
       "post": {
@@ -5414,12 +5574,18 @@
         "tags": ["Partner Beta"],
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreatePartnerOrganizationRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerOrganizationRequest"
+              }
             }
           }
         },
@@ -5428,7 +5594,9 @@
             "description": "Existing organization returned for an idempotent replay.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CreatedPartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPartnerOrganization"
+                }
               }
             }
           },
@@ -5436,15 +5604,27 @@
             "description": "Organization and ownership invitation created.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CreatedPartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPartnerOrganization"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5455,18 +5635,28 @@
         "tags": ["Partner Beta"],
         "x-rate-limit-tier": "read",
         "x-scope": "partner:organizations:read",
-        "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Partner organization.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganization"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       },
       "patch": {
@@ -5476,14 +5666,20 @@
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
         "parameters": [
-          { "$ref": "#/components/parameters/ResourceId" },
-          { "$ref": "#/components/parameters/IdempotencyKey" }
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdatePartnerOrganizationRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartnerOrganizationRequest"
+              }
             }
           }
         },
@@ -5492,13 +5688,21 @@
             "description": "Updated partner organization.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganization"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       },
       "delete": {
@@ -5507,19 +5711,31 @@
         "tags": ["Partner Beta"],
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
-        "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
         "responses": {
           "202": {
             "description": "Offboarding started.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganization"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5531,15 +5747,24 @@
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
         "parameters": [
-          { "$ref": "#/components/parameters/ResourceId" },
-          { "$ref": "#/components/parameters/IdempotencyKey" }
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "owner_email": { "type": "string", "format": "email" } }
+                "properties": {
+                  "owner_email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
               }
             }
           }
@@ -5549,13 +5774,21 @@
             "description": "New invitation issued.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOwnershipInvitation" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOwnershipInvitation"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5566,19 +5799,31 @@
         "tags": ["Partner Beta"],
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
-        "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sending suspended; inbound mail and storage continue.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganization"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5589,19 +5834,31 @@
         "tags": ["Partner Beta"],
         "x-rate-limit-tier": "write",
         "x-scope": "partner:organizations:write",
-        "parameters": [{ "$ref": "#/components/parameters/ResourceId" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Partner suspension removed.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerOrganization" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrganization"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5622,7 +5879,10 @@
                   "type": "object",
                   "required": ["object", "data"],
                   "properties": {
-                    "object": { "type": "string", "const": "list" },
+                    "object": {
+                      "type": "string",
+                      "const": "list"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -5634,9 +5894,15 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5654,7 +5920,10 @@
             "in": "path",
             "required": true,
             "description": "Single-use mailbox credential grant ID.",
-            "schema": { "type": "string", "pattern": "^pcg_[0-9a-z]+$" }
+            "schema": {
+              "type": "string",
+              "pattern": "^pcg_[0-9a-z]+$"
+            }
           }
         ],
         "requestBody": {
@@ -5671,16 +5940,30 @@
             "description": "Credential created. Save the secret now.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PartnerMailboxCredential" }
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerMailboxCredential"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "404": { "$ref": "#/components/responses/NotFoundError" },
-          "409": { "$ref": "#/components/responses/ConflictError" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     },
@@ -5695,12 +5978,22 @@
           "200": {
             "description": "Consolidated current-month usage and projected charge in cents.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PartnerUsage" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerUsage"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/AuthenticationError" },
-          "403": { "$ref": "#/components/responses/AuthorizationError" },
-          "429": { "$ref": "#/components/responses/RateLimitError" }
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
         }
       }
     }
@@ -5819,26 +6112,72 @@
           "updated_at"
         ],
         "properties": {
-          "object": { "const": "partner_organization" },
-          "id": { "type": "string" },
-          "organization_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "external_reference": { "type": "string" },
-          "owner_email": { "type": "string", "format": "email" },
-          "owner_user_id": { "type": ["string", "null"] },
+          "object": {
+            "const": "partner_organization"
+          },
+          "id": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "external_reference": {
+            "type": "string"
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "owner_user_id": {
+            "type": ["string", "null"]
+          },
           "status": {
             "type": "string",
             "enum": ["pending_owner", "active", "suspended", "offboarding", "disconnected"]
           },
-          "data_classification": { "type": "string", "enum": ["internal_test", "customer"] },
-          "mailbox_limit": { "type": "integer", "minimum": 1, "maximum": 50 },
-          "delegated_permissions": { "type": "array", "items": { "type": "string" } },
-          "owner_accepted_at": { "type": ["string", "null"], "format": "date-time" },
-          "activated_at": { "type": ["string", "null"], "format": "date-time" },
-          "suspended_at": { "type": ["string", "null"], "format": "date-time" },
-          "disconnected_at": { "type": ["string", "null"], "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
+          "data_classification": {
+            "type": "string",
+            "enum": ["internal_test", "customer"]
+          },
+          "mailbox_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "delegated_permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owner_accepted_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "activated_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "suspended_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "disconnected_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "PartnerOrganizationList": {
@@ -5847,21 +6186,29 @@
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/PartnerOrganization" }
+            "items": {
+              "$ref": "#/components/schemas/PartnerOrganization"
+            }
           }
         }
       },
       "CreatedPartnerOrganization": {
         "allOf": [
-          { "$ref": "#/components/schemas/PartnerOrganization" },
+          {
+            "$ref": "#/components/schemas/PartnerOrganization"
+          },
           {
             "type": "object",
             "required": ["ownership_invitation"],
             "properties": {
               "ownership_invitation": {
                 "oneOf": [
-                  { "$ref": "#/components/schemas/PartnerOwnershipInvitation" },
-                  { "type": "null" }
+                  {
+                    "$ref": "#/components/schemas/PartnerOwnershipInvitation"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             }
@@ -5878,29 +6225,65 @@
           "data_classification"
         ],
         "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "external_reference": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "owner_email": { "type": "string", "format": "email" },
-          "mailbox_limit": { "type": "integer", "minimum": 1, "maximum": 50 },
-          "data_classification": { "type": "string", "enum": ["internal_test", "customer"] }
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "external_reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "mailbox_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "data_classification": {
+            "type": "string",
+            "enum": ["internal_test", "customer"]
+          }
         }
       },
       "UpdatePartnerOrganizationRequest": {
         "type": "object",
         "minProperties": 1,
         "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "mailbox_limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "mailbox_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
         }
       },
       "PartnerOwnershipInvitation": {
         "type": "object",
         "required": ["object", "owner_email", "email_sent", "expires_at"],
         "properties": {
-          "object": { "const": "partner_ownership_invitation" },
-          "owner_email": { "type": "string", "format": "email" },
-          "email_sent": { "type": "boolean" },
-          "expires_at": { "type": "string", "format": "date-time" }
+          "object": {
+            "const": "partner_ownership_invitation"
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "email_sent": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "ConsumePartnerMailboxCredentialGrantRequest": {
@@ -5944,23 +6327,56 @@
           "consented_at"
         ],
         "properties": {
-          "object": { "type": "string", "const": "partner_mailbox_credential_grant" },
-          "id": { "type": "string", "pattern": "^pcg_[0-9a-z]+$" },
-          "partner_organization_id": { "type": "string", "pattern": "^pch_[0-9a-z]+$" },
-          "organization_id": { "type": "string" },
-          "organization_name": { "type": "string" },
-          "external_reference": { "type": "string" },
-          "operator_email": { "type": "string", "format": "email" },
-          "mailbox_id": { "type": "string" },
-          "mailbox_address": { "type": "string", "format": "email" },
-          "disclosure_version": { "type": "string" },
-          "expires_at": { "type": "string", "format": "date-time" },
-          "consented_at": { "type": "string", "format": "date-time" }
+          "object": {
+            "type": "string",
+            "const": "partner_mailbox_credential_grant"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^pcg_[0-9a-z]+$"
+          },
+          "partner_organization_id": {
+            "type": "string",
+            "pattern": "^pch_[0-9a-z]+$"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "external_reference": {
+            "type": "string"
+          },
+          "operator_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "mailbox_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "disclosure_version": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consented_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "PartnerMailboxCredential": {
         "allOf": [
-          { "$ref": "#/components/schemas/CreatedMailboxAppPassword" },
+          {
+            "$ref": "#/components/schemas/CreatedMailboxAppPassword"
+          },
           {
             "type": "object",
             "required": ["operator_notified"],
@@ -5991,19 +6407,57 @@
           "currency"
         ],
         "properties": {
-          "object": { "const": "partner_usage" },
-          "period_start": { "type": "string", "format": "date-time" },
-          "period_end": { "type": "string", "format": "date-time" },
-          "closed_through": { "type": ["string", "null"], "format": "date" },
-          "active_children": { "type": "integer", "minimum": 0 },
-          "active_mailboxes": { "type": "integer", "minimum": 0 },
-          "child_active_seconds": { "type": "integer", "minimum": 0 },
-          "mailbox_active_seconds": { "type": "integer", "minimum": 0 },
-          "child_subtotal": { "type": "integer", "minimum": 0 },
-          "mailbox_subtotal": { "type": "integer", "minimum": 0 },
-          "minimum_shortfall": { "type": "integer", "minimum": 0 },
-          "projected_total": { "type": "integer", "minimum": 0 },
-          "currency": { "type": "string", "pattern": "^[a-z]{3}$" }
+          "object": {
+            "const": "partner_usage"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closed_through": {
+            "type": ["string", "null"],
+            "format": "date"
+          },
+          "active_children": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "active_mailboxes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "child_active_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mailbox_active_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "child_subtotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mailbox_subtotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minimum_shortfall": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "projected_total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[a-z]{3}$"
+          }
         }
       },
       "RecurrenceNDay": {
@@ -6062,21 +6516,35 @@
         "type": "object",
         "required": ["email"],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "name": { "type": "string", "maxLength": 255 }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          }
         }
       },
       "CalendarPerson": {
         "type": "object",
         "required": ["email", "name"],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "name": { "type": "string", "nullable": true }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "CalendarAttendee": {
         "allOf": [
-          { "$ref": "#/components/schemas/CalendarPerson" },
+          {
+            "$ref": "#/components/schemas/CalendarPerson"
+          },
           {
             "type": "object",
             "required": ["status"],
@@ -6220,11 +6688,20 @@
           },
           "organizer": {
             "nullable": true,
-            "anyOf": [{ "$ref": "#/components/schemas/CalendarPerson" }, { "type": "null" }]
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "attendees": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/CalendarAttendee" }
+            "items": {
+              "$ref": "#/components/schemas/CalendarAttendee"
+            }
           },
           "created_at": {
             "type": "string",
@@ -6312,7 +6789,9 @@
           "attendees": {
             "type": "array",
             "maxItems": 50,
-            "items": { "$ref": "#/components/schemas/CalendarAttendeeInput" }
+            "items": {
+              "$ref": "#/components/schemas/CalendarAttendeeInput"
+            }
           }
         }
       },
@@ -6396,7 +6875,9 @@
           "attendees": {
             "type": "array",
             "maxItems": 50,
-            "items": { "$ref": "#/components/schemas/CalendarAttendeeInput" }
+            "items": {
+              "$ref": "#/components/schemas/CalendarAttendeeInput"
+            }
           }
         }
       },
@@ -7130,10 +7611,20 @@
           "revoked_at"
         ],
         "properties": {
-          "object": { "type": "string", "const": "mailbox_app_password" },
-          "id": { "type": "string", "pattern": "^appwd_[0-9a-z]+$" },
-          "mailbox_id": { "type": "string" },
-          "name": { "type": "string" },
+          "object": {
+            "type": "string",
+            "const": "mailbox_app_password"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^appwd_[0-9a-z]+$"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
           "state": {
             "type": "string",
             "enum": ["pending_create", "active", "pending_revoke", "revoked", "failed"]
@@ -7142,19 +7633,35 @@
             "type": "string",
             "enum": ["operator_client", "partner_embedded_webmail"]
           },
-          "expires_at": { "type": ["string", "null"], "format": "date-time" },
+          "expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "allowed_cidrs": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
-          "last_used_at": { "type": ["string", "null"], "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "revoked_at": { "type": ["string", "null"], "format": "date-time" }
+          "last_used_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
         }
       },
       "CreatedMailboxAppPassword": {
         "allOf": [
-          { "$ref": "#/components/schemas/MailboxAppPassword" },
+          {
+            "$ref": "#/components/schemas/MailboxAppPassword"
+          },
           {
             "type": "object",
             "required": ["secret"],
@@ -7171,7 +7678,11 @@
         "type": "object",
         "required": ["name"],
         "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
           "expires_at": {
             "type": "string",
             "format": "date-time",
@@ -7475,257 +7986,6 @@
           }
         }
       },
-      "MailboxRules": {
-        "type": "object",
-        "required": ["object", "mailbox_id", "address", "rules", "folders"],
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "mailbox_rules"
-          },
-          "mailbox_id": {
-            "type": "string"
-          },
-          "address": {
-            "type": "string",
-            "format": "email"
-          },
-          "rules": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MailboxRule"
-            }
-          },
-          "folders": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MailboxRuleFolder"
-            }
-          }
-        }
-      },
-      "MailboxRule": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "enabled",
-          "position",
-          "match_mode",
-          "stop",
-          "conditions",
-          "actions"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 120
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "position": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "match_mode": {
-            "$ref": "#/components/schemas/MailboxRuleMatchMode"
-          },
-          "stop": {
-            "type": "boolean",
-            "description": "When true, later rules are not evaluated after this rule matches."
-          },
-          "conditions": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 10,
-            "items": {
-              "$ref": "#/components/schemas/MailboxRuleCondition"
-            }
-          },
-          "actions": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 5,
-            "items": {
-              "$ref": "#/components/schemas/MailboxRuleAction"
-            }
-          }
-        }
-      },
-      "MailboxRuleMatchMode": {
-        "type": "string",
-        "enum": ["all", "any"]
-      },
-      "MailboxRuleCondition": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": ["type", "value"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "from_is",
-                  "from_contains",
-                  "recipient_is",
-                  "plus_tag_is",
-                  "subject_contains"
-                ]
-              },
-              "value": {
-                "type": "string",
-                "maxLength": 256
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["type"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": ["has_attachment", "list_unsubscribe_exists"]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["type", "match_mode", "conditions"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "group"
-              },
-              "match_mode": {
-                "$ref": "#/components/schemas/MailboxRuleMatchMode"
-              },
-              "conditions": {
-                "type": "array",
-                "minItems": 1,
-                "maxItems": 10,
-                "items": {
-                  "$ref": "#/components/schemas/MailboxRuleCondition"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "MailboxRuleAction": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": ["type", "target"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "move"
-              },
-              "target": {
-                "$ref": "#/components/schemas/MailboxRuleMoveTarget"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["type"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": ["mark_read", "star"]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["type"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "send_webhook"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["type", "instructions", "reply_mode"],
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "ai_draft_reply"
-              },
-              "instructions": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
-              },
-              "reply_mode": {
-                "type": "string",
-                "enum": ["reply", "reply_all"]
-              }
-            }
-          }
-        ]
-      },
-      "MailboxRuleMoveTarget": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": ["kind", "role"],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "system"
-              },
-              "role": {
-                "type": "string",
-                "enum": ["inbox", "archive", "junk", "trash"]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": ["kind", "folder_id"],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "custom"
-              },
-              "folder_id": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "MailboxRuleFolder": {
-        "type": "object",
-        "required": ["id", "name", "parent_id", "role", "kind"],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "parent_id": {
-            "type": ["string", "null"],
-            "description": "Parent folder ID for subfolders, or null for a root folder."
-          },
-          "role": {
-            "type": ["string", "null"]
-          },
-          "kind": {
-            "type": "string",
-            "enum": ["custom", "system"]
-          }
-        }
-      },
       "Attachment": {
         "type": "object",
         "required": ["filename", "content"],
@@ -7907,7 +8167,7 @@
           },
           "source": {
             "type": "string",
-            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp", "agent"]
+            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp", "assistant"]
           },
           "mode": {
             "$ref": "#/components/schemas/DataMode"
@@ -8087,7 +8347,9 @@
       },
       "WebhookDeliveryDetail": {
         "allOf": [
-          { "$ref": "#/components/schemas/WebhookDelivery" },
+          {
+            "$ref": "#/components/schemas/WebhookDelivery"
+          },
           {
             "type": "object",
             "required": ["payload", "next_attempt_at", "replayed_from_delivery_id"],
@@ -8117,7 +8379,6 @@
           "message.bounced",
           "message.complained",
           "thread.needs_reply",
-          "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
           "domain.degraded",
@@ -8136,7 +8397,6 @@
           "message.bounced",
           "message.complained",
           "thread.needs_reply",
-          "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
           "domain.degraded",
@@ -8300,7 +8560,14 @@
       "CreateMailboxRequest": {
         "type": "object",
         "required": ["domain_id", "address"],
-        "oneOf": [{ "required": ["password"] }, { "required": ["generate_password"] }],
+        "oneOf": [
+          {
+            "required": ["password"]
+          },
+          {
+            "required": ["generate_password"]
+          }
+        ],
         "properties": {
           "domain_id": {
             "type": "string",
@@ -8378,19 +8645,6 @@
             "description": "New mailbox login password. Must be 8-128 characters and include lowercase, uppercase, and numeric characters.",
             "minLength": 8,
             "maxLength": 128
-          }
-        }
-      },
-      "UpdateMailboxRulesRequest": {
-        "type": "object",
-        "required": ["rules"],
-        "properties": {
-          "rules": {
-            "type": "array",
-            "maxItems": 50,
-            "items": {
-              "$ref": "#/components/schemas/MailboxRule"
-            }
           }
         }
       },
@@ -9108,7 +9362,10 @@
             "type": "array",
             "minItems": 1,
             "maxItems": 100,
-            "items": { "type": "string", "format": "uuid" }
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           "after": {
             "type": "string",
@@ -9137,16 +9394,47 @@
           "created_at"
         ],
         "properties": {
-          "object": { "type": "string", "const": "reply_scan" },
-          "id": { "type": "string" },
-          "mailbox_ids": { "type": "array", "items": { "type": "string" } },
-          "after": { "type": "string", "format": "date-time" },
-          "before": { "type": "string", "format": "date-time" },
-          "snapshot_at": { "type": "string", "format": "date-time" },
-          "status": { "type": "string", "const": "completed" },
-          "candidate_count": { "type": "integer", "minimum": 0 },
-          "completed_at": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "object": {
+            "type": "string",
+            "const": "reply_scan"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "after": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "before": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "const": "completed"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "ReplyScanCandidate": {
@@ -9161,31 +9449,67 @@
           "needs_reply_since"
         ],
         "properties": {
-          "object": { "type": "string", "const": "reply_scan_candidate" },
-          "id": { "type": "string" },
-          "mailbox_id": { "type": "string" },
-          "thread_id": { "type": "string" },
-          "tracked_thread_id": { "type": "string" },
-          "latest_message_id": { "type": ["string", "null"] },
-          "latest_email_id": { "type": ["string", "null"] },
-          "latest_inbound_message_id": { "type": ["string", "null"] },
-          "latest_inbound_email_id": { "type": ["string", "null"] },
-          "reply_version": { "type": "integer", "minimum": 1 },
-          "needs_reply_since": { "type": "string", "format": "date-time" },
-          "subject": { "type": ["string", "null"] }
+          "object": {
+            "type": "string",
+            "const": "reply_scan_candidate"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "tracked_thread_id": {
+            "type": "string"
+          },
+          "latest_message_id": {
+            "type": ["string", "null"]
+          },
+          "latest_email_id": {
+            "type": ["string", "null"]
+          },
+          "latest_inbound_message_id": {
+            "type": ["string", "null"]
+          },
+          "latest_inbound_email_id": {
+            "type": ["string", "null"]
+          },
+          "reply_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "needs_reply_since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subject": {
+            "type": ["string", "null"]
+          }
         }
       },
       "ReplyScanResults": {
         "type": "object",
         "required": ["object", "scan_id", "data", "pagination"],
         "properties": {
-          "object": { "type": "string", "const": "reply_scan_results" },
-          "scan_id": { "type": "string" },
+          "object": {
+            "type": "string",
+            "const": "reply_scan_results"
+          },
+          "scan_id": {
+            "type": "string"
+          },
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ReplyScanCandidate" }
+            "items": {
+              "$ref": "#/components/schemas/ReplyScanCandidate"
+            }
           },
-          "pagination": { "$ref": "#/components/schemas/Pagination" }
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
         }
       },
       "InboxThreadReplyState": {
@@ -9216,17 +9540,45 @@
           "latest_outbound_at"
         ],
         "properties": {
-          "object": { "type": "string", "const": "inbox_thread_summary" },
-          "id": { "type": "string" },
-          "thread_id": { "type": "string" },
-          "reply_state": { "$ref": "#/components/schemas/InboxThreadReplyState" },
-          "reply_version": { "type": "integer", "minimum": 1 },
-          "needs_reply_since": { "type": ["string", "null"], "format": "date-time" },
-          "subject": { "type": ["string", "null"] },
-          "latest_from_address": { "type": ["string", "null"] },
-          "message_count": { "type": "integer", "minimum": 0 },
-          "first_message_at": { "type": "string", "format": "date-time" },
-          "last_message_at": { "type": "string", "format": "date-time" },
+          "object": {
+            "type": "string",
+            "const": "inbox_thread_summary"
+          },
+          "id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "reply_state": {
+            "$ref": "#/components/schemas/InboxThreadReplyState"
+          },
+          "reply_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "needs_reply_since": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "subject": {
+            "type": ["string", "null"]
+          },
+          "latest_from_address": {
+            "type": ["string", "null"]
+          },
+          "message_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "first_message_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_message_at": {
+            "type": "string",
+            "format": "date-time"
+          },
           "latest_message_id": {
             "type": ["string", "null"],
             "description": "ShipMail tracked message ID."
@@ -9235,36 +9587,69 @@
             "type": ["string", "null"],
             "description": "Provider/JMAP email ID."
           },
-          "latest_inbound_message_id": { "type": ["string", "null"] },
-          "latest_inbound_email_id": { "type": ["string", "null"] },
-          "latest_inbound_at": { "type": ["string", "null"], "format": "date-time" },
-          "latest_outbound_message_id": { "type": ["string", "null"] },
-          "latest_outbound_email_id": { "type": ["string", "null"] },
-          "latest_outbound_at": { "type": ["string", "null"], "format": "date-time" }
+          "latest_inbound_message_id": {
+            "type": ["string", "null"]
+          },
+          "latest_inbound_email_id": {
+            "type": ["string", "null"]
+          },
+          "latest_inbound_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "latest_outbound_message_id": {
+            "type": ["string", "null"]
+          },
+          "latest_outbound_email_id": {
+            "type": ["string", "null"]
+          },
+          "latest_outbound_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
         }
       },
       "InboxThreads": {
         "type": "object",
         "required": ["object", "mailbox_id", "data", "summary", "pagination"],
         "properties": {
-          "object": { "type": "string", "const": "inbox_threads" },
-          "mailbox_id": { "type": "string" },
+          "object": {
+            "type": "string",
+            "const": "inbox_threads"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/InboxThreadSummary" }
+            "items": {
+              "$ref": "#/components/schemas/InboxThreadSummary"
+            }
           },
           "summary": {
             "type": "object",
-            "additionalProperties": { "type": "integer", "minimum": 0 }
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
           },
           "pagination": {
             "type": "object",
             "required": ["limit", "has_more", "next_cursor", "snapshot_at"],
             "properties": {
-              "limit": { "type": "integer" },
-              "has_more": { "type": "boolean" },
-              "next_cursor": { "type": ["string", "null"] },
-              "snapshot_at": { "type": "string", "format": "date-time" }
+              "limit": {
+                "type": "integer"
+              },
+              "has_more": {
+                "type": "boolean"
+              },
+              "next_cursor": {
+                "type": ["string", "null"]
+              },
+              "snapshot_at": {
+                "type": "string",
+                "format": "date-time"
+              }
             }
           }
         }
@@ -9278,7 +9663,10 @@
             "type": "string",
             "enum": ["needs_reply", "resolved", "no_reply_expected"]
           },
-          "expected_reply_version": { "type": "integer", "minimum": 1 }
+          "expected_reply_version": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
       "InboxThreadReplyStateResult": {
@@ -9292,24 +9680,58 @@
           "needs_reply_since"
         ],
         "properties": {
-          "object": { "type": "string", "const": "inbox_thread_reply_state" },
-          "id": { "type": "string" },
-          "thread_id": { "type": "string" },
-          "reply_state": { "$ref": "#/components/schemas/InboxThreadReplyState" },
-          "reply_version": { "type": "integer" },
-          "needs_reply_since": { "type": ["string", "null"], "format": "date-time" }
+          "object": {
+            "type": "string",
+            "const": "inbox_thread_reply_state"
+          },
+          "id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "reply_state": {
+            "$ref": "#/components/schemas/InboxThreadReplyState"
+          },
+          "reply_version": {
+            "type": "integer"
+          },
+          "needs_reply_since": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
         }
       },
       "CreateInboxReplyDraftRequest": {
         "type": "object",
         "additionalProperties": false,
         "required": ["expected_reply_version"],
-        "anyOf": [{ "required": ["text"] }, { "required": ["html"] }],
+        "anyOf": [
+          {
+            "required": ["text"]
+          },
+          {
+            "required": ["html"]
+          }
+        ],
         "properties": {
-          "text": { "type": "string", "maxLength": 256000 },
-          "html": { "type": "string", "maxLength": 512000 },
-          "reply_mode": { "type": "string", "enum": ["reply", "reply_all"], "default": "reply" },
-          "expected_reply_version": { "type": "integer", "minimum": 1 }
+          "text": {
+            "type": "string",
+            "maxLength": 256000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 512000
+          },
+          "reply_mode": {
+            "type": "string",
+            "enum": ["reply", "reply_all"],
+            "default": "reply"
+          },
+          "expected_reply_version": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
       "InboxReplyDraft": {
@@ -9328,13 +9750,29 @@
           "created_at"
         ],
         "properties": {
-          "object": { "type": "string", "const": "inbox_reply_draft" },
-          "id": { "type": "string" },
-          "mailbox_id": { "type": "string" },
-          "thread_id": { "type": "string" },
-          "based_on_message_id": { "type": ["string", "null"] },
-          "expected_reply_version": { "type": "integer" },
-          "reply_mode": { "type": "string", "enum": ["reply", "reply_all"] },
+          "object": {
+            "type": "string",
+            "const": "inbox_reply_draft"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "based_on_message_id": {
+            "type": ["string", "null"]
+          },
+          "expected_reply_version": {
+            "type": "integer"
+          },
+          "reply_mode": {
+            "type": "string",
+            "enum": ["reply", "reply_all"]
+          },
           "status": {
             "type": "string",
             "enum": ["draft", "sending", "sent", "invalidated", "failed"]
@@ -9345,8 +9783,13 @@
               "type": "object",
               "required": ["address", "name"],
               "properties": {
-                "address": { "type": "string", "format": "email" },
-                "name": { "type": ["string", "null"] }
+                "address": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "name": {
+                  "type": ["string", "null"]
+                }
               }
             }
           },
@@ -9356,22 +9799,40 @@
               "type": "object",
               "required": ["address", "name"],
               "properties": {
-                "address": { "type": "string", "format": "email" },
-                "name": { "type": ["string", "null"] }
+                "address": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "name": {
+                  "type": ["string", "null"]
+                }
               }
             }
           },
-          "created_at": { "type": "string", "format": "date-time" }
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "InboxReplyDraftSend": {
         "type": "object",
         "required": ["object", "draft_id", "status", "message"],
         "properties": {
-          "object": { "type": "string", "const": "inbox_reply_draft_send" },
-          "draft_id": { "type": "string" },
-          "status": { "type": "string", "const": "sent" },
-          "message": { "$ref": "#/components/schemas/Message" }
+          "object": {
+            "type": "string",
+            "const": "inbox_reply_draft_send"
+          },
+          "draft_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "const": "sent"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          }
         }
       },
       "InboxThread": {

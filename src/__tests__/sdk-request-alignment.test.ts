@@ -35,7 +35,6 @@ import type {
   UpdateInboxMessageParams,
   UpdateMailboxFolderParams,
   UpdateMailboxParams,
-  UpdateMailboxRulesParams,
   UpdateNewsletterParams,
   UpdateSpamFilterParams,
   UpdateWebhookParams,
@@ -69,7 +68,6 @@ import type {
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
-  updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
   updateWebhookInputSchema,
 } from "../schemas.js";
@@ -148,9 +146,6 @@ type _UpdateMailboxFolder = AssertTrue<
 type _ResetMailboxPassword = AssertTrue<
   KeysMatch<ResetMailboxPasswordParams, StripMcpOnly<z.infer<typeof resetPasswordInputSchema>>>
 >;
-type _UpdateMailboxRules = AssertTrue<
-  KeysMatch<UpdateMailboxRulesParams, StripMcpOnly<z.infer<typeof updateMailboxRulesInputSchema>>>
->;
 type _UpdateAutoReply = AssertTrue<
   KeysMatch<UpdateAutoReplyParams, StripMcpOnly<z.infer<typeof autoReplyInputSchema>>>
 >;
@@ -222,7 +217,6 @@ type _AllChecks = [
   _CreateMailboxFolder,
   _UpdateMailboxFolder,
   _ResetMailboxPassword,
-  _UpdateMailboxRules,
   _UpdateAutoReply,
   _UpdateSpamFilter,
   _ListInboxMessages,
@@ -271,8 +265,7 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
-      true,
     ];
-    if (checks.length !== 29) throw new Error("alignment matrix size changed");
+    if (checks.length !== 28) throw new Error("alignment matrix size changed");
   });
 });

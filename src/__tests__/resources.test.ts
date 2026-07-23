@@ -35,7 +35,7 @@ function textContent(result: Awaited<ReturnType<Client["readResource"]>>): strin
 }
 
 describe("MCP resources", () => {
-  test("lists mailbox inbox, folders, identities, and rules resource templates", async () => {
+  test("lists mailbox inbox, folders, and identities resource templates", async () => {
     const { server, client } = buildPair(async () => Response.json({}));
     await connectPair(server, client);
 
@@ -44,40 +44,9 @@ describe("MCP resources", () => {
 
     expect(templates).toContain("shipmail://mailboxes/{id}/folders");
     expect(templates).toContain("shipmail://mailboxes/{id}/identities");
-    expect(templates).toContain("shipmail://mailboxes/{id}/rules");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/messages");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/threads/{thread_id}");
     expect(templates).toContain("shipmail://mailboxes/{mailbox_id}/threads/{id}");
-  });
-
-  test("reads mailbox rules as sanitized JSON", async () => {
-    const calls: URL[] = [];
-    const { server, client } = buildPair(async (input) => {
-      const url = new URL(String(input));
-      calls.push(url);
-      expect(url.pathname).toBe("/v1/mailboxes/mbx_123/rules");
-      return Response.json({
-        object: "mailbox_rules",
-        mailbox_id: "mbx_123",
-        address: "support@example.com",
-        rules: [],
-        folders: [],
-      });
-    });
-    await connectPair(server, client);
-
-    const result = await client.readResource({
-      uri: "shipmail://mailboxes/mbx_123/rules",
-    });
-
-    expect(calls).toHaveLength(1);
-    expect(JSON.parse(textContent(result))).toEqual({
-      object: "mailbox_rules",
-      mailbox_id: "mbx_123",
-      address: "support@example.com",
-      rules: [],
-      folders: [],
-    });
   });
 
   test("reads the first page of mailbox inbox messages", async () => {

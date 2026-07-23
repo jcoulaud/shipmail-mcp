@@ -34,8 +34,6 @@ const DOMAIN_NAME_REGEX =
 const CURSOR_REGEX = /^[A-Za-z0-9_\-=.+/]{1,512}$/;
 // SUPPRESSION_REASONS is not exported by the SDK; mirror the OpenAPI enum here.
 const SUPPRESSION_REASONS = ["hard_bounce", "complaint", "manual"] as const;
-const MAILBOX_RULE_MATCH_MODES = ["all", "any"] as const;
-const MAILBOX_RULE_SYSTEM_TARGET_ROLES = ["inbox", "archive", "junk", "trash"] as const;
 const SYSTEM_FOLDER_NAMES = [
   "inbox",
   "starred",
@@ -581,103 +579,6 @@ const folderNameSchema = z
 
 const folderIdSchema = noControlString(256, "folder_id").min(1);
 
-type MailboxRuleConditionInput =
-  | {
-      readonly type:
-        | "from_is"
-        | "from_contains"
-        | "recipient_is"
-        | "plus_tag_is"
-        | "subject_contains";
-      readonly value: string;
-    }
-  | {
-      readonly type: "has_attachment" | "list_unsubscribe_exists";
-    }
-  | {
-      readonly type: "group";
-      readonly match_mode: "all" | "any";
-      readonly conditions: readonly MailboxRuleConditionInput[];
-    };
-
-export const mailboxRuleConditionSchema: z.ZodType<MailboxRuleConditionInput> = z.lazy(() =>
-  z.union([
-    z.object({
-      type: z.enum([
-        "from_is",
-        "from_contains",
-        "recipient_is",
-        "plus_tag_is",
-        "subject_contains",
-      ] as const),
-      value: noControlString(256, "condition value").min(1),
-    }),
-    z.object({
-      type: z.enum(["has_attachment", "list_unsubscribe_exists"] as const),
-    }),
-    z.object({
-      type: z.literal("group"),
-      match_mode: z.enum(MAILBOX_RULE_MATCH_MODES),
-      conditions: z.array(mailboxRuleConditionSchema).min(1).max(10),
-    }),
-  ]),
-);
-
-export const mailboxRuleActionSchema = z.union([
-  z.object({
-    type: z.literal("move"),
-    target: z.union([
-      z.object({
-        kind: z.literal("system"),
-        role: z.enum(MAILBOX_RULE_SYSTEM_TARGET_ROLES),
-      }),
-      z.object({
-        kind: z.literal("custom"),
-        folder_id: noControlString(256, "folder_id").min(1),
-      }),
-    ]),
-  }),
-  z.object({
-    type: z.enum(["mark_read", "star"] as const),
-  }),
-  z.object({
-    type: z.literal("send_webhook"),
-  }),
-  z.object({
-    type: z.literal("ai_draft_reply"),
-    instructions: noControlString(2000, "instructions").min(1),
-    reply_mode: z.enum(["reply", "reply_all"] as const),
-    agent_policy: z.enum(["observe_only", "draft_for_review"] as const),
-  }),
-]);
-
-export const mailboxRuleSchema = z.object({
-  id: z.uuid("Rule ID must be a UUID."),
-  name: noControlString(120, "name").min(1),
-  enabled: z.boolean(),
-  position: z.number().int().min(0),
-  match_mode: z.enum(MAILBOX_RULE_MATCH_MODES),
-  stop: z.boolean(),
-  conditions: z.array(mailboxRuleConditionSchema).min(1).max(10),
-  actions: z.array(mailboxRuleActionSchema).min(1).max(5),
-});
-
-export const mailboxRuleFolderSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  parent_id: z.string().nullable(),
-  role: z.string().nullable(),
-  kind: z.enum(["custom", "system"] as const),
-});
-
-export const mailboxRulesSchema = z.object({
-  object: z.literal("mailbox_rules"),
-  mailbox_id: z.string(),
-  address: z.string(),
-  rules: z.array(mailboxRuleSchema),
-  folders: z.array(mailboxRuleFolderSchema),
-});
-
 export const mailboxForwardingSchema = z.object({
   object: z.literal("mailbox_forwarding"),
   id: z.string(),
@@ -955,7 +856,6 @@ export const replyScanResultsOutputSchema = z.object({
 export const inboxMessageActionOutputSchema = z.object({
   inbox_message_action: inboxMessageActionSchema,
 });
-export const mailboxRulesOutputSchema = z.object({ rules: mailboxRulesSchema });
 export const mailboxForwardingOutputSchema = z.object({ forwarding: mailboxForwardingSchema });
 export const mailboxForwardingListOutputSchema = z.object({
   forwarding: mailboxForwardingListSchema,
@@ -1236,11 +1136,6 @@ export const resetPasswordInputSchema = z.object({
     .refine((value) => /[a-z]/.test(value), "Password must include a lowercase letter.")
     .refine((value) => /[A-Z]/.test(value), "Password must include an uppercase letter.")
     .refine((value) => /[0-9]/.test(value), "Password must include a number."),
-  idempotency_key: idempotencyKeySchema,
-});
-export const updateMailboxRulesInputSchema = z.object({
-  id: idSchema,
-  rules: z.array(mailboxRuleSchema).max(50),
   idempotency_key: idempotencyKeySchema,
 });
 export const createMailboxForwardingInputSchema = z.object({
