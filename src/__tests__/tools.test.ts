@@ -2,9 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, test } from "bun:test";
 import { ShipMailClient } from "shipmail";
 
+import { composeMessageWithFileInputSchema, sendMessageInputSchema } from "../schemas.js";
 import { registerTools, type ToolRegistrationResult } from "../tools.js";
 
-function setup(selected?: ReadonlySet<string>): {
+function setup(allowedTools?: ReadonlySet<string>): {
   server: McpServer;
   client: ShipMailClient;
   result: ToolRegistrationResult;
@@ -15,12 +16,12 @@ function setup(selected?: ReadonlySet<string>): {
     maxRetries: 0,
   });
   const server = new McpServer({ name: "test", version: "0.0.0" });
-  const result = registerTools(server, client, selected);
+  const result = registerTools(server, client, allowedTools);
   return { server, client, result };
 }
 
 describe("registerTools", () => {
-  test("registers all known tools when no allowlist is given", () => {
+  test("registers all known tools for introspection when no policy set is given", () => {
     const { result } = setup();
     expect(result.knownTools.length).toBeGreaterThan(0);
     expect(result.enabledTools).toEqual(result.knownTools);
@@ -73,7 +74,13 @@ describe("registerTools", () => {
       "shipmail_inject_sandbox_inbound",
       "shipmail_list_messages",
       "shipmail_get_message",
+      "shipmail_compose_message_with_file",
+      "shipmail_prepare_staged_attachment_upload",
       "shipmail_send_message",
+      "shipmail_list_scheduled_messages",
+      "shipmail_get_scheduled_message",
+      "shipmail_update_scheduled_message",
+      "shipmail_cancel_scheduled_message",
       "shipmail_reply_to_message",
       "shipmail_list_threads",
       "shipmail_get_thread",
@@ -141,7 +148,7 @@ describe("registerTools", () => {
     }
   });
 
-  test("filters tools when allowlist is given", () => {
+  test("filters tools to the effective policy set", () => {
     const { result } = setup(
       new Set(["shipmail_list_domains", "shipmail_get_thread", "shipmail_get_newsletter"]),
     );
@@ -153,14 +160,66 @@ describe("registerTools", () => {
     expect(result.knownTools.length).toBeGreaterThan(2);
   });
 
-  test("throws on unknown tool name in allowlist", () => {
+  test("throws when the effective policy names an unknown tool", () => {
     expect(() => setup(new Set(["bogus_tool"]))).toThrow(/Unknown ShipMail MCP tool/);
   });
 
-  test("rejects bare (un-prefixed) tool names in allowlist", () => {
+  test("rejects bare tool names in the effective policy", () => {
     // Earlier versions used `send_message`; users (and shadow MCP servers) may
     // still refer to the bare names. Make sure they are now rejected so a stale
     // config fails loudly instead of silently registering nothing.
     expect(() => setup(new Set(["send_message"]))).toThrow(/Unknown ShipMail MCP tool/);
+  });
+
+  test("keeps base64 attachment bytes out of the send tool schema", () => {
+    const shared = {
+      mailbox_id: "mbx_123",
+      to: ["person@example.com"],
+      subject: "Invoice",
+      text: "Attached",
+    };
+    expect(
+      sendMessageInputSchema.safeParse({
+        ...shared,
+        staged_attachment_ids: ["sat_0123456789abcdefghjkmnpq"],
+      }).success,
+    ).toBe(true);
+    expect(
+      sendMessageInputSchema.safeParse({
+        ...shared,
+        attachments: [
+          {
+            filename: "invoice.pdf",
+            content: "JVBERi0x",
+            content_type: "application/pdf",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  test("declares the complete ChatGPT file input shape", () => {
+    const parsed = composeMessageWithFileInputSchema.safeParse({
+      mailbox_id: "mbx_123",
+      to: ["person@example.com"],
+      subject: "Invoice",
+      text: "Attached",
+      file: {
+        download_url: "https://files.example.test/download",
+        file_id: "file_123",
+        mime_type: "application/pdf",
+        file_name: "invoice.pdf",
+      },
+    });
+    expect(parsed.success).toBe(true);
+    expect(
+      composeMessageWithFileInputSchema.safeParse({
+        mailbox_id: "mbx_123",
+        to: ["person@example.com"],
+        subject: "Invoice",
+        text: "Attached",
+        file: { file_id: "file_123" },
+      }).success,
+    ).toBe(false);
   });
 });

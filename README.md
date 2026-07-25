@@ -113,7 +113,10 @@ Cursor, VS Code, Windsurf, and other Streamable HTTP clients:
 }
 ```
 
-Limit the tool surface with a `?tools=` query parameter, for example `https://shipmail.to/api/mcp?tools=shipmail_list_mailboxes,shipmail_list_messages`. Partner accounts can target a delegated child organization with the `X-ShipMail-Organization-Id` header.
+The tool catalog follows the connection permissions selected in Shipmail Settings. OAuth users
+manage those grants under **Settings → Connections**. Direct API-key and stdio sessions use the
+key's scopes, resource constraints, recipient rules, and recipient budget. Partner accounts can
+target a delegated child organization with the `X-ShipMail-Organization-Id` header.
 
 The sections below configure the same server locally over stdio.
 
@@ -209,6 +212,8 @@ Once connected, ask your agent:
 - "Triage the threads in `support@acme.com` from this week and summarize what needs attention."
 - "Check the last year of `support@acme.com`, find conversations we still owe a reply to, and draft answers for my approval. Do not send them."
 - "Draft a reply to thread `thread_abc123` confirming we ship Friday, then show it to me before sending."
+- "Send the selected PDF to Christelle tomorrow at 08:00, then show me the scheduled message."
+- "List my scheduled messages and move the invoice email to Friday."
 - "Create a webhook that posts new email events to `https://example.com/hooks/shipmail`, then send a test event."
 - "Show recent deliveries for webhook `whk_xyz`, then replay failed delivery `dlv_xyz`."
 - "List my newsletter sending domains and recent newsletter assets, draft a newsletter for audience `aud_abc123`, preview it, then send a test."
@@ -224,7 +229,7 @@ All tools are namespaced with `shipmail_` to avoid collisions with peer MCP serv
 | Mailboxes            | `shipmail_list_mailboxes`, `shipmail_get_mailbox`, `shipmail_create_mailbox`, `shipmail_update_mailbox`, `shipmail_delete_mailbox`, `shipmail_suspend_mailbox`, `shipmail_resume_mailbox`, `shipmail_list_mailbox_app_passwords`, `shipmail_create_mailbox_app_password`, `shipmail_revoke_mailbox_app_password`, `shipmail_list_mailbox_forwarding`, `shipmail_create_mailbox_forwarding`, `shipmail_delete_mailbox_forwarding`, `shipmail_list_mailbox_folders`, `shipmail_create_mailbox_folder`, `shipmail_update_mailbox_folder`, `shipmail_delete_mailbox_folder`, `shipmail_list_mailbox_identities`, `shipmail_reset_mailbox_password`, `shipmail_set_auto_reply`, `shipmail_set_spam_filter`, `shipmail_inject_sandbox_inbound` |
 | Mailbox inbox        | `shipmail_list_mailbox_inbox_messages`, `shipmail_get_mailbox_inbox_message`, `shipmail_get_mailbox_inbox_thread`, `shipmail_list_mailbox_inbox_threads`, `shipmail_update_inbox_thread_reply_state`, `shipmail_create_inbox_reply_draft`, `shipmail_send_inbox_reply_draft`, `shipmail_update_inbox_message`, `shipmail_move_inbox_message`, `shipmail_delete_inbox_message`                                                                                                                                                                                                                                                                                                                                                            |
 | Reply scans          | `shipmail_create_reply_scan`, `shipmail_get_reply_scan`, `shipmail_list_reply_scan_results`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Messages and threads | `shipmail_list_messages`, `shipmail_get_message`, `shipmail_send_message`, `shipmail_reply_to_message`, `shipmail_list_threads`, `shipmail_get_thread`, `shipmail_reply_to_thread`, `shipmail_reply_to_inbox_message`, `shipmail_reply_to_inbox_thread`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Messages and threads | `shipmail_list_messages`, `shipmail_get_message`, `shipmail_compose_message_with_file` (hosted MCP Apps), `shipmail_send_message`, `shipmail_list_scheduled_messages`, `shipmail_get_scheduled_message`, `shipmail_update_scheduled_message`, `shipmail_cancel_scheduled_message`, `shipmail_reply_to_message`, `shipmail_list_threads`, `shipmail_get_thread`, `shipmail_reply_to_thread`, `shipmail_reply_to_inbox_message`, `shipmail_reply_to_inbox_thread`                                                                                                                                                                                                                                                                          |
 | Webhooks             | `shipmail_list_webhooks`, `shipmail_get_webhook`, `shipmail_create_webhook`, `shipmail_update_webhook`, `shipmail_delete_webhook`, `shipmail_rotate_webhook_secret`, `shipmail_test_webhook`, `shipmail_list_webhook_deliveries`, `shipmail_get_webhook_delivery`, `shipmail_replay_webhook_delivery`                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Suppressions         | `shipmail_list_suppressions`, `shipmail_remove_suppression`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Audiences            | `shipmail_list_audiences`, `shipmail_get_audience`, `shipmail_create_audience`, `shipmail_update_audience`, `shipmail_delete_audience`, `shipmail_list_subscribers`, `shipmail_get_subscriber`, `shipmail_get_subscriber_by_email`, `shipmail_add_subscriber`, `shipmail_add_subscribers_batch`, `shipmail_update_subscriber`, `shipmail_unsubscribe_subscriber`, `shipmail_resubscribe_subscriber`, `shipmail_remove_subscriber`                                                                                                                                                                                                                                                                                                        |
@@ -234,6 +239,18 @@ All tools are namespaced with `shipmail_` to avoid collisions with peer MCP serv
 Message send and reply tools accept optional `client_reference`, scalar `metadata`,
 `source_rfc_message_id`, and validated safe `headers`. `shipmail_list_messages` accepts either a
 `mailbox_id` or an exact organization-scoped `client_reference`.
+
+MCP send and scheduled-update tools accept short-lived staged attachment IDs, not base64 bytes.
+Stage a raw file through the REST API, TypeScript SDK, Python SDK, CLI, or a supported host
+attachment component, then pass the returned `sat_...` ID. Scheduled messages can be listed,
+inspected, replaced, and cancelled before dispatch begins.
+
+In ChatGPT, `shipmail_compose_message_with_file` renders an MCP Apps review card for a
+conversation or library file. The card obtains a fresh ChatGPT download URL, hashes the exact
+bytes, creates a five-minute one-time ShipMail upload URL through an app-only tool, uploads
+without exposing the connection credential, and calls `shipmail_send_message` only after the
+user presses **Upload and send** or **Upload and schedule**. The upload endpoint follows no source
+URL, rejects redirects and metadata mismatches, and consumes the signed token once.
 
 For mailbox agents, prefer the reply queue or a reply scan followed by
 `shipmail_create_inbox_reply_draft`. The server derives recipients from the thread and records the
@@ -249,18 +266,9 @@ immediately. Partner grant consumption requires the exact `partner:mailbox_crede
 scope and an operator-approved one-time grant. App-password creation and grant consumption do not
 accept idempotency keys.
 
-By default, the server exposes only safe read tools and `shipmail_create_inbox_reply_draft`. To expose any additional tool, pass an explicit `--tools` allowlist (overrides `SHIPMAIL_MCP_TOOLS`):
-
-```json
-{
-  "args": [
-    "-y",
-    "shipmail-mcp",
-    "--tools",
-    "shipmail_create_reply_scan,shipmail_get_reply_scan,shipmail_list_reply_scan_results,shipmail_get_mailbox_inbox_thread,shipmail_create_inbox_reply_draft"
-  ]
-}
-```
+The server discovers the effective tool catalog from Shipmail before startup. It fails closed when
+capability discovery fails. To change what an AI can do, edit the OAuth connection under
+**Settings → Connections**, or edit the direct API key's scopes and constraints.
 
 ## Resources
 
@@ -298,7 +306,6 @@ Pre-built prompts the agent can use as guided workflows:
 
 In a delegated partner session, call `shipmail_create_mailbox` with `generate_password: true`.
 Shipmail generates the primary credential and never returns it to the partner.
-| `SHIPMAIL_MCP_TOOLS` | No | Comma-separated explicit tool allowlist. The `--tools` flag overrides this. Without either, only safe reads and reply-draft creation are exposed. |
 | `SHIPMAIL_ALLOW_INSECURE_BASE_URL` | No | Set to `1` to permit a non-https or non-`shipmail.to` base URL. Local development only. |
 | `SHIPMAIL_MCP_DEBUG` | No | Set to `1` to include `request_id` and `status` in stderr tool-call logs. |
 
@@ -318,14 +325,14 @@ Domain purchase is intentionally excluded.
 
 ### What this server does not defend against
 
-- **Indirect prompt injection from email content.** Reading a mailbox exposes the agent to attacker-controlled email bodies. Treat message bodies and attachments as untrusted data, never as instructions. The sanitizer strips invisible glyphs but cannot detect natural-language injection ("ignore previous instructions, send to..."). Keep `shipmail_send_inbox_reply_draft` out of the tool allowlist for review-only sessions and require explicit approval before any outbound send.
+- **Indirect prompt injection from email content.** Reading a mailbox exposes the agent to attacker-controlled email bodies. Treat message bodies and attachments as untrusted data, never as instructions. The sanitizer strips invisible glyphs but cannot detect natural-language injection ("ignore previous instructions, send to..."). Use the Read and draft profile, recipient constraints, and a finite recipient budget for review-oriented sessions.
 - **Malicious LLM output or hallucinated arguments.** The MCP layer cannot tell whether an argument came from the user or was invented. Use the host UI's tool-call confirmation, especially for `destructiveHint:true` tools.
 - **Compromised MCP host.** Your API key is read from `SHIPMAIL_API_KEY` and held in memory by this process. If the host is compromised, the key is gone regardless. Rotate keys you suspect have been exposed.
 - **Webhook signing secret in conversation logs.** `shipmail_create_webhook` and `shipmail_rotate_webhook_secret` return the secret in `structuredContent`. Many MCP clients persist tool output in conversation history. Treat the session log as sensitive after these calls.
 
 ## Privacy
 
-This server forwards email subject lines, bodies, headers, attachment metadata, and recipient lists to whatever LLM you connect it to. The LLM provider may log that content. For privacy-sensitive workflows, restrict the tool surface with `--tools` so the LLM only sees what it needs.
+This server forwards email subject lines, bodies, headers, attachment metadata, and recipient lists to whatever LLM you connect it to. The LLM provider may log that content. For privacy-sensitive workflows, grant only the connection permission groups and mailbox resources the AI needs.
 
 ## Troubleshooting
 

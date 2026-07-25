@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpServer,
+  type RegisteredTool,
+  type ToolCallback,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { AnySchema, ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import {
   type CreateMailboxParams,
   type ListMessagesParams,
@@ -11,6 +16,8 @@ import {
   ShipMailError,
 } from "shipmail";
 
+import { ATTACHMENT_COMPOSER_RESOURCE_URI } from "./attachment-component.js";
+import { getMcpCapability } from "./capabilities.js";
 import { toInboxMessageSummaries } from "./inbox-summaries.js";
 import {
   errorResult,
@@ -22,6 +29,7 @@ import {
   acknowledgmentOutputSchema,
   addSubscriberInputSchema,
   addSubscribersBatchInputSchema,
+  attachmentComposerOutputSchema,
   audienceOutputSchema,
   audiencesOutputSchema,
   autoReplyInputSchema,
@@ -32,6 +40,7 @@ import {
   calendarAvailabilityOutputSchema,
   calendarEventOutputSchema,
   calendarEventsOutputSchema,
+  composeMessageWithFileInputSchema,
   consumePartnerMailboxCredentialGrantInputSchema,
   createAudienceInputSchema,
   createBookingPageInputSchema,
@@ -63,6 +72,7 @@ import {
   getMailboxInboxMessageInputSchema,
   getMailboxInboxThreadInputSchema,
   getReplyScanInputSchema,
+  getScheduledMessageInputSchema,
   getSubscriberByEmailInputSchema,
   getSubscriberInputSchema,
   getThreadInputSchema,
@@ -91,6 +101,7 @@ import {
   listNewsletterAssetsInputSchema,
   listNewslettersInputSchema,
   listReplyScanResultsInputSchema,
+  listScheduledMessagesInputSchema,
   listSubscribersInputSchema,
   listSuppressionsInputSchema,
   listThreadsInputSchema,
@@ -124,6 +135,7 @@ import {
   partnerOrganizationOutputSchema,
   partnerOrganizationsOutputSchema,
   partnerUsageOutputSchema,
+  prepareStagedAttachmentUploadInputSchema,
   previewNewsletterInputSchema,
   registerNewsletterAssetInputSchema,
   removeSuppressionInputSchema,
@@ -138,12 +150,15 @@ import {
   resetPasswordInputSchema,
   resubscribeSubscriberInputSchema,
   revokeMailboxAppPasswordInputSchema,
+  scheduledMessageOutputSchema,
+  scheduledMessagesOutputSchema,
   scheduleNewsletterInputSchema,
   searchDomainsInputSchema,
   sendInboxReplyDraftInputSchema,
   sendMessageInputSchema,
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
+  stagedAttachmentUploadPreparationOutputSchema,
   statusOutputSchema,
   subscriberActionInputSchema,
   subscriberOutputSchema,
@@ -163,6 +178,7 @@ import {
   updateMailboxInputSchema,
   updateNewsletterInputSchema,
   updatePartnerOrganizationInputSchema,
+  updateScheduledMessageInputSchema,
   updateSubscriberInputSchema,
   updateWebhookInputSchema,
   verificationOutputSchema,
@@ -192,7 +208,11 @@ export type ToolRegistrationResult = {
 // (per-API-key tier limits enforced server-side).
 const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_inject_sandbox_inbound: 20,
+  shipmail_compose_message_with_file: 10,
+  shipmail_prepare_staged_attachment_upload: 10,
   shipmail_send_message: 10,
+  shipmail_update_scheduled_message: 20,
+  shipmail_cancel_scheduled_message: 20,
   shipmail_reply_to_message: 10,
   shipmail_reply_to_thread: 10,
   shipmail_reply_to_inbox_message: 10,
@@ -341,18 +361,53 @@ function logToolCall(name: string, durationMs: number, error?: ShipMailError | E
 }
 
 export function registerTools(
-  server: McpServer,
+  rawServer: McpServer,
   client: ShipMailClient,
-  selectedTools: ReadonlySet<string> | undefined,
+  allowedTools?: ReadonlySet<string>,
 ): ToolRegistrationResult {
   const knownTools: string[] = [];
   const enabledTools: string[] = [];
   const callCounts = new Map<string, number>();
   let totalCalls = 0;
 
+  const server = {
+    registerTool<
+      OutputArgs extends ZodRawShapeCompat | AnySchema,
+      InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
+    >(
+      name: string,
+      config: {
+        title?: string;
+        description?: string;
+        inputSchema?: InputArgs;
+        outputSchema?: OutputArgs;
+        annotations?: ToolAnnotations;
+        _meta?: Record<string, unknown>;
+      },
+      callback: ToolCallback<InputArgs>,
+    ): RegisteredTool {
+      const capability = getMcpCapability(name);
+      if (!capability) {
+        throw new Error(`MCP tool ${name} has no capability registry entry.`);
+      }
+
+      return rawServer.registerTool(
+        name,
+        {
+          ...config,
+          annotations: {
+            ...config.annotations,
+            ...capability.annotations,
+          },
+        },
+        callback,
+      );
+    },
+  };
+
   function registerIfAllowed(name: string, register: () => void): void {
     knownTools.push(name);
-    if (selectedTools && !selectedTools.has(name)) return;
+    if (allowedTools && !allowedTools.has(name)) return;
     register();
     enabledTools.push(name);
   }
@@ -400,6 +455,42 @@ export function registerTools(
       }
       logToolCall(name, performance.now() - start);
       return jsonResult(parsed.data);
+    } catch (error) {
+      if (error instanceof OutputSchemaViolation) {
+        process.stderr.write(
+          `${JSON.stringify({ tool: error.tool, output_schema_violation: error.issues })}\n`,
+        );
+      }
+      logToolCall(name, performance.now() - start, error instanceof Error ? error : undefined);
+      return errorResult(error);
+    }
+  }
+
+  async function runToolWithMeta(
+    name: string,
+    outputSchema: OutputValidator,
+    body: () => Promise<{
+      readonly structuredContent: unknown;
+      readonly meta: Readonly<Record<string, unknown>>;
+    }>,
+  ): Promise<CallToolResult> {
+    const start = performance.now();
+    try {
+      checkRateLimit(name);
+      const raw = await body();
+      const parsed = outputSchema.safeParse(raw.structuredContent);
+      if (!parsed.success) {
+        const issues = parsed.error.issues
+          .slice(0, 5)
+          .map(
+            (issue) =>
+              `${issue.path.length === 0 ? "(root)" : issue.path.join(".")}: ${issue.message}`,
+          )
+          .join("; ");
+        throw new OutputSchemaViolation(name, issues);
+      }
+      logToolCall(name, performance.now() - start);
+      return { ...jsonResult(parsed.data), _meta: { ...raw.meta } };
     } catch (error) {
       if (error instanceof OutputSchemaViolation) {
         process.stderr.write(
@@ -1754,6 +1845,86 @@ export function registerTools(
     );
   });
 
+  registerIfAllowed("shipmail_compose_message_with_file", () => {
+    server.registerTool(
+      "shipmail_compose_message_with_file",
+      {
+        title: "Compose Message With File",
+        description:
+          "Open a review card for a ChatGPT conversation or library file. Use this instead of shipmail_send_message when the user asks to send an attached file. The message is sent or scheduled only after the user presses the card action.",
+        inputSchema: composeMessageWithFileInputSchema,
+        outputSchema: attachmentComposerOutputSchema,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          openWorldHint: false,
+        },
+        _meta: {
+          ui: { resourceUri: ATTACHMENT_COMPOSER_RESOURCE_URI },
+          "openai/outputTemplate": ATTACHMENT_COMPOSER_RESOURCE_URI,
+          "openai/widgetAccessible": true,
+          "openai/fileParams": ["file"],
+          "openai/toolInvocation/invoking": "Opening attachment review",
+          "openai/toolInvocation/invoked": "Attachment ready for review",
+        },
+      },
+      async ({ file, scheduled_at }) =>
+        runTool("shipmail_compose_message_with_file", attachmentComposerOutputSchema, async () => ({
+          ready: true,
+          filename: file.file_name ?? "Selected file",
+          scheduled: scheduled_at !== undefined,
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_prepare_staged_attachment_upload", () => {
+    server.registerTool(
+      "shipmail_prepare_staged_attachment_upload",
+      {
+        title: "Prepare Staged Attachment Upload",
+        description: "Create a short-lived upload URL for the attachment review component.",
+        inputSchema: prepareStagedAttachmentUploadInputSchema,
+        outputSchema: stagedAttachmentUploadPreparationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          openWorldHint: false,
+        },
+        _meta: {
+          ui: { visibility: ["app"] },
+          "openai/widgetAccessible": true,
+          "openai/visibility": "private",
+        },
+      },
+      async ({ mailbox_id, filename, content_type, size, sha256 }) =>
+        runToolWithMeta(
+          "shipmail_prepare_staged_attachment_upload",
+          stagedAttachmentUploadPreparationOutputSchema,
+          async () => {
+            const prepared = await client.mailboxes.prepareStagedAttachmentUpload(mailbox_id, {
+              filename,
+              content_type,
+              size,
+              sha256,
+            });
+            return {
+              structuredContent: {
+                prepared_upload: {
+                  mailbox_id: prepared.mailbox_id,
+                  filename: prepared.filename,
+                  content_type: prepared.content_type,
+                  size: prepared.size,
+                  sha256: prepared.sha256,
+                  expires_at: prepared.expires_at,
+                },
+              },
+              meta: { upload_url: prepared.upload_url },
+            };
+          },
+        ),
+    );
+  });
+
   registerIfAllowed("shipmail_send_message", () => {
     server.registerTool(
       "shipmail_send_message",
@@ -1769,11 +1940,107 @@ export function registerTools(
           idempotentHint: true,
           openWorldHint: true,
         },
+        _meta: {
+          // The attachment review card calls this tool through window.openai.callTool after the
+          // user presses its action button. Apps SDK hosts only permit widget-initiated calls to
+          // tools that opt in, so without this the staged-attachment flow stops before sending.
+          "openai/widgetAccessible": true,
+        },
       },
       async (args) =>
         runTool("shipmail_send_message", messageOutputSchema, async () => ({
           message: await client.messages.send(stripIdempotencyKey(args), mutationOptions(args)),
         })),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_scheduled_messages", () => {
+    server.registerTool(
+      "shipmail_list_scheduled_messages",
+      {
+        title: "List Scheduled Messages",
+        description:
+          "List future scheduled messages. Set include_held to include connector undo holds that have not begun dispatch.",
+        inputSchema: listScheduledMessagesInputSchema,
+        outputSchema: scheduledMessagesOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      },
+      async (params) =>
+        runTool("shipmail_list_scheduled_messages", scheduledMessagesOutputSchema, async () => ({
+          scheduled_messages: await client.scheduledMessages.list(params),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_get_scheduled_message", () => {
+    server.registerTool(
+      "shipmail_get_scheduled_message",
+      {
+        title: "Get Scheduled Message",
+        description:
+          "Inspect one future scheduled message or undo hold, including its recipients, body, and attachment metadata.",
+        inputSchema: getScheduledMessageInputSchema,
+        outputSchema: scheduledMessageOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      },
+      async ({ id }) =>
+        runTool("shipmail_get_scheduled_message", scheduledMessageOutputSchema, async () => ({
+          scheduled_message: await client.scheduledMessages.get(id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_update_scheduled_message", () => {
+    server.registerTool(
+      "shipmail_update_scheduled_message",
+      {
+        title: "Update Scheduled Message",
+        description:
+          "Replace the recipients, content, staged attachments, and delivery time of a future scheduled message before dispatch begins.",
+        inputSchema: updateScheduledMessageInputSchema,
+        outputSchema: scheduledMessageOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_update_scheduled_message", scheduledMessageOutputSchema, async () => {
+          const { id, ...params } = stripIdempotencyKey(args);
+          return {
+            scheduled_message: await client.scheduledMessages.update(
+              id,
+              params,
+              mutationOptions(args),
+            ),
+          };
+        }),
+    );
+  });
+
+  registerIfAllowed("shipmail_cancel_scheduled_message", () => {
+    server.registerTool(
+      "shipmail_cancel_scheduled_message",
+      {
+        title: "Cancel Scheduled Message",
+        description:
+          "Cancel one future scheduled message or undo hold before dispatch begins. Delivery cannot be cancelled after dispatch starts.",
+        inputSchema: idempotentByIdInputSchema,
+        outputSchema: acknowledgmentOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_cancel_scheduled_message", acknowledgmentOutputSchema, async () => {
+          await client.scheduledMessages.cancel(args.id, mutationOptions(args));
+          return { result: { ok: true as const, id: args.id } };
+        }),
     );
   });
 
@@ -3269,8 +3536,8 @@ export function registerTools(
     );
   });
 
-  if (selectedTools) {
-    const unknown = [...selectedTools].filter((name) => !knownTools.includes(name));
+  if (allowedTools) {
+    const unknown = [...allowedTools].filter((name) => !knownTools.includes(name));
     if (unknown.length > 0) {
       throw new Error(`Unknown ShipMail MCP tool(s): ${unknown.join(", ")}`);
     }

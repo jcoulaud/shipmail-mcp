@@ -24,4 +24,13 @@ export default defineConfig([
     target: "node20",
     splitting: false,
   },
+  {
+    entry: ["src/capabilities.ts"],
+    format: ["esm"],
+    dts: true,
+    sourcemap: false,
+    clean: false,
+    target: "node20",
+    splitting: false,
+  },
 ]);

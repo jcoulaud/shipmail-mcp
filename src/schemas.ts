@@ -20,10 +20,6 @@ const RECIPIENT_NAME_MAX = 120;
 // Reject ASCII control chars and DEL on inputs that later flow back to the LLM.
 // eslint-disable-next-line no-control-regex
 const NO_CONTROL_CHARS = /^[^\x00-\x1F\x7F]*$/;
-// Filenames must reject control chars AND path separators / Windows-reserved chars.
-// eslint-disable-next-line no-control-regex
-const FILENAME_SAFE = /^[^\x00-\x1F\x7F/\\:*?"<>|]+$/;
-const MIME_TYPE_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*$/;
 // Hostname-style domain: labels of [a-z0-9-] separated by dots, each label
 // 1-63 chars and not starting/ending with hyphen. Tightens the previous bare
 // `z.string().min(1).max(253)` so prompt-injection bytes cannot pass.
@@ -604,26 +600,6 @@ export const recipientObjectSchema = z.object({
 
 export const recipientInputSchema = z.union([emailSchema, recipientObjectSchema]);
 
-export const attachmentInputSchema = z.object({
-  filename: z
-    .string()
-    .min(1)
-    .max(255)
-    .regex(FILENAME_SAFE, "Filename must not contain control chars or path separators.")
-    .refine((value) => !value.includes(".."), {
-      message: "Filename must not contain '..'.",
-    }),
-  content: z.string().min(1).max(10_485_760).describe("Base64 encoded attachment content."),
-  content_type: z
-    .string()
-    .max(256)
-    .refine(
-      (value) => MIME_TYPE_REGEX.test(value.split(";")[0]?.trim() ?? ""),
-      "content_type must be a valid MIME type.",
-    )
-    .optional(),
-});
-
 const messageMetadataValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const messageMetadataSchema = z
   .record(noControlString(64, "metadata key").min(1), messageMetadataValueSchema)
@@ -699,6 +675,49 @@ export const messageSchema = z.object({
   scheduled_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+});
+
+export const scheduledMessageSchema = z.object({
+  object: z.literal("scheduled_message"),
+  id: z.string(),
+  scheduled_message_id: z.string(),
+  kind: z.enum(["scheduled", "undo"] as const),
+  mailbox_id: z.string(),
+  mailbox_address: z.string(),
+  from_address: z.string(),
+  identity_id: z.string(),
+  mode: z.enum(["live", "test"] as const),
+  subject: z.string(),
+  to: z.array(recipientObjectSchema),
+  cc: z.array(recipientObjectSchema),
+  bcc: z.array(recipientObjectSchema),
+  attachments: z.array(
+    z.object({
+      filename: z.string(),
+      size: z.number(),
+      content_type: z.string(),
+    }),
+  ),
+  scheduled_at: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  last_error: z.string().nullable(),
+  draft_email_id: z.string().optional(),
+  from_name: z.string().optional(),
+  text: z.string().optional(),
+  html: z.string().optional(),
+  in_reply_to: z.string().nullable().optional(),
+  references: z.array(z.string()).optional(),
+  uploaded_attachments: z
+    .array(
+      z.object({
+        blob_id: z.string(),
+        filename: z.string(),
+        content_type: z.string(),
+        size: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 export const threadSchema = z.object({
@@ -883,6 +902,16 @@ export const mailboxesOutputSchema = z.object({
 export const messagesOutputSchema = z.object({
   data: z.array(messageSchema),
   pagination: paginationSchema,
+});
+export const scheduledMessageOutputSchema = z.object({
+  scheduled_message: scheduledMessageSchema,
+});
+export const scheduledMessagesOutputSchema = z.object({
+  scheduled_messages: z.object({
+    object: z.literal("scheduled_message_list"),
+    data: z.array(scheduledMessageSchema),
+    total: z.number().int().nonnegative(),
+  }),
 });
 export const threadsOutputSchema = z.object({
   data: z.array(threadSchema),
@@ -1320,6 +1349,77 @@ export const listMessagesInputSchema = paginationInputSchema
   .refine((value) => Boolean(value.mailbox_id || value.client_reference), {
     message: "Provide mailbox_id or client_reference.",
   });
+export const openAiFileInputSchema = z
+  .object({
+    // The component prefers a freshly minted host download URL and only falls back to this one.
+    // It is model-supplied and therefore reachable by prompt injection, so it is constrained to
+    // https here as well as by the widget CSP connect_domains allowlist.
+    download_url: z
+      .string()
+      .max(4096)
+      .refine((value) => {
+        try {
+          return new URL(value).protocol === "https:";
+        } catch {
+          return false;
+        }
+      }, "download_url must be an https URL."),
+    file_id: z.string().min(1).max(512),
+    mime_type: z.string().min(1).max(256).optional(),
+    file_name: noControlString(256, "file_name").min(1).optional(),
+  })
+  .strict();
+export const composeMessageWithFileInputSchema = z
+  .object({
+    mailbox_id: idSchema.describe("Mailbox ID to send from."),
+    to: z.array(recipientInputSchema).min(1).max(50),
+    cc: z.array(recipientInputSchema).max(50).optional(),
+    bcc: z.array(recipientInputSchema).max(50).optional(),
+    reply_to: recipientInputSchema.optional(),
+    subject: noControlString(998, "subject").min(1),
+    html: z.string().max(512_000).optional(),
+    text: z.string().max(256_000).optional(),
+    in_reply_to: noControlString(998, "in_reply_to").optional(),
+    references: z.array(noControlString(998, "references")).max(50).optional(),
+    client_reference: noControlString(255, "client_reference").min(1).optional(),
+    metadata: messageMetadataSchema.optional(),
+    source_rfc_message_id: sourceRfcMessageIdSchema.optional(),
+    headers: outboundHeadersSchema.optional(),
+    scheduled_at: z.iso.datetime().optional(),
+    file: openAiFileInputSchema,
+  })
+  .strict()
+  .refine((value) => Boolean(value.html || value.text), {
+    message: "At least one of html or text is required.",
+  });
+export const attachmentComposerOutputSchema = z.object({
+  ready: z.literal(true),
+  filename: z.string(),
+  scheduled: z.boolean(),
+});
+export const prepareStagedAttachmentUploadInputSchema = z
+  .object({
+    mailbox_id: idSchema.describe("Mailbox ID the staged attachment will be bound to."),
+    filename: noControlString(256, "filename").min(1),
+    content_type: noControlString(256, "content_type").min(1),
+    size: z
+      .number()
+      .int()
+      .min(1)
+      .max(25 * 1024 * 1024),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  })
+  .strict();
+export const stagedAttachmentUploadPreparationOutputSchema = z.object({
+  prepared_upload: z.object({
+    mailbox_id: z.string(),
+    filename: z.string(),
+    content_type: z.string(),
+    size: z.number().int(),
+    sha256: z.string(),
+    expires_at: z.string(),
+  }),
+});
 export const sendMessageInputSchema = z
   .object({
     mailbox_id: idSchema.describe(
@@ -1334,7 +1434,13 @@ export const sendMessageInputSchema = z
     text: z.string().max(256_000).optional(),
     in_reply_to: noControlString(998, "in_reply_to").optional(),
     references: z.array(noControlString(998, "references")).max(50).optional(),
-    attachments: z.array(attachmentInputSchema).max(10).optional(),
+    staged_attachment_ids: z
+      .array(z.string().regex(/^sat_[0-9a-z]+$/, "Invalid staged attachment ID."))
+      .max(20)
+      .optional()
+      .describe(
+        "Staged attachment IDs returned by the ShipMail raw upload flow. Base64 is intentionally not accepted by MCP.",
+      ),
     client_reference: noControlString(255, "client_reference").min(1).optional(),
     metadata: messageMetadataSchema.optional(),
     source_rfc_message_id: sourceRfcMessageIdSchema.optional(),
@@ -1343,6 +1449,37 @@ export const sendMessageInputSchema = z
     sandbox_outcome: z.enum(["delivered", "bounced", "complained"] as const).optional(),
     idempotency_key: idempotencyKeySchema,
   })
+  .strict()
+  .refine((value) => Boolean(value.html || value.text), {
+    message: "At least one of html or text is required.",
+  });
+export const listScheduledMessagesInputSchema = z.object({
+  include_held: z.boolean().default(false),
+  search: noControlString(200, "search").optional(),
+  limit: z.number().int().min(1).max(200).default(100),
+});
+export const getScheduledMessageInputSchema = z.object({
+  id: idSchema.describe("Tracked scheduled message ID, starts with msg_."),
+});
+export const updateScheduledMessageInputSchema = z
+  .object({
+    id: idSchema.describe("Tracked scheduled message ID, starts with msg_."),
+    to: z.array(recipientInputSchema).min(1).max(50),
+    cc: z.array(recipientInputSchema).max(50).optional(),
+    bcc: z.array(recipientInputSchema).max(50).optional(),
+    subject: noControlString(998, "subject").min(1),
+    html: z.string().max(512_000).optional(),
+    text: z.string().max(256_000).optional(),
+    in_reply_to: noControlString(998, "in_reply_to").optional(),
+    references: z.array(noControlString(998, "references")).max(50).optional(),
+    staged_attachment_ids: z
+      .array(z.string().regex(/^sat_[0-9a-z]+$/, "Invalid staged attachment ID."))
+      .max(20)
+      .optional(),
+    scheduled_at: z.iso.datetime(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .strict()
   .refine((value) => Boolean(value.html || value.text), {
     message: "At least one of html or text is required.",
   });

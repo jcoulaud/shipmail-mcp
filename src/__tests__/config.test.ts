@@ -1,12 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { readConfig, SAFE_DEFAULT_TOOLS } from "../config.js";
+import { readConfig } from "../config.js";
 
 const ENV_KEYS = [
   "SHIPMAIL_API_KEY",
   "SHIPMAIL_BASE_URL",
   "SHIPMAIL_ORGANIZATION_ID",
-  "SHIPMAIL_MCP_TOOLS",
   "SHIPMAIL_ALLOW_INSECURE_BASE_URL",
 ] as const;
 
@@ -38,11 +37,7 @@ describe("readConfig", () => {
     const config = readConfig([]);
     expect(config.apiKey).toBe("sk_test");
     expect(config.baseUrl).toBeUndefined();
-    expect(config.selectedTools).toEqual(SAFE_DEFAULT_TOOLS);
-    const selectedTools = config.selectedTools;
-    if (!selectedTools) throw new Error("safe default tools are required");
-    expect(selectedTools.has("shipmail_send_message")).toBe(false);
-    expect(selectedTools.has("shipmail_create_inbox_reply_draft")).toBe(true);
+    expect(config.organizationId).toBeUndefined();
   });
 
   test("reads the delegated organization id", () => {
@@ -51,28 +46,14 @@ describe("readConfig", () => {
     expect(readConfig([]).organizationId).toBe("org_child_123");
   });
 
-  test("--tools overrides SHIPMAIL_MCP_TOOLS env var", () => {
+  test("rejects the removed --tools selector with an actionable error", () => {
     process.env["SHIPMAIL_API_KEY"] = "sk_test";
-    process.env["SHIPMAIL_MCP_TOOLS"] = "list_domains,list_mailboxes";
-    const config = readConfig(["--tools", "send_message"]);
-    expect(config.selectedTools).toEqual(new Set(["send_message"]));
+    expect(() => readConfig(["--tools", "shipmail_send_message"])).toThrow(/removed.*permissions/i);
   });
 
-  test("falls back to env var when --tools not provided", () => {
+  test("rejects unknown command-line arguments", () => {
     process.env["SHIPMAIL_API_KEY"] = "sk_test";
-    process.env["SHIPMAIL_MCP_TOOLS"] = "list_domains, list_mailboxes ,";
-    const config = readConfig([]);
-    expect(config.selectedTools).toEqual(new Set(["list_domains", "list_mailboxes"]));
-  });
-
-  test("rejects --tools followed by another flag", () => {
-    process.env["SHIPMAIL_API_KEY"] = "sk_test";
-    expect(() => readConfig(["--tools", "--other"])).toThrow(/--tools requires/);
-  });
-
-  test("rejects --tools at end of argv", () => {
-    process.env["SHIPMAIL_API_KEY"] = "sk_test";
-    expect(() => readConfig(["--tools"])).toThrow(/--tools requires/);
+    expect(() => readConfig(["--other"])).toThrow(/Unknown argument/);
   });
 
   test("accepts default https base URL on shipmail.to", () => {

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.1](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.0...shipmail-mcp-v0.5.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **sdk:** drop bun export conditions that point at unpublished source ([#949](https://github.com/jcoulaud/ShipMail/issues/949)) ([7be09ae](https://github.com/jcoulaud/ShipMail/commit/7be09ae5db95b11063c22ce388b6a623a224803e))
+
+## [0.5.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.4.0...shipmail-mcp-v0.5.0) (2026-07-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** add capability-complete connector controls ([#944](https://github.com/jcoulaud/ShipMail/issues/944))
+
+### Features
+
+* **mcp:** add capability-complete connector controls ([#944](https://github.com/jcoulaud/ShipMail/issues/944)) ([015f010](https://github.com/jcoulaud/ShipMail/commit/015f010330ccbcd8c74b794c87f0d4aea430b1ec))
+
 ## [0.4.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.3.4...shipmail-mcp-v0.4.0) (2026-07-23)
 
 

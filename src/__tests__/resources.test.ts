@@ -35,6 +35,29 @@ function textContent(result: Awaited<ReturnType<Client["readResource"]>>): strin
 }
 
 describe("MCP resources", () => {
+  test("serves the versioned attachment composer with MCP Apps metadata", async () => {
+    const { server, client } = buildPair(async () => Response.json({}));
+    await connectPair(server, client);
+
+    const listed = await client.listResources();
+    expect(listed.resources.map((resource) => resource.uri)).toContain(
+      "ui://shipmail/attachment-composer-v1.html",
+    );
+    const result = await client.readResource({
+      uri: "ui://shipmail/attachment-composer-v1.html",
+    });
+    const content = result.contents[0];
+    expect(content?.mimeType).toBe("text/html;profile=mcp-app");
+    expect(content && "text" in content ? content.text : "").toContain(
+      "shipmail_prepare_staged_attachment_upload",
+    );
+    expect(content?._meta).toMatchObject({
+      ui: {
+        prefersBorder: true,
+      },
+    });
+  });
+
   test("lists mailbox inbox, folders, and identities resource templates", async () => {
     const { server, client } = buildPair(async () => Response.json({}));
     await connectPair(server, client);

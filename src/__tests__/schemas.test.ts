@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  attachmentInputSchema,
   bookingPageSchema,
   createBookingPageInputSchema,
   createDomainInputSchema,
@@ -786,49 +785,38 @@ describe("newsletter schemas", () => {
   });
 });
 
-describe("attachmentInputSchema", () => {
-  test("accepts a normal attachment", () => {
-    const out = attachmentInputSchema.parse({
-      filename: "report.pdf",
-      content: "AAAA",
-      content_type: "application/pdf",
+describe("sendMessageInputSchema attachment cutover", () => {
+  test("accepts staged attachment IDs", () => {
+    const out = sendMessageInputSchema.parse({
+      mailbox_id: "mbx_123",
+      to: ["recipient@example.com"],
+      subject: "Report",
+      text: "Attached.",
+      staged_attachment_ids: ["sat_abc123"],
     });
-    expect(out.filename).toBe("report.pdf");
+    expect(out.staged_attachment_ids).toEqual(["sat_abc123"]);
   });
 
-  test("rejects path traversal in filename", () => {
+  test("rejects removed base64 attachment inputs", () => {
     expect(() =>
-      attachmentInputSchema.parse({
-        filename: "../../../etc/passwd",
-        content: "AAAA",
+      sendMessageInputSchema.parse({
+        mailbox_id: "mbx_123",
+        to: ["recipient@example.com"],
+        subject: "Report",
+        text: "Attached.",
+        attachments: [{ filename: "report.pdf", content: "AAAA" }],
       }),
     ).toThrow();
   });
 
-  test("rejects path separators in filename", () => {
-    expect(() => attachmentInputSchema.parse({ filename: "a/b.txt", content: "AAAA" })).toThrow();
-    expect(() => attachmentInputSchema.parse({ filename: "a\\b.txt", content: "AAAA" })).toThrow();
-  });
-
-  test("rejects control chars in filename", () => {
+  test("rejects malformed staged attachment IDs", () => {
     expect(() =>
-      attachmentInputSchema.parse({ filename: "report\x00.pdf", content: "AAAA" }),
-    ).toThrow();
-  });
-
-  test("rejects malformed content_type and CRLF injection", () => {
-    expect(() =>
-      attachmentInputSchema.parse({
-        filename: "a.txt",
-        content: "AAAA",
-        content_type: "not a mime type",
-      }),
-    ).toThrow();
-    expect(() =>
-      attachmentInputSchema.parse({
-        filename: "a.txt",
-        content: "AAAA",
-        content_type: "text/plain\r\nX-Header: injected",
+      sendMessageInputSchema.parse({
+        mailbox_id: "mbx_123",
+        to: ["recipient@example.com"],
+        subject: "Report",
+        text: "Attached.",
+        staged_attachment_ids: ["../sat_abc123"],
       }),
     ).toThrow();
   });

@@ -1,257 +1,153 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, test } from "bun:test";
 import { ShipMailClient } from "shipmail";
+import { API_KEY_SCOPES } from "shipmail/api-key-scopes";
+import { z } from "zod/v4";
 
+import { MCP_CAPABILITIES, MCP_PERMISSION_GROUPS, MCP_TOOL_NAMES } from "../capabilities.js";
 import { registerTools } from "../tools.js";
-
-// Coverage test: every operationId in the public OpenAPI fixture must either be
-// registered as an MCP tool or be in the INTENTIONALLY_EXCLUDED list with a
-// documented reason. The fixture is synced from the Shipmail application
-// repository so this test catches REST API changes that are missing from MCP.
-//
-// Updating this file is the explicit "I considered the MCP surface" gate that
-// the MCP package's reviewers were asking for.
 
 const OPENAPI_PATH = fileURLToPath(new URL("../../fixtures/openapi.json", import.meta.url));
 
-const OPERATION_TO_TOOL: Readonly<Record<string, string>> = {
-  getStatus: "shipmail_status",
-  // Domains
-  createDomain: "shipmail_create_domain",
-  listDomains: "shipmail_list_domains",
-  getDomain: "shipmail_get_domain",
-  getDomainDnsRecords: "shipmail_get_domain_dns_records",
-  updateDomain: "shipmail_update_domain",
-  deleteDomain: "shipmail_delete_domain",
-  verifyDomain: "shipmail_verify_domain",
-  searchDomains: "shipmail_search_domains",
-  // Mailboxes
-  createMailbox: "shipmail_create_mailbox",
-  listMailboxes: "shipmail_list_mailboxes",
-  getMailbox: "shipmail_get_mailbox",
-  listMailboxAppPasswords: "shipmail_list_mailbox_app_passwords",
-  createMailboxAppPassword: "shipmail_create_mailbox_app_password",
-  revokeMailboxAppPassword: "shipmail_revoke_mailbox_app_password",
-  suspendMailbox: "shipmail_suspend_mailbox",
-  resumeMailbox: "shipmail_resume_mailbox",
-  createMailboxExport: "shipmail_create_mailbox_export",
-  getMailboxExport: "shipmail_get_mailbox_export",
-  updateMailbox: "shipmail_update_mailbox",
-  deleteMailbox: "shipmail_delete_mailbox",
-  listMailboxFolders: "shipmail_list_mailbox_folders",
-  createMailboxFolder: "shipmail_create_mailbox_folder",
-  updateMailboxFolder: "shipmail_update_mailbox_folder",
-  deleteMailboxFolder: "shipmail_delete_mailbox_folder",
-  listMailboxIdentities: "shipmail_list_mailbox_identities",
-  listMailboxInboxMessages: "shipmail_list_mailbox_inbox_messages",
-  getMailboxInboxMessage: "shipmail_get_mailbox_inbox_message",
-  listMailboxInboxThreads: "shipmail_list_mailbox_inbox_threads",
-  getMailboxInboxThread: "shipmail_get_mailbox_inbox_thread",
-  updateMailboxInboxThreadReplyState: "shipmail_update_inbox_thread_reply_state",
-  createMailboxInboxReplyDraft: "shipmail_create_inbox_reply_draft",
-  sendMailboxInboxReplyDraft: "shipmail_send_inbox_reply_draft",
-  replyToMailboxInboxMessage: "shipmail_reply_to_inbox_message",
-  replyToMailboxInboxThread: "shipmail_reply_to_inbox_thread",
-  updateMailboxInboxMessage: "shipmail_update_inbox_message",
-  moveMailboxInboxMessage: "shipmail_move_inbox_message",
-  deleteMailboxInboxMessage: "shipmail_delete_inbox_message",
-  listMailboxForwarding: "shipmail_list_mailbox_forwarding",
-  createMailboxForwarding: "shipmail_create_mailbox_forwarding",
-  deleteMailboxForwarding: "shipmail_delete_mailbox_forwarding",
-  resetMailboxPassword: "shipmail_reset_mailbox_password",
-  updateAutoReply: "shipmail_set_auto_reply",
-  updateSpamFilter: "shipmail_set_spam_filter",
-  createMailboxImport: "shipmail_create_mailbox_import",
-  listMailboxImports: "shipmail_list_mailbox_imports",
-  getMailboxImport: "shipmail_get_mailbox_import",
-  cancelMailboxImport: "shipmail_cancel_mailbox_import",
-  undoMailboxImport: "shipmail_undo_mailbox_import",
-  injectSandboxInbound: "shipmail_inject_sandbox_inbound",
-  // Messages and threads
-  listMessages: "shipmail_list_messages",
-  sendMessage: "shipmail_send_message",
-  getMessage: "shipmail_get_message",
-  replyToMessage: "shipmail_reply_to_message",
-  listThreads: "shipmail_list_threads",
-  getThread: "shipmail_get_thread",
-  replyToThread: "shipmail_reply_to_thread",
-  createReplyScan: "shipmail_create_reply_scan",
-  getReplyScan: "shipmail_get_reply_scan",
-  listReplyScanResults: "shipmail_list_reply_scan_results",
-  // Webhooks
-  createWebhook: "shipmail_create_webhook",
-  listWebhooks: "shipmail_list_webhooks",
-  getWebhook: "shipmail_get_webhook",
-  updateWebhook: "shipmail_update_webhook",
-  deleteWebhook: "shipmail_delete_webhook",
-  rotateWebhookSecret: "shipmail_rotate_webhook_secret",
-  testWebhook: "shipmail_test_webhook",
-  listWebhookDeliveries: "shipmail_list_webhook_deliveries",
-  getWebhookDelivery: "shipmail_get_webhook_delivery",
-  replayWebhookDelivery: "shipmail_replay_webhook_delivery",
-  // Suppressions
-  listSuppressions: "shipmail_list_suppressions",
-  removeSuppression: "shipmail_remove_suppression",
-  // Audiences and subscribers
-  createAudience: "shipmail_create_audience",
-  listAudiences: "shipmail_list_audiences",
-  getAudience: "shipmail_get_audience",
-  updateAudience: "shipmail_update_audience",
-  deleteAudience: "shipmail_delete_audience",
-  addSubscriber: "shipmail_add_subscriber",
-  addSubscribersBatch: "shipmail_add_subscribers_batch",
-  listSubscribers: "shipmail_list_subscribers",
-  getSubscriber: "shipmail_get_subscriber",
-  getSubscriberByEmail: "shipmail_get_subscriber_by_email",
-  updateSubscriber: "shipmail_update_subscriber",
-  unsubscribeSubscriber: "shipmail_unsubscribe_subscriber",
-  resubscribeSubscriber: "shipmail_resubscribe_subscriber",
-  removeSubscriber: "shipmail_remove_subscriber",
-  // Newsletters
-  listNewsletterDomains: "shipmail_list_newsletter_domains",
-  createNewsletter: "shipmail_create_newsletter",
-  createNewsletterFromChangelog: "shipmail_create_newsletter_from_changelog",
-  listNewsletters: "shipmail_list_newsletters",
-  getNewsletter: "shipmail_get_newsletter",
-  updateNewsletter: "shipmail_update_newsletter",
-  listNewsletterAssets: "shipmail_list_newsletter_assets",
-  uploadNewsletterAsset: "shipmail_register_newsletter_asset",
-  previewNewsletter: "shipmail_preview_newsletter",
-  runNewsletterPreflight: "shipmail_run_newsletter_preflight",
-  sendNewsletterTest: "shipmail_send_newsletter_test",
-  scheduleNewsletter: "shipmail_schedule_newsletter",
-  cancelNewsletter: "shipmail_cancel_newsletter",
-  resumeNewsletter: "shipmail_resume_newsletter",
-  // Calendar
-  listCalendarEvents: "shipmail_list_calendar_events",
-  createCalendarEvent: "shipmail_create_calendar_event",
-  getCalendarEvent: "shipmail_get_calendar_event",
-  updateCalendarEvent: "shipmail_update_calendar_event",
-  deleteCalendarEvent: "shipmail_delete_calendar_event",
-  getCalendarAvailability: "shipmail_get_calendar_availability",
-  // Booking pages
-  listBookingPages: "shipmail_list_booking_pages",
-  createBookingPage: "shipmail_create_booking_page",
-  getBookingPage: "shipmail_get_booking_page",
-  updateBookingPage: "shipmail_update_booking_page",
-  deleteBookingPage: "shipmail_delete_booking_page",
-  // Partner beta
-  listPartnerOrganizations: "shipmail_list_partner_organizations",
-  createPartnerOrganization: "shipmail_create_partner_organization",
-  getPartnerOrganization: "shipmail_get_partner_organization",
-  updatePartnerOrganization: "shipmail_update_partner_organization",
-  resendPartnerOwnershipInvitation: "shipmail_resend_partner_ownership_invitation",
-  suspendPartnerOrganization: "shipmail_suspend_partner_organization",
-  resumePartnerOrganization: "shipmail_resume_partner_organization",
-  offboardPartnerOrganization: "shipmail_offboard_partner_organization",
-  listPartnerMailboxCredentialGrants: "shipmail_list_partner_mailbox_credential_grants",
-  consumePartnerMailboxCredentialGrant: "shipmail_consume_partner_mailbox_credential_grant",
-  getPartnerUsage: "shipmail_get_partner_usage",
-};
-
 const INTENTIONALLY_EXCLUDED: Readonly<Record<string, string>> = {
+  getCapabilities:
+    "Capability discovery describes the MCP catalog and cannot itself be an MCP business tool.",
   registerDomain:
-    "Domain registration charges a saved payment method and requires explicit pricing/contact/legal confirmation. Should remain off the agent tool surface until a dedicated approval flow exists.",
+    "Domain registration charges a saved payment method and requires explicit pricing, contact, and legal confirmation.",
   downloadMailboxInboxAttachment:
-    "Attachment downloads return untrusted binary data that can be large and unsafe to inline into an LLM transcript. Use the REST API or SDK download methods instead.",
+    "Attachment downloads return untrusted binary data that can be large and unsafe to inline into a model transcript.",
+  stageMailboxAttachment:
+    "Raw binary staging is exposed through SDKs and host components; JSON MCP calls consume only the resulting staged ID.",
+  consumeStagedAttachmentUpload:
+    "The MCP Apps component uploads raw bytes directly through the prepared single-use URL.",
   createMailboxImportUpload:
-    "File staging returns a presigned URL that needs a raw binary PUT, which an MCP tool cannot perform. Use the REST API or SDK createImportUpload instead.",
+    "Import staging returns a presigned URL that requires a raw binary upload outside a JSON MCP tool call.",
 };
 
-type OpenApiDoc = {
-  readonly paths: Record<string, Record<string, { readonly operationId?: string } | unknown>>;
-};
+const operationSchema = z
+  .object({
+    operationId: z.string().optional(),
+    "x-scope": z.string().optional(),
+  })
+  .passthrough();
+const openApiSchema = z.object({
+  paths: z.record(
+    z.string(),
+    z.record(z.string(), z.union([operationSchema, z.array(z.unknown())])),
+  ),
+});
 
-function readOpenApi(): OpenApiDoc {
-  const raw = readFileSync(OPENAPI_PATH, "utf8");
-  return JSON.parse(raw) as OpenApiDoc;
-}
-
-function collectOperationIds(doc: OpenApiDoc): readonly string[] {
-  const seen = new Set<string>();
-  for (const methods of Object.values(doc.paths)) {
-    if (typeof methods !== "object" || methods === null) continue;
-    for (const op of Object.values(methods)) {
-      if (typeof op !== "object" || op === null) continue;
-      const operationId = (op as { operationId?: unknown }).operationId;
-      if (typeof operationId === "string" && operationId.length > 0) {
-        seen.add(operationId);
-      }
+function readOpenApiOperations(): ReadonlyMap<string, string | undefined> {
+  const raw: unknown = JSON.parse(readFileSync(OPENAPI_PATH, "utf8"));
+  const doc = openApiSchema.parse(raw);
+  const operations = new Map<string, string | undefined>();
+  for (const pathItem of Object.values(doc.paths)) {
+    for (const candidate of Object.values(pathItem)) {
+      if (Array.isArray(candidate) || candidate.operationId === undefined) continue;
+      operations.set(candidate.operationId, candidate["x-scope"]);
     }
   }
-  return [...seen].sort();
+  return operations;
 }
 
-function getMcpToolNames(): readonly string[] {
+function getRegisteredToolNames(): readonly string[] {
   const client = new ShipMailClient({
-    apiKey: "sk_test",
+    apiKey: "sm_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,
   });
   const server = new McpServer({ name: "test", version: "0.0.0" });
-  return registerTools(server, client, undefined).knownTools;
+  return registerTools(server, client, new Set(MCP_TOOL_NAMES)).knownTools;
 }
 
-describe("OpenAPI ↔ MCP coverage", () => {
-  test("every OpenAPI operationId is mapped to an MCP tool or explicitly excluded", () => {
-    const doc = readOpenApi();
-    const operationIds = collectOperationIds(doc);
-    const knownTools = new Set(getMcpToolNames());
-
+describe("OpenAPI, capability registry, and MCP registration", () => {
+  test("every OpenAPI operation is registered or explicitly excluded", () => {
+    const operations = readOpenApiOperations();
+    const operationIds = new Set(MCP_CAPABILITIES.map((capability) => capability.operationId));
     const undocumented: string[] = [];
-    for (const operationId of operationIds) {
-      const mappedTool = OPERATION_TO_TOOL[operationId];
-      if (mappedTool !== undefined) {
-        expect(knownTools.has(mappedTool)).toBe(true);
-        continue;
+    for (const operationId of operations.keys()) {
+      if (!operationIds.has(operationId) && INTENTIONALLY_EXCLUDED[operationId] === undefined) {
+        undocumented.push(operationId);
       }
-      if (INTENTIONALLY_EXCLUDED[operationId] !== undefined) continue;
-      undocumented.push(operationId);
     }
-
     expect(undocumented).toEqual([]);
   });
 
-  test("every claimed MCP mapping points to a registered tool", () => {
-    const knownTools = new Set(getMcpToolNames());
-    const dangling: string[] = [];
-    for (const tool of Object.values(OPERATION_TO_TOOL)) {
-      if (!knownTools.has(tool)) dangling.push(tool);
-    }
-    expect(dangling).toEqual([]);
+  test("every registered MCP tool has exactly one capability entry", () => {
+    const registered = getRegisteredToolNames();
+    expect(new Set(registered).size).toBe(registered.length);
+    expect(new Set(MCP_TOOL_NAMES).size).toBe(MCP_TOOL_NAMES.length);
+    expect([...registered].sort()).toEqual([...MCP_TOOL_NAMES].sort());
   });
 
-  test("INTENTIONALLY_EXCLUDED entries actually exist in OpenAPI", () => {
-    // Catches stale exclusions: if someone removes registerDomain from
-    // OpenAPI, the exclusion entry should be removed too.
-    const doc = readOpenApi();
-    const operationIds = new Set(collectOperationIds(doc));
-    const stale: string[] = [];
+  test("every registry scope matches OpenAPI and the public scope catalog", () => {
+    const operations = readOpenApiOperations();
+    const knownScopes = new Set<string>(API_KEY_SCOPES);
+    for (const capability of MCP_CAPABILITIES) {
+      if (capability.requiredScope === "public") {
+        expect(operations.get(capability.operationId)).toBeUndefined();
+      } else {
+        expect(knownScopes.has(capability.requiredScope)).toBe(true);
+        expect(operations.get(capability.operationId)).toBe(capability.requiredScope);
+      }
+    }
+  });
+
+  test("every permission group contains the scope required by its tools", () => {
+    const groups = new Map(MCP_PERMISSION_GROUPS.map((group) => [group.name, group]));
+    for (const capability of MCP_CAPABILITIES) {
+      if (capability.requiredScope === "public") continue;
+      if (capability.requiredScope === "*") {
+        throw new Error(`${capability.toolName} must declare a granular required scope`);
+      }
+      expect(groups.get(capability.permissionGroup)?.scopes).toContain(capability.requiredScope);
+    }
+  });
+
+  test("registered annotations come from the capability registry", async () => {
+    const shipmail = new ShipMailClient({
+      apiKey: "sm_test",
+      baseUrl: "https://shipmail.to/api/v1",
+      maxRetries: 0,
+    });
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    registerTools(server, shipmail, new Set(MCP_TOOL_NAMES));
+    const client = new Client({ name: "test-client", version: "0.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+    try {
+      const registered = new Map(
+        (await client.listTools()).tools.map((tool) => [tool.name, tool.annotations]),
+      );
+      for (const capability of MCP_CAPABILITIES) {
+        expect(registered.get(capability.toolName)).toMatchObject(capability.annotations);
+      }
+    } finally {
+      await Promise.all([client.close(), server.close()]);
+    }
+  });
+
+  test("every consequential capability declares idempotency and audit behavior", () => {
+    for (const capability of MCP_CAPABILITIES) {
+      if (capability.effect === "read") {
+        expect(capability.auditAction).toBeNull();
+        continue;
+      }
+      expect(capability.idempotency).not.toBe("none");
+      expect(capability.auditAction).toBeString();
+    }
+  });
+
+  test("explicit exclusions still exist in OpenAPI", () => {
+    const operations = readOpenApiOperations();
     for (const operationId of Object.keys(INTENTIONALLY_EXCLUDED)) {
-      if (!operationIds.has(operationId)) stale.push(operationId);
+      expect(operations.has(operationId)).toBe(true);
     }
-    expect(stale).toEqual([]);
-  });
-
-  test("every registered MCP tool corresponds to an OpenAPI operation or is explicitly noted", () => {
-    // Reverse direction: if the MCP gains a tool with no OpenAPI counterpart,
-    // someone needs to either add the OpenAPI op or document the discrepancy.
-    const doc = readOpenApi();
-    const operationIds = new Set(collectOperationIds(doc));
-    const mappedTools = new Set(Object.values(OPERATION_TO_TOOL));
-    const knownTools = getMcpToolNames();
-
-    const orphans: string[] = [];
-    for (const tool of knownTools) {
-      if (mappedTools.has(tool)) continue;
-      orphans.push(tool);
-    }
-
-    expect(orphans).toEqual([]);
-    // operationIds is already used to validate the forward direction.
-    void operationIds;
   });
 });

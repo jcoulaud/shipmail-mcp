@@ -636,6 +636,34 @@
         }
       }
     },
+    "/capabilities": {
+      "get": {
+        "operationId": "getCapabilities",
+        "summary": "Get effective API and MCP capabilities",
+        "description": "Return the authenticated API key's effective scopes, resource constraints, MCP tool catalog, transactional recipient budget, undo hold, and capability contract version.",
+        "tags": ["Capabilities"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "authenticated",
+        "responses": {
+          "200": {
+            "description": "Effective capabilities returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/domains": {
       "parameters": [
         {
@@ -827,7 +855,7 @@
         "description": "Check DNS records for the domain and update verification status. Rate limited to 1 request per minute. For automated setups, subscribe to the domain.verified webhook event instead of polling this endpoint.",
         "tags": ["Domains"],
         "x-rate-limit-tier": "verification",
-        "x-scope": "domains:read",
+        "x-scope": "domains:write",
         "responses": {
           "200": {
             "description": "Verification result.",
@@ -1908,7 +1936,7 @@
         "description": "List pending and active forwarding destinations for a mailbox.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "read",
-        "x-scope": "mailboxes:read",
+        "x-scope": "mailbox_forwarding:read",
         "responses": {
           "200": {
             "description": "Mailbox forwarding destinations.",
@@ -1943,7 +1971,7 @@
         "description": "Send a confirmation email to a forwarding destination. Forwarding becomes active only after the recipient confirms. Active forwarding keeps a copy in the Shipmail mailbox and excludes messages classified as spam. Repeating this request for a pending destination sends a new confirmation link.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "write",
-        "x-scope": "mailboxes:write",
+        "x-scope": "mailbox_forwarding:write",
         "requestBody": {
           "required": true,
           "content": {
@@ -2005,7 +2033,7 @@
         "description": "Remove a pending or active forwarding destination. Active delivery is removed from the mail server before the record is deleted.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "write",
-        "x-scope": "mailboxes:write",
+        "x-scope": "mailbox_forwarding:write",
         "responses": {
           "204": {
             "description": "Forwarding destination removed."
@@ -2081,6 +2109,176 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/staged-attachments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "stageMailboxAttachment",
+        "summary": "Stage a message attachment",
+        "description": "Upload raw attachment bytes for later use by send or scheduled-message update. The returned ID is bound to this API key, organization, and mailbox, and expires after 24 hours.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:send",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "maxLength": 26214400
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment staged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagedAttachment"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/staged-attachment-upload-tokens": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "post": {
+        "operationId": "prepareStagedAttachmentUpload",
+        "summary": "Prepare a one-time attachment upload",
+        "description": "Create a five-minute, single-use upload URL bound to this API key, organization, mailbox, filename, content type, byte size, and SHA-256 digest. Idempotency-Key is forbidden because the response contains a one-time URL.",
+        "tags": ["Mailboxes", "Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:send",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareStagedAttachmentUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "One-time upload prepared.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagedAttachmentUpload"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/staged-attachment-uploads/{token}": {
+      "parameters": [
+        {
+          "name": "token",
+          "in": "path",
+          "required": true,
+          "description": "Short-lived signed upload token contained in the prepared upload URL.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "consumeStagedAttachmentUpload",
+        "summary": "Upload bytes through a prepared URL",
+        "description": "Upload the exact raw bytes declared by a prepared upload. This endpoint uses the signed URL instead of API-key authentication, accepts no source URL, and returns no redirect. The token is consumed after one successful upload.",
+        "tags": ["Messages"],
+        "security": [],
+        "x-rate-limit-tier": "send",
+        "x-scope": "public",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "*/*": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "maxLength": 26214400
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment staged and upload token consumed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagedAttachment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
@@ -2283,6 +2481,166 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/scheduled-messages": {
+      "get": {
+        "operationId": "listScheduledMessages",
+        "summary": "List scheduled messages",
+        "description": "List future scheduled messages. Transient undo holds are omitted unless include_held is true.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "include_held",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scheduled message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledMessageList"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/scheduled-messages/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getScheduledMessage",
+        "summary": "Get a scheduled message",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "responses": {
+          "200": {
+            "description": "Scheduled message detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledMessage"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateScheduledMessage",
+        "summary": "Update a scheduled message",
+        "description": "Replace recipients, content, staged attachments, and delivery time before dispatch begins.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:send",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduledMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated scheduled message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledMessage"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelScheduledMessage",
+        "summary": "Cancel a scheduled message",
+        "description": "Cancel a scheduled message or undo hold while it remains unclaimed. Delivery cannot be cancelled after dispatch begins.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "send",
+        "x-scope": "messages:send",
+        "responses": {
+          "204": {
+            "description": "Scheduled message cancelled."
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
@@ -7988,7 +8346,9 @@
       },
       "Attachment": {
         "type": "object",
+        "deprecated": true,
         "required": ["filename", "content"],
+        "description": "Deprecated base64 attachment input. Prefer the raw staged-attachment upload flow, which supports files up to 25 MB without placing base64 in JSON.",
         "properties": {
           "filename": {
             "type": "string",
@@ -8004,6 +8364,122 @@
             "type": "string",
             "description": "MIME type. Defaults to application/octet-stream.",
             "maxLength": 256
+          }
+        }
+      },
+      "StagedAttachment": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "filename",
+          "content_type",
+          "size",
+          "sha256",
+          "expires_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "staged_attachment"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^sat_[0-9a-z]+$"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 26214400
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PrepareStagedAttachmentUploadRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["filename", "content_type", "size", "sha256"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "content_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 26214400
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "StagedAttachmentUpload": {
+        "type": "object",
+        "required": [
+          "object",
+          "mailbox_id",
+          "filename",
+          "content_type",
+          "size",
+          "sha256",
+          "upload_url",
+          "expires_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "staged_attachment_upload"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 26214400
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "upload_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -8502,6 +8978,107 @@
           }
         }
       },
+      "CapabilitiesResponse": {
+        "type": "object",
+        "required": [
+          "capability_version",
+          "scopes",
+          "constraints",
+          "allowed_mcp_tools",
+          "transactional_recipient_budget",
+          "undo_hold_seconds"
+        ],
+        "properties": {
+          "capability_version": {
+            "type": "string",
+            "description": "Semantic version of the server capability contract."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "required": [
+              "mailbox_ids",
+              "domain_ids",
+              "audience_ids",
+              "allowed_recipient_addresses",
+              "allowed_recipient_domains"
+            ],
+            "properties": {
+              "mailbox_ids": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "domain_ids": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "audience_ids": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "allowed_recipient_addresses": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string",
+                  "format": "email"
+                }
+              },
+              "allowed_recipient_domains": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "allowed_mcp_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transactional_recipient_budget": {
+            "type": "object",
+            "required": ["unlimited", "limit", "used", "remaining", "window_hours"],
+            "properties": {
+              "unlimited": {
+                "type": "boolean"
+              },
+              "limit": {
+                "type": ["integer", "null"]
+              },
+              "used": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "remaining": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "window_hours": {
+                "type": "integer",
+                "const": 24
+              }
+            }
+          },
+          "undo_hold_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          }
+        }
+      },
       "RotateSecretResponse": {
         "type": "object",
         "required": ["secret", "previous_secret_expires_at"],
@@ -8757,7 +9334,18 @@
               "$ref": "#/components/schemas/Attachment"
             },
             "maxItems": 20,
-            "description": "File attachments. Base64-encoded. Max 20 attachments, 3 MB per file, 3 MB total."
+            "deprecated": true,
+            "description": "Deprecated base64 attachments. Max 20 attachments, 3 MB per file, 3 MB total. Prefer staged_attachment_ids."
+          },
+          "staged_attachment_ids": {
+            "type": "array",
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^sat_[0-9a-z]+$"
+            },
+            "description": "IDs returned by POST /mailboxes/{id}/staged-attachments. IDs must belong to this API key, organization, and sending mailbox."
           },
           "client_reference": {
             "$ref": "#/components/schemas/ClientReference"
@@ -8778,6 +9366,227 @@
           },
           "sandbox_outcome": {
             "$ref": "#/components/schemas/SandboxOutcome"
+          }
+        }
+      },
+      "ScheduledMessage": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "scheduled_message_id",
+          "kind",
+          "mailbox_id",
+          "mailbox_address",
+          "from_address",
+          "identity_id",
+          "mode",
+          "subject",
+          "to",
+          "cc",
+          "bcc",
+          "attachments",
+          "scheduled_at",
+          "created_at",
+          "updated_at",
+          "last_error"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "scheduled_message"
+          },
+          "id": {
+            "type": "string",
+            "description": "Tracked message ID used by scheduled-message endpoints."
+          },
+          "scheduled_message_id": {
+            "type": "string",
+            "description": "Internal scheduled lifecycle row ID."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["scheduled", "undo"]
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "mailbox_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "from_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/DataMode"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "bcc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentMetadata"
+            }
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_error": {
+            "type": ["string", "null"]
+          },
+          "draft_email_id": {
+            "type": "string"
+          },
+          "from_name": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "in_reply_to": {
+            "type": ["string", "null"]
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "uploaded_attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["blob_id", "filename", "content_type", "size"],
+              "properties": {
+                "blob_id": {
+                  "type": "string"
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "content_type": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ScheduledMessageList": {
+        "type": "object",
+        "required": ["object", "data", "total"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "scheduled_message_list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledMessage"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "UpdateScheduledMessageRequest": {
+        "type": "object",
+        "required": ["to", "subject", "scheduled_at"],
+        "properties": {
+          "to": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "bcc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recipient"
+            }
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 998
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 524288
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 262144
+          },
+          "in_reply_to": {
+            "type": "string"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "staged_attachment_ids": {
+            "type": "array",
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^sat_[0-9a-z]+$"
+            }
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

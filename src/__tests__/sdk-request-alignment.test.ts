@@ -86,7 +86,9 @@ type StripPartnerGrantPath<T> = Omit<T, "idempotency_key" | "grant_id">;
 // SDK fields that the MCP intentionally does not expose. Keep this list
 // honest: every entry should match a documented design choice. If the list
 // grows, document why in the threat-model / runbook.
-type SendMessageSdkOnly = "from"; // MCP forces explicit mailbox_id; no email lookup.
+// MCP forces explicit mailbox_id and accepts staged IDs only. The SDK retains
+// deprecated REST base64 attachments for non-MCP callers during this release.
+type SendMessageSdkOnly = "attachments" | "from";
 
 type Keys<T> = keyof T;
 type KeysMatch<A, B> = [Exclude<Keys<A>, Keys<B>>] extends [never]

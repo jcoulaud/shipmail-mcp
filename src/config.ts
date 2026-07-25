@@ -6,32 +6,13 @@ const DEFAULT_BASE_URL = "https://shipmail.to/api/v1";
 export type McpConfig = {
   readonly apiKey: string;
   readonly baseUrl: string | undefined;
-  readonly selectedTools: ReadonlySet<string> | undefined;
   readonly organizationId: string | undefined;
 };
-
-export const SAFE_DEFAULT_TOOLS: ReadonlySet<string> = new Set([
-  "shipmail_status",
-  "shipmail_list_mailboxes",
-  "shipmail_get_mailbox",
-  "shipmail_list_mailbox_folders",
-  "shipmail_list_mailbox_identities",
-  "shipmail_list_mailbox_inbox_messages",
-  "shipmail_get_mailbox_inbox_thread",
-  "shipmail_create_inbox_reply_draft",
-  "shipmail_list_messages",
-  "shipmail_get_message",
-  "shipmail_list_threads",
-  "shipmail_get_thread",
-  "shipmail_list_calendar_events",
-  "shipmail_get_calendar_event",
-  "shipmail_get_calendar_availability",
-]);
 
 export const HELP_TEXT = `shipmail-mcp
 
 Usage:
-  shipmail-mcp [--tools shipmail_list_mailbox_inbox_messages,shipmail_get_mailbox_inbox_thread,shipmail_reply_to_inbox_thread]
+  shipmail-mcp
 
 Environment:
   SHIPMAIL_API_KEY      Required ShipMail API key (or use SHIPMAIL_API_KEY_FILE).
@@ -41,12 +22,11 @@ Environment:
   SHIPMAIL_BASE_URL     Optional API base URL. Must be https. Defaults to ${DEFAULT_BASE_URL}.
   SHIPMAIL_ORGANIZATION_ID
                         Optional delegated child organization ID for infrastructure tools.
-  SHIPMAIL_MCP_TOOLS    Optional comma-separated tool allowlist. --tools overrides this.
-                        Without either, ShipMail exposes only the safe read + reply-draft defaults.
-                        Sending, deletion, secrets, permissions, billing, and settings require an
-                        explicit tool list and the corresponding API-key scopes.
   SHIPMAIL_ALLOW_INSECURE_BASE_URL=1
-                        Permit non-https or non-shipmail.to base URL (development only).`;
+                        Permit non-https or non-shipmail.to base URL (development only).
+
+ShipMail discovers tools from the API key's live permissions at startup. Change scopes, resources,
+recipient rules, and send budgets in ShipMail Settings.`;
 
 const API_KEY_HELP =
   "SHIPMAIL_API_KEY (or SHIPMAIL_API_KEY_FILE) is required. Create an API key in ShipMail, then run `SHIPMAIL_API_KEY=sm_live_... shipmail-mcp`.";
@@ -57,10 +37,10 @@ function readApiKey(): string {
     let raw: string;
     try {
       raw = readFileSync(filePath, "utf8");
-    } catch (err) {
+    } catch (error) {
       throw new Error(
-        `Failed to read SHIPMAIL_API_KEY_FILE at ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
-        { cause: err },
+        `Failed to read SHIPMAIL_API_KEY_FILE at ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
     const trimmed = raw.trim();
@@ -70,32 +50,11 @@ function readApiKey(): string {
     return trimmed;
   }
   const direct = env["SHIPMAIL_API_KEY"];
-  if (!direct) {
-    throw new Error(API_KEY_HELP);
-  }
+  if (!direct) throw new Error(API_KEY_HELP);
   return direct;
 }
 
 const ALLOWED_BASE_URL_HOSTS: readonly string[] = ["shipmail.to", "api.shipmail.to"];
-
-function parseToolsList(value: string | undefined): ReadonlySet<string> | undefined {
-  if (!value) return undefined;
-  const names = value
-    .split(",")
-    .map((tool) => tool.trim())
-    .filter((tool) => tool.length > 0);
-  return names.length > 0 ? new Set(names) : undefined;
-}
-
-function parseToolsArg(argv: readonly string[]): ReadonlySet<string> | undefined {
-  const toolsIndex = argv.indexOf("--tools");
-  if (toolsIndex === -1) return undefined;
-  const toolsArg = argv[toolsIndex + 1];
-  if (!toolsArg || toolsArg.startsWith("--")) {
-    throw new Error("--tools requires a comma-separated list of tool names.");
-  }
-  return parseToolsList(toolsArg);
-}
 
 function validateBaseUrl(rawValue: string, allowInsecure: boolean): string {
   let parsed: URL;
@@ -105,10 +64,7 @@ function validateBaseUrl(rawValue: string, allowInsecure: boolean): string {
     throw new Error(`SHIPMAIL_BASE_URL is not a valid URL: ${rawValue}`);
   }
 
-  if (allowInsecure) {
-    return parsed.toString().replace(/\/+$/, "");
-  }
-
+  if (allowInsecure) return parsed.toString().replace(/\/+$/, "");
   if (parsed.protocol !== "https:") {
     throw new Error(
       "SHIPMAIL_BASE_URL must use https. Set SHIPMAIL_ALLOW_INSECURE_BASE_URL=1 for development.",
@@ -124,12 +80,19 @@ function validateBaseUrl(rawValue: string, allowInsecure: boolean): string {
       `SHIPMAIL_BASE_URL host "${host}" is not allowed. Set SHIPMAIL_ALLOW_INSECURE_BASE_URL=1 for development.`,
     );
   }
-
   return parsed.toString().replace(/\/+$/, "");
 }
 
 export function readConfig(argv: readonly string[] = process.argv.slice(2)): McpConfig {
-  const apiKey = readApiKey();
+  if (argv.includes("--tools")) {
+    throw new Error(
+      "--tools was removed. ShipMail MCP tools now follow the API key permissions configured in ShipMail Settings.",
+    );
+  }
+  const unknownArgs = argv.filter((arg) => arg !== "--help" && arg !== "-h");
+  if (unknownArgs.length > 0) {
+    throw new Error(`Unknown argument: ${unknownArgs[0]}`);
+  }
 
   const rawBaseUrl = env["SHIPMAIL_BASE_URL"];
   const allowInsecure = env["SHIPMAIL_ALLOW_INSECURE_BASE_URL"] === "1";
@@ -139,10 +102,8 @@ export function readConfig(argv: readonly string[] = process.argv.slice(2)): Mcp
       : undefined;
 
   return {
-    apiKey,
+    apiKey: readApiKey(),
     baseUrl,
     organizationId: env["SHIPMAIL_ORGANIZATION_ID"] || undefined,
-    selectedTools:
-      parseToolsArg(argv) ?? parseToolsList(env["SHIPMAIL_MCP_TOOLS"]) ?? SAFE_DEFAULT_TOOLS,
   };
 }

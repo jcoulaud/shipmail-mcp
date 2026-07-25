@@ -1,6 +1,10 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ShipMailClient } from "shipmail";
 
+import {
+  ATTACHMENT_COMPOSER_HTML,
+  ATTACHMENT_COMPOSER_RESOURCE_URI,
+} from "./attachment-component.js";
 import { toInboxMessageSummaries } from "./inbox-summaries.js";
 import { asTextResource } from "./result.js";
 import { idSchema } from "./schemas.js";
@@ -35,7 +39,54 @@ function readId(variables: Record<string, unknown>): string {
   return readVariable(variables, "id");
 }
 
-export function registerResources(server: McpServer, client: ShipMailClient): void {
+export function registerResources(
+  server: McpServer,
+  client: ShipMailClient,
+  componentConnectDomain = "https://shipmail.to",
+): void {
+  server.registerResource(
+    "shipmail_attachment_composer",
+    ATTACHMENT_COMPOSER_RESOURCE_URI,
+    {
+      title: "ShipMail attachment composer",
+      description: "Review, upload, and send a selected file through ShipMail.",
+      mimeType: "text/html;profile=mcp-app",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.toString(),
+          mimeType: "text/html;profile=mcp-app",
+          text: ATTACHMENT_COMPOSER_HTML,
+          _meta: {
+            ui: {
+              prefersBorder: true,
+              csp: {
+                connectDomains: [
+                  componentConnectDomain,
+                  "https://*.openai.com",
+                  "https://*.oaiusercontent.com",
+                ],
+                resourceDomains: [],
+              },
+            },
+            "openai/widgetDescription":
+              "A ShipMail review card that securely uploads the selected file and sends or schedules the message only after the user presses the action button.",
+            "openai/widgetPrefersBorder": true,
+            "openai/widgetCSP": {
+              connect_domains: [
+                componentConnectDomain,
+                "https://*.openai.com",
+                "https://*.oaiusercontent.com",
+              ],
+              resource_domains: [],
+            },
+          },
+        },
+      ],
+    }),
+  );
+
   server.registerResource(
     "shipmail_status",
     "shipmail://account/status",
