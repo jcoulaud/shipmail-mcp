@@ -51,6 +51,12 @@ describe("MCP resources", () => {
     expect(content && "text" in content ? content.text : "").toContain(
       "shipmail_prepare_staged_attachment_upload",
     );
+    expect(content && "text" in content ? content.text : "").toContain(
+      "This host cannot call ShipMail tools from the review card.",
+    );
+    expect(content && "text" in content ? content.text : "").toContain(
+      'typeof bridge.getFileDownloadUrl === "function"',
+    );
     expect(content?._meta).toMatchObject({
       ui: {
         prefersBorder: true,

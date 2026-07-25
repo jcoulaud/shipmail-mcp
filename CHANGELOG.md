@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.3...shipmail-mcp-v0.5.4) (2026-07-25)
+
+
+### Bug Fixes
+
+* **mcp:** repair custom consent flow ([#962](https://github.com/jcoulaud/ShipMail/issues/962)) ([06c4189](https://github.com/jcoulaud/ShipMail/commit/06c4189eec8d6bac4ad3ca72d7f57039ffb51ee1))
+
 ## [0.5.3](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.2...shipmail-mcp-v0.5.3) (2026-07-25)
 
 

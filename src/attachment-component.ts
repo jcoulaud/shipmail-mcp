@@ -113,9 +113,8 @@ export const ATTACHMENT_COMPOSER_HTML = String.raw`<!doctype html>
       }
 
       submit.addEventListener("click", async function () {
-        if (!bridge || typeof bridge.callTool !== "function" ||
-            typeof bridge.getFileDownloadUrl !== "function") {
-          setStatus("This host does not support secure file handoff.", "error");
+        if (!bridge || typeof bridge.callTool !== "function") {
+          setStatus("This host cannot call ShipMail tools from the review card. Use the raw staged upload workflow instead.", "error");
           return;
         }
         if (!selectedFile || !(selectedFile.file_id || selectedFile.fileId)) {
@@ -127,8 +126,15 @@ export const ATTACHMENT_COMPOSER_HTML = String.raw`<!doctype html>
         try {
           setStatus("Downloading the selected file...");
           var fileId = selectedFile.file_id || selectedFile.fileId;
-          var freshUrl = await bridge.getFileDownloadUrl({ fileId: fileId });
-          var downloadUrl = readUrl(freshUrl) || selectedFile.download_url;
+          var downloadUrl = selectedFile.download_url || selectedFile.downloadUrl || null;
+          if (typeof bridge.getFileDownloadUrl === "function") {
+            try {
+              var freshUrl = await bridge.getFileDownloadUrl({ fileId: fileId });
+              downloadUrl = readUrl(freshUrl) || downloadUrl;
+            } catch (error) {
+              if (!downloadUrl) throw error;
+            }
+          }
           if (!downloadUrl) throw new Error("download_url_missing");
           var fileResponse = await fetch(downloadUrl, {
             method: "GET",

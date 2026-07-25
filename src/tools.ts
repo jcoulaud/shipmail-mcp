@@ -1851,7 +1851,7 @@ export function registerTools(
       {
         title: "Compose Message With File",
         description:
-          "Open a review card for a ChatGPT conversation or library file. Use this instead of shipmail_send_message when the user asks to send an attached file. The message is sent or scheduled only after the user presses the card action.",
+          "Open a review card for a conversation or library file when the host supports MCP Apps file handoff and widget tool calls. The message is sent or scheduled only after the user presses the card action. For a local filesystem path, use shipmail_prepare_staged_attachment_upload instead.",
         inputSchema: composeMessageWithFileInputSchema,
         outputSchema: attachmentComposerOutputSchema,
         annotations: {
@@ -1882,7 +1882,8 @@ export function registerTools(
       "shipmail_prepare_staged_attachment_upload",
       {
         title: "Prepare Staged Attachment Upload",
-        description: "Create a short-lived upload URL for the attachment review component.",
+        description:
+          "Create a five-minute, one-time raw upload URL bound to the exact mailbox, filename, content type, byte size, and SHA-256 digest. Local-file clients must POST the unmodified bytes with the declared Content-Type, read the returned sat_ attachment ID, then pass that ID to shipmail_send_message. Never put base64 file bytes in MCP arguments.",
         inputSchema: prepareStagedAttachmentUploadInputSchema,
         outputSchema: stagedAttachmentUploadPreparationOutputSchema,
         annotations: {
@@ -1891,9 +1892,7 @@ export function registerTools(
           openWorldHint: false,
         },
         _meta: {
-          ui: { visibility: ["app"] },
           "openai/widgetAccessible": true,
-          "openai/visibility": "private",
         },
       },
       async ({ mailbox_id, filename, content_type, size, sha256 }) =>
@@ -1915,6 +1914,8 @@ export function registerTools(
                   content_type: prepared.content_type,
                   size: prepared.size,
                   sha256: prepared.sha256,
+                  upload_url: prepared.upload_url,
+                  upload_method: "POST",
                   expires_at: prepared.expires_at,
                 },
               },

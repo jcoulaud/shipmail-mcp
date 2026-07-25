@@ -1417,6 +1417,8 @@ export const stagedAttachmentUploadPreparationOutputSchema = z.object({
     content_type: z.string(),
     size: z.number().int(),
     sha256: z.string(),
+    upload_url: z.url(),
+    upload_method: z.literal("POST"),
     expires_at: z.string(),
   }),
 });

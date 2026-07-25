@@ -576,9 +576,7 @@ function defineCapability(row: (typeof CAPABILITY_ROWS)[number]): McpCapability 
     transports: {
       hostedOAuth: permissionGroup !== "partner_admin",
       directApiKeyHttp: true,
-      stdio:
-        toolName !== "shipmail_compose_message_with_file" &&
-        toolName !== "shipmail_prepare_staged_attachment_upload",
+      stdio: toolName !== "shipmail_compose_message_with_file",
     },
   };
 }
@@ -586,6 +584,14 @@ function defineCapability(row: (typeof CAPABILITY_ROWS)[number]): McpCapability 
 export const MCP_CAPABILITIES: readonly McpCapability[] = CAPABILITY_ROWS.map(defineCapability);
 
 export const MCP_TOOL_NAMES: readonly McpToolName[] = CAPABILITY_ROWS.map(([toolName]) => toolName);
+
+export const MCP_HOSTED_OAUTH_PERMISSION_GROUP_NAMES: readonly McpPermissionGroupName[] =
+  MCP_PERMISSION_GROUPS.filter((group) =>
+    MCP_CAPABILITIES.some(
+      (capability) =>
+        capability.permissionGroup === group.name && capability.transports.hostedOAuth,
+    ),
+  ).map((group) => group.name);
 
 export function getMcpCapability(toolName: string): McpCapability | undefined {
   return MCP_CAPABILITIES.find((capability) => capability.toolName === toolName);
