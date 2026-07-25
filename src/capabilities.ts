@@ -82,7 +82,7 @@ export const MCP_PERMISSION_GROUPS = [
   {
     name: "send_mail",
     label: "Send mail",
-    description: "Send new messages and replies to recipients allowed by the connection policy.",
+    description: "Send new messages and replies from the mailboxes this connection can access.",
     scopes: ["messages:send"],
     persistent: false,
   },

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.2...shipmail-mcp-v0.5.3) (2026-07-25)
+
+
+### Bug Fixes
+
+* **mcp:** widen consent, redesign resource limits, drop recipient policy ([#956](https://github.com/jcoulaud/ShipMail/issues/956)) ([2a925bb](https://github.com/jcoulaud/ShipMail/commit/2a925bb2ab3159ea9f081c581421a915c1fd52a5))
+
 ## [0.5.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.1...shipmail-mcp-v0.5.2) (2026-07-25)
 
 
