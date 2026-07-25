@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.1...shipmail-mcp-v0.5.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* **mcp:** stop release PRs failing on server-card formatting ([#952](https://github.com/jcoulaud/ShipMail/issues/952)) ([1c0cacb](https://github.com/jcoulaud/ShipMail/commit/1c0cacb37005fd870dc0bb8d226f21618740aa89))
+
 ## [0.5.1](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.0...shipmail-mcp-v0.5.1) (2026-07-25)
 
 
