@@ -64,7 +64,7 @@ describe("MCP resources", () => {
     });
   });
 
-  test("lists mailbox inbox, folders, and identities resource templates", async () => {
+  test("lists mailbox inbox, rules, folders, and identities resource templates", async () => {
     const { server, client } = buildPair(async () => Response.json({}));
     await connectPair(server, client);
 
@@ -73,6 +73,7 @@ describe("MCP resources", () => {
 
     expect(templates).toContain("shipmail://mailboxes/{id}/folders");
     expect(templates).toContain("shipmail://mailboxes/{id}/identities");
+    expect(templates).toContain("shipmail://mailboxes/{id}/rules");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/messages");
     expect(templates).toContain("shipmail://mailboxes/{id}/inbox/threads/{thread_id}");
     expect(templates).toContain("shipmail://mailboxes/{mailbox_id}/threads/{id}");

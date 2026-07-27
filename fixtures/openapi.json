@@ -1226,7 +1226,7 @@
       "post": {
         "operationId": "suspendMailbox",
         "summary": "Suspend a mailbox",
-        "description": "Add a manual suspension. Authentication, sending, receiving, and Assistant automation execution are blocked. Billing and security suspension reasons remain independent.",
+        "description": "Add a manual suspension. Authentication, sending, receiving, inbox rules, and Assistant automation execution are blocked. Billing and security suspension reasons remain independent.",
         "tags": ["Mailboxes"],
         "x-rate-limit-tier": "write",
         "x-scope": "mailboxes:write",
@@ -1902,6 +1902,93 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MailboxIdentities"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/mailboxes/{id}/rules": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getMailboxRules",
+        "summary": "Get mailbox rules",
+        "description": "Fetch deterministic server-side inbox rules and available target folders for a mailbox.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "mailbox_rules:read",
+        "responses": {
+          "200": {
+            "description": "Mailbox rules and folder options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxRules"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMailboxRules",
+        "summary": "Replace mailbox rules",
+        "description": "Replace all deterministic server-side inbox rules for a mailbox. Call GET first to preserve rules that should remain and inspect folder IDs.",
+        "tags": ["Mailboxes"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "mailbox_rules:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMailboxRulesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated mailbox rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxRules"
                 }
               }
             }
@@ -8344,6 +8431,238 @@
           }
         }
       },
+      "MailboxRules": {
+        "type": "object",
+        "required": ["object", "mailbox_id", "address", "rules", "folders"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "mailbox_rules"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxRule"
+            }
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleFolder"
+            }
+          }
+        }
+      },
+      "MailboxRule": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "position",
+          "match_mode",
+          "stop",
+          "conditions",
+          "actions"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "match_mode": {
+            "$ref": "#/components/schemas/MailboxRuleMatchMode"
+          },
+          "stop": {
+            "type": "boolean",
+            "description": "Stop evaluating later rules after this rule matches."
+          },
+          "conditions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleCondition"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRuleAction"
+            }
+          }
+        }
+      },
+      "MailboxRuleMatchMode": {
+        "type": "string",
+        "enum": ["all", "any"]
+      },
+      "MailboxRuleCondition": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "from_is",
+                  "from_contains",
+                  "recipient_is",
+                  "plus_tag_is",
+                  "subject_contains"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["has_attachment", "list_unsubscribe_exists"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "match_mode", "conditions"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "group"
+              },
+              "match_mode": {
+                "$ref": "#/components/schemas/MailboxRuleMatchMode"
+              },
+              "conditions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "$ref": "#/components/schemas/MailboxRuleCondition"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "target"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "move"
+              },
+              "target": {
+                "$ref": "#/components/schemas/MailboxRuleMoveTarget"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["mark_read", "star", "send_webhook"]
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleMoveTarget": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "role"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "system"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["inbox", "archive", "junk", "trash"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind", "folder_id"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "custom"
+              },
+              "folder_id": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "MailboxRuleFolder": {
+        "type": "object",
+        "required": ["id", "name", "parent_id", "role", "kind"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": ["string", "null"],
+            "description": "Parent folder ID for subfolders, or null for a root folder."
+          },
+          "role": {
+            "type": ["string", "null"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["custom", "system"]
+          }
+        }
+      },
       "Attachment": {
         "type": "object",
         "deprecated": true,
@@ -8574,6 +8893,7 @@
           "source",
           "mode",
           "status",
+          "rule_disposition",
           "scheduled_at",
           "created_at",
           "updated_at"
@@ -8661,6 +8981,24 @@
               "suppressed",
               "cancelled"
             ]
+          },
+          "rule_disposition": {
+            "type": ["object", "null"],
+            "description": "Inbox rule evaluation recorded when this inbound tracked message was delivered. Null for outbound messages, messages ingested before rule disposition was recorded, or messages delivered while rule evaluation was unavailable.",
+            "required": ["matched_rule_ids", "stop_rule_id"],
+            "properties": {
+              "matched_rule_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "IDs of the inbox rules that matched this message, in evaluation order."
+              },
+              "stop_rule_id": {
+                "type": ["string", "null"],
+                "description": "ID of the matching inbox rule whose stop setting ended further rule processing, or null if processing was not stopped."
+              }
+            }
           },
           "scheduled_at": {
             "type": ["string", "null"],
@@ -8855,6 +9193,7 @@
           "message.bounced",
           "message.complained",
           "thread.needs_reply",
+          "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
           "domain.degraded",
@@ -8873,6 +9212,7 @@
           "message.bounced",
           "message.complained",
           "thread.needs_reply",
+          "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
           "domain.degraded",
@@ -9222,6 +9562,20 @@
             "description": "New mailbox login password. Must be 8-128 characters and include lowercase, uppercase, and numeric characters.",
             "minLength": 8,
             "maxLength": 128
+          }
+        }
+      },
+      "UpdateMailboxRulesRequest": {
+        "type": "object",
+        "required": ["rules"],
+        "additionalProperties": false,
+        "properties": {
+          "rules": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/MailboxRule"
+            }
           }
         }
       },

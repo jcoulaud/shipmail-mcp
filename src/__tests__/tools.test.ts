@@ -52,6 +52,8 @@ describe("registerTools", () => {
       "shipmail_create_mailbox_export",
       "shipmail_get_mailbox_export",
       "shipmail_list_mailbox_folders",
+      "shipmail_get_mailbox_rules",
+      "shipmail_set_mailbox_rules",
       "shipmail_create_mailbox_folder",
       "shipmail_update_mailbox_folder",
       "shipmail_delete_mailbox_folder",

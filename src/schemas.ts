@@ -39,6 +39,8 @@ const SYSTEM_FOLDER_NAMES = [
   "junk",
   "trash",
 ] as const;
+const MAILBOX_RULE_MATCH_MODES = ["all", "any"] as const;
+const MAILBOX_RULE_SYSTEM_TARGET_ROLES = ["inbox", "archive", "junk", "trash"] as const;
 const JMAP_KEYWORDS = ["$flagged", "$seen", "$draft", "$answered", "$forwarded"] as const;
 const NEWSLETTER_STATUSES = [
   "draft",
@@ -331,6 +333,91 @@ export const mailboxFoldersSchema = z.object({
   mailbox_id: z.string(),
   address: z.string(),
   data: z.array(mailboxFolderSchema),
+});
+
+type MailboxRuleConditionInput =
+  | {
+      readonly type:
+        | "from_is"
+        | "from_contains"
+        | "recipient_is"
+        | "plus_tag_is"
+        | "subject_contains";
+      readonly value: string;
+    }
+  | { readonly type: "has_attachment" | "list_unsubscribe_exists" }
+  | {
+      readonly type: "group";
+      readonly match_mode: "all" | "any";
+      readonly conditions: readonly MailboxRuleConditionInput[];
+    };
+
+export const mailboxRuleConditionSchema: z.ZodType<MailboxRuleConditionInput> = z.lazy(() =>
+  z.union([
+    z.object({
+      type: z.enum([
+        "from_is",
+        "from_contains",
+        "recipient_is",
+        "plus_tag_is",
+        "subject_contains",
+      ] as const),
+      value: noControlString(256, "condition value").min(1),
+    }),
+    z.object({
+      type: z.enum(["has_attachment", "list_unsubscribe_exists"] as const),
+    }),
+    z.object({
+      type: z.literal("group"),
+      match_mode: z.enum(MAILBOX_RULE_MATCH_MODES),
+      conditions: z.array(mailboxRuleConditionSchema).min(1).max(10),
+    }),
+  ]),
+);
+
+export const mailboxRuleActionSchema = z.union([
+  z.object({
+    type: z.literal("move"),
+    target: z.union([
+      z.object({
+        kind: z.literal("system"),
+        role: z.enum(MAILBOX_RULE_SYSTEM_TARGET_ROLES),
+      }),
+      z.object({
+        kind: z.literal("custom"),
+        folder_id: noControlString(256, "folder_id").min(1),
+      }),
+    ]),
+  }),
+  z.object({ type: z.enum(["mark_read", "star"] as const) }),
+  z.object({ type: z.literal("send_webhook") }).strict(),
+]);
+
+export const mailboxRuleSchema = z.object({
+  id: z.uuid("Rule ID must be a UUID."),
+  name: noControlString(120, "name").trim().min(1),
+  enabled: z.boolean(),
+  position: z.number().int().min(0),
+  match_mode: z.enum(MAILBOX_RULE_MATCH_MODES),
+  stop: z.boolean(),
+  conditions: z.array(mailboxRuleConditionSchema).min(1).max(10),
+  actions: z.array(mailboxRuleActionSchema).min(1).max(4),
+});
+
+export const mailboxRulesSchema = z.object({
+  object: z.literal("mailbox_rules"),
+  mailbox_id: z.string(),
+  address: z.string(),
+  rules: z.array(mailboxRuleSchema),
+  folders: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      parent_id: z.string().nullable(),
+      role: z.string().nullable(),
+      kind: z.enum(["custom", "system"] as const),
+    }),
+  ),
 });
 
 export const mailboxIdentitySchema = z.object({
@@ -672,6 +759,18 @@ export const messageSchema = z.object({
   source: z.enum(MESSAGE_SOURCES),
   mode: z.enum(["live", "test"] as const),
   status: z.enum(MESSAGE_STATUSES),
+  rule_disposition: z
+    .object({
+      matched_rule_ids: z
+        .array(z.string())
+        .describe("Inbox rule IDs that matched this inbound message, in evaluation order."),
+      stop_rule_id: z
+        .string()
+        .nullable()
+        .describe("Inbox rule ID that stopped further processing, if any."),
+    })
+    .nullable()
+    .describe("Inbox rule evaluation recorded for this tracked message at delivery."),
   scheduled_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -826,7 +925,12 @@ export const acknowledgmentSchema = z.object({
   id: z.string(),
 });
 
-export const statusOutputSchema = z.object({ status: statusSchema });
+export const statusOutputSchema = z.object({
+  status: statusSchema,
+  // Present only when the connection covers more than one organization. Use an id here as
+  // organization_id on other tools.
+  organizations: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+});
 export const domainOutputSchema = z.object({ domain: domainSchema });
 export const domainDnsRecordsOutputSchema = z.object({ dns_records: domainDnsRecordSetSchema });
 export const mailboxOutputSchema = z.object({ mailbox: mailboxSchema });
@@ -853,6 +957,7 @@ export const partnerMailboxCredentialGrantsOutputSchema = z.object({
 });
 export const mailboxFolderOutputSchema = z.object({ folder: mailboxFolderSchema });
 export const mailboxFoldersOutputSchema = z.object({ folders: mailboxFoldersSchema });
+export const mailboxRulesOutputSchema = z.object({ rules: mailboxRulesSchema });
 export const mailboxIdentitiesOutputSchema = z.object({ identities: mailboxIdentitiesSchema });
 export const inboxMessagesOutputSchema = z.object({ inbox_messages: inboxMessagesSchema });
 export const inboxMessageSummariesOutputSchema = z.object({
@@ -1155,6 +1260,11 @@ export const updateMailboxFolderInputSchema = z.object({
 export const deleteMailboxFolderInputSchema = z.object({
   id: idSchema,
   folder_id: folderIdSchema,
+});
+export const updateMailboxRulesInputSchema = z.object({
+  id: idSchema,
+  rules: z.array(mailboxRuleSchema).max(50),
+  idempotency_key: idempotencyKeySchema,
 });
 export const resetPasswordInputSchema = z.object({
   id: idSchema,

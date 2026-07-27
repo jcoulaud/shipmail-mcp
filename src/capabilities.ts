@@ -12,6 +12,7 @@ export const MCP_PERMISSION_GROUP_NAMES = [
   "calendar_write",
   "booking_pages",
   "forwarding",
+  "mailbox_rules",
   "webhooks",
   "credentials",
   "mailbox_export",
@@ -30,6 +31,7 @@ export const MCP_MEMBER_PERMISSION_GROUP_NAMES = [
   "mail_read",
   "drafts",
   "mail_organize",
+  "mailbox_rules",
   "send_mail",
   "calendar_read",
   "calendar_write",
@@ -112,6 +114,13 @@ export const MCP_PERMISSION_GROUPS = [
     label: "Mailbox forwarding",
     description: "Read and manage persistent forwarding destinations.",
     scopes: ["mailbox_forwarding:read", "mailbox_forwarding:write"],
+    persistent: true,
+  },
+  {
+    name: "mailbox_rules",
+    label: "Inbox rules",
+    description: "Read and manage persistent server-side sorting, move, read, and star rules.",
+    scopes: ["mailbox_rules:read", "mailbox_rules:write"],
     persistent: true,
   },
   {
@@ -214,6 +223,8 @@ const CAPABILITY_ROWS = [
   ["shipmail_update_mailbox", "updateMailbox", "mailboxes:write"],
   ["shipmail_delete_mailbox", "deleteMailbox", "mailboxes:write"],
   ["shipmail_list_mailbox_folders", "listMailboxFolders", "mailboxes:read"],
+  ["shipmail_get_mailbox_rules", "getMailboxRules", "mailbox_rules:read"],
+  ["shipmail_set_mailbox_rules", "updateMailboxRules", "mailbox_rules:write"],
   ["shipmail_create_mailbox_folder", "createMailboxFolder", "mailboxes:write"],
   ["shipmail_update_mailbox_folder", "updateMailboxFolder", "mailboxes:write"],
   ["shipmail_delete_mailbox_folder", "deleteMailboxFolder", "mailboxes:write"],
@@ -404,6 +415,7 @@ const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   "shipmail_create_mailbox_export",
   "shipmail_rotate_webhook_secret",
   "shipmail_consume_partner_mailbox_credential_grant",
+  "shipmail_set_mailbox_rules",
 ]);
 
 const EXTERNAL_WRITE_TOOLS: ReadonlySet<string> = new Set([
@@ -459,6 +471,7 @@ function permissionGroupFor(
   if (requiredScope.startsWith("domains:")) return "domain_admin";
   if (requiredScope.startsWith("mailbox_credentials:")) return "credentials";
   if (requiredScope.startsWith("mailbox_forwarding:")) return "forwarding";
+  if (requiredScope.startsWith("mailbox_rules:")) return "mailbox_rules";
   if (requiredScope === "mailboxes:export") return "mailbox_export";
   if (requiredScope === "drafts:write") return "drafts";
   if (requiredScope === "messages:send") return "send_mail";
@@ -510,6 +523,7 @@ function durationFor(toolName: McpToolName): McpCapabilityDuration {
   }
   if (
     toolName.includes("forwarding") ||
+    toolName.includes("mailbox_rules") ||
     toolName.includes("webhook") ||
     toolName.includes("booking_page")
   ) {

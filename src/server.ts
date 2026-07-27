@@ -2,10 +2,24 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ShipMailClient } from "shipmail";
 
 import type { McpConfig } from "./config.js";
+import {
+  CROSS_ORGANIZATION_TOOL_NAMES,
+  type CrossOrganizationGrant,
+  registerCrossOrganizationTools,
+} from "./cross-organization-tools.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { registerTools } from "./tools.js";
 import { VERSION } from "./version.js";
+
+export { CROSS_ORGANIZATION_TOOL_NAMES };
+
+export type HostedOrganizationGrant = {
+  readonly id: string;
+  readonly name: string;
+  readonly apiKey: string;
+  readonly allowedTools: ReadonlySet<string>;
+};
 
 const INSTRUCTIONS = `ShipMail MCP exposes the business email and calendar tools authorized by the connection's current ShipMail permissions.
 
@@ -39,6 +53,7 @@ function componentConnectDomain(baseUrl: string | undefined): string {
 export function createShipMailMcpServer(
   config: McpConfig,
   allowedTools: ReadonlySet<string>,
+  organizationGrants: readonly HostedOrganizationGrant[] = [],
 ): McpServer {
   const defaultHeaders = buildDefaultHeaders();
   const client = new ShipMailClient({
@@ -58,7 +73,26 @@ export function createShipMailMcpServer(
     },
   );
 
-  registerTools(server, client, allowedTools);
+  const grantedOrganizations = organizationGrants.map(({ id, name }) => ({ id, name }));
+  registerTools(server, client, allowedTools, grantedOrganizations);
+  const crossOrganizationGrants: readonly CrossOrganizationGrant[] = organizationGrants.map(
+    (grant) => ({
+      id: grant.id,
+      name: grant.name,
+      allowedTools: grant.allowedTools,
+      // Cross-organization tools deliberately make exactly one bounded REST request per grant.
+      // Retries would silently amplify one MCP call further, and a short timeout lets the tool
+      // report a failed section instead of losing every organization's result to the route limit.
+      client: new ShipMailClient({
+        apiKey: grant.apiKey,
+        ...(config.baseUrl ? { baseUrl: config.baseUrl } : {}),
+        maxRetries: 0,
+        timeout: 15_000,
+        defaultHeaders,
+      }),
+    }),
+  );
+  registerCrossOrganizationTools(server, crossOrganizationGrants);
   registerResources(server, client, componentConnectDomain(config.baseUrl));
   registerPrompts(server);
 

@@ -149,6 +149,16 @@ export function registerResources(
   );
 
   server.registerResource(
+    "shipmail_mailbox_rules",
+    new ResourceTemplate("shipmail://mailboxes/{id}/rules", { list: undefined }),
+    resourceConfig("ShipMail Mailbox Rules", "Server-side inbox rules and target folders."),
+    async (uri, variables) => {
+      const id = readId(variables);
+      return asTextResource(uri.toString(), await client.mailboxes.getRules(id));
+    },
+  );
+
+  server.registerResource(
     "shipmail_mailbox_inbox_messages",
     new ResourceTemplate("shipmail://mailboxes/{id}/inbox/messages", { list: undefined }),
     resourceConfig(

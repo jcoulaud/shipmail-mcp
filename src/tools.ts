@@ -15,6 +15,7 @@ import {
   type ShipMailClient,
   ShipMailError,
 } from "shipmail";
+import { z } from "zod/v4";
 
 import { ATTACHMENT_COMPOSER_RESOURCE_URI } from "./attachment-component.js";
 import { getMcpCapability } from "./capabilities.js";
@@ -117,6 +118,7 @@ import {
   mailboxForwardingOutputSchema,
   mailboxIdentitiesOutputSchema,
   mailboxOutputSchema,
+  mailboxRulesOutputSchema,
   messageOutputSchema,
   messagesOutputSchema,
   moveInboxMessageInputSchema,
@@ -176,6 +178,7 @@ import {
   updateInboxThreadReplyStateInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
+  updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
   updatePartnerOrganizationInputSchema,
   updateScheduledMessageInputSchema,
@@ -247,6 +250,7 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_reset_mailbox_password: 10,
   shipmail_create_mailbox_forwarding: 10,
   shipmail_delete_mailbox_forwarding: 10,
+  shipmail_set_mailbox_rules: 20,
   shipmail_set_auto_reply: 20,
   shipmail_set_spam_filter: 20,
   shipmail_update_inbox_message: 50,
@@ -360,11 +364,49 @@ function logToolCall(name: string, durationMs: number, error?: ShipMailError | E
   process.stderr.write(`${JSON.stringify(entry)}\n`);
 }
 
+// When a connection holds grants for several organizations, every tool takes an optional
+// organization_id so the caller can say which one it means. Injecting it here rather than in each
+// tool definition keeps one source of truth for the parameter and its description. Single-grant
+// connections never see the parameter: there is nothing to disambiguate.
+export type GrantedOrganization = { readonly id: string; readonly name: string };
+
+function organizationField(organizationIds: readonly string[]): z.ZodOptional<z.ZodString> {
+  return z
+    .string()
+    .optional()
+    .describe(
+      `Organization to act in. This connection covers ${organizationIds.length} organizations: ${organizationIds.join(", ")}. Omit only when the target is unambiguous.`,
+    );
+}
+
+function withOrganizationParam<T>(inputSchema: T, organizationIds: readonly string[]): T {
+  if (organizationIds.length < 2) return inputSchema;
+  if (inputSchema === undefined || typeof inputSchema !== "object" || inputSchema === null) {
+    return inputSchema;
+  }
+
+  // Tools declare inputs either as a whole Zod object or as a bare field map. Zod objects have to
+  // be extended rather than spread: spreading one copies its internals and produces a broken
+  // schema, which is how this silently added the parameter to nothing at all.
+  if ("_def" in inputSchema || "~standard" in inputSchema) {
+    const schema = inputSchema as { extend?: (shape: Record<string, unknown>) => unknown };
+    if (typeof schema.extend !== "function") return inputSchema;
+    return schema.extend({ organization_id: organizationField(organizationIds) }) as T;
+  }
+
+  return { ...inputSchema, organization_id: organizationField(organizationIds) } as T;
+}
+
+// When a connection holds grants for several organizations, every tool takes an optional
+// organization_id so the caller can say which one it means. Injected once here rather than in each
+// tool definition. Single-grant connections never see it: there is nothing to disambiguate.
 export function registerTools(
   rawServer: McpServer,
   client: ShipMailClient,
   allowedTools?: ReadonlySet<string>,
+  grantedOrganizations: readonly GrantedOrganization[] = [],
 ): ToolRegistrationResult {
+  const organizationIds = grantedOrganizations.map((entry) => entry.id);
   const knownTools: string[] = [];
   const enabledTools: string[] = [];
   const callCounts = new Map<string, number>();
@@ -395,6 +437,9 @@ export function registerTools(
         name,
         {
           ...config,
+          ...(config.inputSchema === undefined
+            ? {}
+            : { inputSchema: withOrganizationParam(config.inputSchema, organizationIds) }),
           annotations: {
             ...config.annotations,
             ...capability.annotations,
@@ -514,6 +559,17 @@ export function registerTools(
       async () =>
         runTool("shipmail_status", statusOutputSchema, async () => ({
           status: await client.status.get(),
+          // Reported here rather than from a tool of its own: status is always available on every
+          // profile, and it is what a caller checks before starting work. Without it the router's
+          // "pass organization_id" error names ids the caller cannot resolve to anything.
+          ...(grantedOrganizations.length > 1
+            ? {
+                organizations: grantedOrganizations.map((entry) => ({
+                  id: entry.id,
+                  name: entry.name,
+                })),
+              }
+            : {}),
         })),
     );
   });
@@ -1094,7 +1150,7 @@ export function registerTools(
       {
         title: "List Mailbox Folders",
         description:
-          "List system and custom folders for a mailbox, including unread counts and folder IDs for Assistant automations.",
+          "List system and custom folders for a mailbox, including unread counts and folder IDs for inbox rules and Assistant automations.",
         inputSchema: getByIdInputSchema,
         outputSchema: mailboxFoldersOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -1102,6 +1158,51 @@ export function registerTools(
       async ({ id }) =>
         runTool("shipmail_list_mailbox_folders", mailboxFoldersOutputSchema, async () => ({
           folders: await client.mailboxes.listFolders(id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_get_mailbox_rules", () => {
+    server.registerTool(
+      "shipmail_get_mailbox_rules",
+      {
+        title: "Get Mailbox Rules",
+        description:
+          "List deterministic server-side inbox rules and the available destination folders for a mailbox.",
+        inputSchema: getByIdInputSchema,
+        outputSchema: mailboxRulesOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ id }) =>
+        runTool("shipmail_get_mailbox_rules", mailboxRulesOutputSchema, async () => ({
+          rules: await client.mailboxes.getRules(id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_set_mailbox_rules", () => {
+    server.registerTool(
+      "shipmail_set_mailbox_rules",
+      {
+        title: "Set Mailbox Rules",
+        description:
+          "Replace every deterministic server-side inbox rule for a mailbox. Call shipmail_get_mailbox_rules first and preserve any rules that should remain.",
+        inputSchema: updateMailboxRulesInputSchema,
+        outputSchema: mailboxRulesOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_set_mailbox_rules", mailboxRulesOutputSchema, async () => ({
+          rules: await client.mailboxes.updateRules(
+            args.id,
+            { rules: args.rules },
+            mutationOptions(args),
+          ),
         })),
     );
   });
@@ -1139,7 +1240,7 @@ export function registerTools(
       {
         title: "Update Mailbox Folder",
         description:
-          "Rename a custom mailbox folder. System folders cannot be renamed; Assistant automations keep the stable folder ID.",
+          "Rename a custom mailbox folder. System folders cannot be renamed. Inbox rules and Assistant automations keep the stable folder ID.",
         inputSchema: updateMailboxFolderInputSchema,
         outputSchema: mailboxFolderOutputSchema,
         annotations: {
@@ -1167,7 +1268,7 @@ export function registerTools(
       {
         title: "Delete Mailbox Folder",
         description:
-          "Delete a custom mailbox folder after moving its messages to Trash. Folders referenced by Assistant automations must be removed from those automations first.",
+          "Delete a custom mailbox folder after moving its messages to Trash. Remove references from inbox rules and Assistant automations first.",
         inputSchema: deleteMailboxFolderInputSchema,
         outputSchema: acknowledgmentOutputSchema,
         annotations: {

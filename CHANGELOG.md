@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.7](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.6...shipmail-mcp-v0.5.7) (2026-07-27)
+
+
+### Features
+
+* **assistant:** manage inbox rules by name and expose rule disposition in the API ([#982](https://github.com/jcoulaud/ShipMail/issues/982)) ([ba4046e](https://github.com/jcoulaud/ShipMail/commit/ba4046e043d2b5b46c4597fb2de04058977b215a))
+
+## [0.5.6](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.5...shipmail-mcp-v0.5.6) (2026-07-26)
+
+
+### Features
+
+* **mcp:** list resources across organizations ([#976](https://github.com/jcoulaud/ShipMail/issues/976)) ([6ec43e4](https://github.com/jcoulaud/ShipMail/commit/6ec43e4677131fecc91b9d1910690759c3505c93))
+
+## [0.5.5](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.4...shipmail-mcp-v0.5.5) (2026-07-26)
+
+
+### Features
+
+* **mcp:** let one connection reach several organizations ([#972](https://github.com/jcoulaud/ShipMail/issues/972)) ([3e89bb4](https://github.com/jcoulaud/ShipMail/commit/3e89bb4c5476927a6054e0219c017e058270b729))
+
 ## [0.5.4](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.3...shipmail-mcp-v0.5.4) (2026-07-25)
 
 

@@ -17,6 +17,8 @@ import {
   listWebhookDeliveriesInputSchema,
   mailboxFoldersSchema,
   mailboxIdentitiesSchema,
+  mailboxRulesSchema,
+  messageSchema,
   moveInboxMessageInputSchema,
   newsletterDomainSchema,
   newsletterSchema,
@@ -33,8 +35,46 @@ import {
   updateInboxMessageInputSchema,
   updateMailboxFolderInputSchema,
   updateMailboxInputSchema,
+  updateMailboxRulesInputSchema,
   updateNewsletterInputSchema,
 } from "../schemas.js";
+
+describe("messageSchema", () => {
+  test("preserves tracked inbox rule disposition", () => {
+    const message = messageSchema.parse({
+      object: "message",
+      id: "msg_123",
+      mailbox_id: "mbx_456",
+      thread_id: "thr_789",
+      source_rfc_message_id: "<inbound@example.com>",
+      delivered_rfc_message_id: null,
+      client_reference: null,
+      metadata: {},
+      headers: [],
+      subject: "Invoice",
+      from_address: "sender@example.com",
+      to_addresses: [{ address: "billing@example.com" }],
+      cc_addresses: null,
+      bcc_addresses: null,
+      attachments: null,
+      source: "inbound",
+      mode: "live",
+      status: "delivered",
+      rule_disposition: {
+        matched_rule_ids: ["rule_invoices", "rule_priority"],
+        stop_rule_id: "rule_priority",
+      },
+      scheduled_at: null,
+      created_at: "2026-07-27T10:00:00Z",
+      updated_at: "2026-07-27T10:00:00Z",
+    });
+
+    expect(message.rule_disposition).toEqual({
+      matched_rule_ids: ["rule_invoices", "rule_priority"],
+      stop_rule_id: "rule_priority",
+    });
+  });
+});
 
 describe("booking page schemas", () => {
   test("accept conferencing providers and null clearing", () => {
@@ -112,6 +152,111 @@ describe("idSchema (via getByIdInputSchema)", () => {
   test("rejects whitespace and control chars", () => {
     expect(() => getByIdInputSchema.parse({ id: "abc def" })).toThrow();
     expect(() => getByIdInputSchema.parse({ id: "abc\x00def" })).toThrow();
+  });
+});
+
+describe("mailbox rule schemas", () => {
+  test("accepts deterministic nested rules", () => {
+    const rules = mailboxRulesSchema.parse({
+      object: "mailbox_rules",
+      mailbox_id: "mbx_123",
+      address: "hello@example.com",
+      rules: [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          name: "Invoices",
+          enabled: true,
+          position: 0,
+          match_mode: "all",
+          stop: true,
+          conditions: [
+            {
+              type: "group",
+              match_mode: "any",
+              conditions: [
+                { type: "subject_contains", value: "invoice" },
+                { type: "has_attachment" },
+              ],
+            },
+          ],
+          actions: [{ type: "move", target: { kind: "custom", folder_id: "fld_billing" } }],
+        },
+      ],
+      folders: [
+        {
+          id: "fld_billing",
+          name: "Billing",
+          parent_id: null,
+          role: null,
+          kind: "custom",
+        },
+      ],
+    });
+    expect(rules.rules[0]?.name).toBe("Invoices");
+  });
+
+  test("accepts webhook actions and rejects removed AI actions", () => {
+    const base = {
+      id: "mbx_123",
+      rules: [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          name: "Invalid",
+          enabled: true,
+          position: 0,
+          match_mode: "all",
+          stop: false,
+          conditions: [{ type: "has_attachment" }],
+          actions: [{ type: "send_webhook" }],
+        },
+      ],
+    };
+    expect(updateMailboxRulesInputSchema.parse(base).rules[0]?.actions).toEqual([
+      { type: "send_webhook" },
+    ]);
+    expect(() =>
+      updateMailboxRulesInputSchema.parse({
+        ...base,
+        rules: [{ ...base.rules[0], actions: [{ type: "ai_draft_reply" }] }],
+      }),
+    ).toThrow();
+    expect(() =>
+      updateMailboxRulesInputSchema.parse({
+        ...base,
+        rules: [
+          {
+            ...base.rules[0],
+            actions: [{ type: "send_webhook", url: "https://example.com" }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  test("enforces the API limit of four actions per rule", () => {
+    expect(() =>
+      updateMailboxRulesInputSchema.parse({
+        id: "mbx_123",
+        rules: [
+          {
+            id: "550e8400-e29b-41d4-a716-446655440000",
+            name: "Too many actions",
+            enabled: true,
+            position: 0,
+            match_mode: "all",
+            stop: false,
+            conditions: [{ type: "has_attachment" }],
+            actions: [
+              { type: "mark_read" },
+              { type: "star" },
+              { type: "send_webhook" },
+              { type: "move", target: { kind: "system", role: "archive" } },
+              { type: "move", target: { kind: "system", role: "trash" } },
+            ],
+          },
+        ],
+      }),
+    ).toThrow();
   });
 });
 

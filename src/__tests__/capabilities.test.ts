@@ -23,6 +23,23 @@ describe("MCP transport capability derivation", () => {
     expect([...getAllowedMcpToolNames([], "stdio")]).toEqual(["shipmail_status"]);
   });
 
+  test("maps dedicated rule scopes to persistent least-privilege tools", () => {
+    const read = getAllowedMcpToolNames(["mailbox_rules:read"], "hostedOAuth");
+    const write = getAllowedMcpToolNames(["mailbox_rules:write"], "hostedOAuth");
+
+    expect(read).toContain("shipmail_get_mailbox_rules");
+    expect(read).not.toContain("shipmail_set_mailbox_rules");
+    expect(write).toContain("shipmail_set_mailbox_rules");
+    expect(write).not.toContain("shipmail_update_mailbox");
+    expect(
+      MCP_CAPABILITIES.find((capability) => capability.toolName === "shipmail_set_mailbox_rules"),
+    ).toMatchObject({
+      permissionGroup: "mailbox_rules",
+      effect: "destructive",
+      duration: "persistent",
+    });
+  });
+
   test("derives hosted OAuth permission groups from the hosted tool catalog", () => {
     expect(MCP_HOSTED_OAUTH_PERMISSION_GROUP_NAMES).not.toContain("partner_admin");
     for (const group of MCP_HOSTED_OAUTH_PERMISSION_GROUP_NAMES) {
