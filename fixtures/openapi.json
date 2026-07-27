@@ -11479,6 +11479,8 @@
           "member_count",
           "subscribed_count",
           "consent_source",
+          "feed_enabled",
+          "feed_url",
           "created_at",
           "updated_at"
         ],
@@ -11508,6 +11510,15 @@
           "consent_source": {
             "type": "string",
             "nullable": true
+          },
+          "feed_enabled": {
+            "type": "boolean",
+            "description": "Whether this audience publishes an Atom feed of its sent issues."
+          },
+          "feed_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Atom feed URL, or null when the feed is disabled. Anyone with this URL can read the feed."
           },
           "created_at": {
             "type": "string",

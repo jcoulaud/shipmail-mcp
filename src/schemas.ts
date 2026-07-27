@@ -1746,6 +1746,8 @@ export const audienceSchema = z.object({
   member_count: z.number(),
   subscribed_count: z.number(),
   consent_source: z.string().nullable(),
+  feed_enabled: z.boolean(),
+  feed_url: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });

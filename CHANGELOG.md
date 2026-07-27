@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.9](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.8...shipmail-mcp-v0.5.9) (2026-07-27)
+
+
+### Features
+
+* **newsletters:** publish an audience as an opt-in Atom feed ([#995](https://github.com/jcoulaud/ShipMail/issues/995)) ([67dcc6a](https://github.com/jcoulaud/ShipMail/commit/67dcc6acb42ac6cebc48cb276c0703c4a7e0f89d))
+
 ## [0.5.8](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.7...shipmail-mcp-v0.5.8) (2026-07-27)
 
 
