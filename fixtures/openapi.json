@@ -11806,6 +11806,7 @@
           "name",
           "status",
           "archive_visibility",
+          "styling_mode",
           "preflight_status",
           "created_at",
           "updated_at"
@@ -11877,6 +11878,12 @@
           "archive_visibility": {
             "type": "string",
             "enum": ["private", "public"]
+          },
+          "styling_mode": {
+            "type": "string",
+            "enum": ["styled", "plain"],
+            "default": "styled",
+            "description": "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it."
           },
           "preflight_status": {
             "type": "string",
@@ -11995,6 +12002,12 @@
             "enum": ["private", "public"],
             "default": "private"
           },
+          "styling_mode": {
+            "type": "string",
+            "enum": ["styled", "plain"],
+            "default": "styled",
+            "description": "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it."
+          },
           "blocks": {
             "type": "array",
             "maxItems": 200,
@@ -12046,6 +12059,12 @@
             "type": "string",
             "enum": ["private", "public"],
             "default": "private"
+          },
+          "styling_mode": {
+            "type": "string",
+            "enum": ["styled", "plain"],
+            "default": "styled",
+            "description": "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it."
           },
           "blocks": {
             "type": "array",
@@ -12967,6 +12986,12 @@
             "type": "string",
             "enum": ["private", "public"],
             "default": "private"
+          },
+          "styling_mode": {
+            "type": "string",
+            "enum": ["styled", "plain"],
+            "default": "styled",
+            "description": "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it."
           }
         }
       }

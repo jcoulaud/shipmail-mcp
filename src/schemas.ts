@@ -62,6 +62,7 @@ const NEWSLETTER_DOMAIN_STATUSES = [
 ] as const;
 const NEWSLETTER_DOMAIN_RECORD_STATUSES = ["pending", "verified", "failed"] as const;
 const NEWSLETTER_ARCHIVE_VISIBILITIES = ["private", "public"] as const;
+const NEWSLETTER_STYLING_MODES = ["styled", "plain"] as const;
 const NEWSLETTER_PREFLIGHT_STATUSES = ["not_run", "passed", "warning", "failed"] as const;
 const NEWSLETTER_PREFLIGHT_ITEM_STATUSES = ["pass", "warn", "fail"] as const;
 const NEWSLETTER_TEST_SEND_STATUSES = ["pending", "sent", "failed"] as const;
@@ -1893,6 +1894,11 @@ export const newsletterSchema = z.object({
   body_text: z.string().nullable(),
   status: z.enum(NEWSLETTER_STATUSES),
   archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES),
+  styling_mode: z
+    .enum(NEWSLETTER_STYLING_MODES)
+    .describe(
+      "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
+    ),
   preflight_status: z.enum(NEWSLETTER_PREFLIGHT_STATUSES),
   preflight_results: z.record(z.string(), z.unknown()),
   send_window_hours: z.number().int(),
@@ -2148,6 +2154,12 @@ const newsletterDraftFieldsInputSchema = {
   blocks: z.array(newsletterBlockInputSchema).min(1).max(200).optional(),
   send_window_hours: z.number().int().min(1).max(24).optional(),
   archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES).optional(),
+  styling_mode: z
+    .enum(NEWSLETTER_STYLING_MODES)
+    .optional()
+    .describe(
+      "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
+    ),
 } as const;
 
 export const createNewsletterInputSchema = z
@@ -2208,6 +2220,12 @@ export const createNewsletterFromChangelogInputSchema = z.object({
     .optional(),
   send_window_hours: z.number().int().min(1).max(24).optional(),
   archive_visibility: z.enum(NEWSLETTER_ARCHIVE_VISIBILITIES).optional(),
+  styling_mode: z
+    .enum(NEWSLETTER_STYLING_MODES)
+    .optional()
+    .describe(
+      "styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
+    ),
   idempotency_key: idempotencyKeySchema,
 });
 
@@ -2225,6 +2243,7 @@ export const updateNewsletterInputSchema = z
     blocks: newsletterDraftFieldsInputSchema.blocks,
     send_window_hours: newsletterDraftFieldsInputSchema.send_window_hours,
     archive_visibility: newsletterDraftFieldsInputSchema.archive_visibility,
+    styling_mode: newsletterDraftFieldsInputSchema.styling_mode,
     idempotency_key: idempotencyKeySchema,
   })
   .refine(
@@ -2239,7 +2258,8 @@ export const updateNewsletterInputSchema = z
       value.body_text !== undefined ||
       value.blocks !== undefined ||
       value.send_window_hours !== undefined ||
-      value.archive_visibility !== undefined,
+      value.archive_visibility !== undefined ||
+      value.styling_mode !== undefined,
     {
       message: "Provide at least one newsletter field to update.",
     },

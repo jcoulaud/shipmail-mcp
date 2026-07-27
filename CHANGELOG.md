@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.8](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.7...shipmail-mcp-v0.5.8) (2026-07-27)
+
+
+### Features
+
+* **newsletters:** plain styling mode and code-view round-trip fixes ([#988](https://github.com/jcoulaud/ShipMail/issues/988)) ([4b62b27](https://github.com/jcoulaud/ShipMail/commit/4b62b2772e66cd1a785564cb60ad9d59b4159f0e))
+
 ## [0.5.7](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.6...shipmail-mcp-v0.5.7) (2026-07-27)
 
 

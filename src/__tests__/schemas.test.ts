@@ -755,8 +755,10 @@ describe("newsletter schemas", () => {
       name: "July Update",
       subject: "What shipped in July",
       body_html: "<p>Updates</p>",
+      styling_mode: "plain",
     });
     expect(out.body_html).toBe("<p>Updates</p>");
+    expect(out.styling_mode).toBe("plain");
 
     expect(() =>
       createNewsletterInputSchema.parse({
@@ -810,6 +812,7 @@ describe("newsletter schemas", () => {
       name: "July Update",
       subject: "What shipped in July",
       tone: "technical",
+      styling_mode: "plain",
       entries: [
         {
           title: "Media library",
@@ -826,6 +829,7 @@ describe("newsletter schemas", () => {
       ],
     });
     expect(out.entries[0]?.title).toBe("Media library");
+    expect(out.styling_mode).toBe("plain");
   });
 
   test("update accepts explicit nullable fields and rejects id-only input", () => {
@@ -836,7 +840,23 @@ describe("newsletter schemas", () => {
         idempotency_key: "k",
       }).preview_text,
     ).toBeNull();
+    expect(
+      updateNewsletterInputSchema.parse({
+        id: "nws_123",
+        styling_mode: "styled",
+      }).styling_mode,
+    ).toBe("styled");
     expect(() => updateNewsletterInputSchema.parse({ id: "nws_123" })).toThrow();
+    expect(() =>
+      createNewsletterInputSchema.parse({
+        audience_id: "aud_123",
+        newsletter_domain_id: "nwsdom_123",
+        name: "July Update",
+        subject: "What shipped in July",
+        body_text: "Updates",
+        styling_mode: "minimal",
+      }),
+    ).toThrow();
   });
 
   test("test send normalizes recipient email", () => {
@@ -881,6 +901,7 @@ describe("newsletter schemas", () => {
         body_text: null,
         status: "draft",
         archive_visibility: "private",
+        styling_mode: "styled",
         preflight_status: "not_run",
         preflight_results: {},
         send_window_hours: 6,

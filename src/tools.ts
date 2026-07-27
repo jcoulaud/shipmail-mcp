@@ -2632,7 +2632,7 @@ export function registerTools(
       {
         title: "Create Newsletter",
         description:
-          "Create a newsletter draft for an audience and sending domain. Prefer blocks for body content; Shipmail renders them to email-safe HTML and text. Provide at least one of blocks, body_html, or body_text. Drafts must pass preflight before scheduling.",
+          "Create a newsletter draft for an audience and sending domain. Prefer blocks for body content; Shipmail renders them to email-safe HTML and text. Provide at least one of blocks, body_html, or body_text. Drafts must pass preflight before scheduling. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
         inputSchema: createNewsletterInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {
@@ -2658,7 +2658,7 @@ export function registerTools(
       {
         title: "Create Newsletter From Changelog",
         description:
-          "Create a newsletter draft from changelog entries, attached media, tone, and an optional final CTA. ShipMail renders the entries into email-safe blocks.",
+          "Create a newsletter draft from changelog entries, attached media, tone, and an optional final CTA. ShipMail renders the entries into email-safe blocks. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
         inputSchema: createNewsletterFromChangelogInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {
@@ -2684,7 +2684,7 @@ export function registerTools(
       {
         title: "Update Newsletter",
         description:
-          "Update an editable newsletter draft or future scheduled newsletter. Prefer blocks for body content. When blocks already exist, body_text alone updates the plain-text override. Sending and sent newsletters cannot be edited. A concurrent save returns conflict (409); read the latest newsletter before retrying.",
+          "Update an editable newsletter draft or future scheduled newsletter. Prefer blocks for body content. When blocks already exist, body_text alone updates the plain-text override. Sending and sent newsletters cannot be edited. A concurrent save returns conflict (409); read the latest newsletter before retrying. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
         inputSchema: updateNewsletterInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {
@@ -2717,6 +2717,7 @@ export function registerTools(
               ...(rest.archive_visibility !== undefined
                 ? { archive_visibility: rest.archive_visibility }
                 : {}),
+              ...(rest.styling_mode !== undefined ? { styling_mode: rest.styling_mode } : {}),
             },
             mutationOptions(args),
           ),
