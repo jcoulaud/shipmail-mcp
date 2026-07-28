@@ -270,7 +270,7 @@ const CAPABILITY_ROWS = [
   ["shipmail_list_threads", "listThreads", "threads:read"],
   ["shipmail_get_thread", "getThread", "threads:read"],
   ["shipmail_reply_to_thread", "replyToThread", "messages:send"],
-  ["shipmail_create_reply_scan", "createReplyScan", "messages:read"],
+  ["shipmail_create_reply_scan", "createReplyScan", "messages:write"],
   ["shipmail_get_reply_scan", "getReplyScan", "messages:read"],
   ["shipmail_list_reply_scan_results", "listReplyScanResults", "messages:read"],
   ["shipmail_create_webhook", "createWebhook", "webhooks:write"],

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.10](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.9...shipmail-mcp-v0.5.10) (2026-07-28)
+
+
+### Bug Fixes
+
+* **seo:** align public facts and discovery surfaces ([#1012](https://github.com/jcoulaud/ShipMail/issues/1012)) ([c6956d1](https://github.com/jcoulaud/ShipMail/commit/c6956d1fc8a5913736dc7a97393da64fffe8e7f6))
+
 ## [0.5.9](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.8...shipmail-mcp-v0.5.9) (2026-07-27)
 
 

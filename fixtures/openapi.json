@@ -3425,7 +3425,7 @@
         "description": "Atomically captures the current needs_reply threads in the requested window. The completed candidate set is frozen, retained for 30 days, limited to 5,000 rows, and cursor-paged. Windows are limited to 366 days.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "write",
-        "x-scope": "messages:read",
+        "x-scope": "messages:write",
         "requestBody": {
           "required": true,
           "content": {
