@@ -10637,6 +10637,64 @@
           }
         }
       },
+      "EmailAuthVerdict": {
+        "type": "string",
+        "description": "Normalized email authentication verdict. pass means the check succeeded; fail or softfail means it did not; neutral, none, and policy mean no positive authentication result; temperror and permerror are evaluation errors; unknown means no recognized verdict was available.",
+        "enum": [
+          "pass",
+          "fail",
+          "softfail",
+          "neutral",
+          "none",
+          "temperror",
+          "permerror",
+          "policy",
+          "unknown"
+        ]
+      },
+      "EmailAuthenticationResults": {
+        "type": "object",
+        "required": ["spf", "dkim", "dmarc", "spam", "raw"],
+        "properties": {
+          "spf": {
+            "$ref": "#/components/schemas/EmailAuthVerdict"
+          },
+          "dkim": {
+            "$ref": "#/components/schemas/EmailAuthVerdict"
+          },
+          "dmarc": {
+            "$ref": "#/components/schemas/EmailAuthVerdict"
+          },
+          "spam": {
+            "type": "object",
+            "required": ["isSpam", "scoreMilli"],
+            "properties": {
+              "isSpam": {
+                "type": ["boolean", "null"]
+              },
+              "scoreMilli": {
+                "type": ["integer", "null"],
+                "description": "Spam score multiplied by 1000, or null when unavailable."
+              }
+            }
+          },
+          "raw": {
+            "type": "object",
+            "required": ["authenticationResults", "receivedSpf", "spamStatus"],
+            "properties": {
+              "authenticationResults": {
+                "type": ["string", "null"]
+              },
+              "receivedSpf": {
+                "type": ["string", "null"]
+              },
+              "spamStatus": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        }
+      },
       "InboxMessage": {
         "type": "object",
         "required": [
@@ -10653,7 +10711,8 @@
           "received_at",
           "preview",
           "has_attachment",
-          "size"
+          "size",
+          "authentication_results"
         ],
         "properties": {
           "object": {
@@ -10713,6 +10772,17 @@
           "size": {
             "type": "integer",
             "minimum": 0
+          },
+          "authentication_results": {
+            "description": "Normalized SPF, DKIM, and DMARC verdicts, spam assessment, and source headers. Require dmarc to be pass before trusting the message From address.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmailAuthenticationResults"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -10741,7 +10811,8 @@
           "body_values",
           "text_body",
           "html_body",
-          "attachments"
+          "attachments",
+          "authentication_results"
         ],
         "properties": {
           "object": {
@@ -10855,6 +10926,17 @@
             "items": {
               "$ref": "#/components/schemas/InboxAttachment"
             }
+          },
+          "authentication_results": {
+            "description": "Normalized SPF, DKIM, and DMARC verdicts, spam assessment, and source headers. Require dmarc to be pass before trusting the message From address.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmailAuthenticationResults"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

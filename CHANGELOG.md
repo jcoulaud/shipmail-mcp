@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.4...shipmail-mcp-v0.6.5) (2026-07-29)
+
+
+### Features
+
+* **api:** expose inbound authentication results to clients ([#1053](https://github.com/shipmail-to/Shipmail/issues/1053)) ([a27e8d2](https://github.com/shipmail-to/Shipmail/commit/a27e8d21fa28e7df7942c7e099ff095f3550b6d7))
+
 ## [0.6.4](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.3...shipmail-mcp-v0.6.4) (2026-07-29)
 
 

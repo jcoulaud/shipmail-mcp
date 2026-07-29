@@ -21,6 +21,7 @@ export function toInboxMessageSummary(message: InboxFullMessage): InboxMessage {
     preview: message.preview,
     has_attachment: message.has_attachment,
     size: message.size,
+    authentication_results: message.authentication_results,
   };
 }
 

@@ -460,6 +460,33 @@ export const inboxBodyValueSchema = z.object({
   is_encoding_problem: z.boolean(),
 });
 
+export const emailAuthVerdictSchema = z.enum([
+  "pass",
+  "fail",
+  "softfail",
+  "neutral",
+  "none",
+  "temperror",
+  "permerror",
+  "policy",
+  "unknown",
+] as const);
+
+export const emailAuthenticationResultsSchema = z.object({
+  spf: emailAuthVerdictSchema,
+  dkim: emailAuthVerdictSchema,
+  dmarc: emailAuthVerdictSchema,
+  spam: z.object({
+    isSpam: z.boolean().nullable(),
+    scoreMilli: z.number().int().nullable(),
+  }),
+  raw: z.object({
+    authenticationResults: z.string().nullable(),
+    receivedSpf: z.string().nullable(),
+    spamStatus: z.string().nullable(),
+  }),
+});
+
 export const inboxMessageSchema = z.object({
   object: z.literal("inbox_message"),
   id: z.string(),
@@ -475,6 +502,7 @@ export const inboxMessageSchema = z.object({
   preview: z.string(),
   has_attachment: z.boolean(),
   size: z.number(),
+  authentication_results: emailAuthenticationResultsSchema.nullable(),
 });
 
 export const inboxFullMessageSchema = inboxMessageSchema.omit({ object: true }).extend({

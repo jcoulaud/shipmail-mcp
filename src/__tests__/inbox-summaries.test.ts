@@ -38,6 +38,17 @@ function fullMessagePayload(id: string) {
     text_body: [{ part_id: "1", type: "text/plain" }],
     html_body: [{ part_id: "2", type: "text/html" }],
     attachments: [],
+    authentication_results: {
+      spf: "pass",
+      dkim: "pass",
+      dmarc: "pass",
+      spam: { isSpam: false, scoreMilli: -1200 },
+      raw: {
+        authenticationResults: "mx.example; spf=pass; dkim=pass; dmarc=pass",
+        receivedSpf: "pass",
+        spamStatus: "No, score=-1.2",
+      },
+    },
   };
 }
 
@@ -78,6 +89,7 @@ describe("toInboxMessageSummaries", () => {
       expect(item.object).toBe("inbox_message");
       expect(item).not.toContainKeys(["body_values", "text_body", "html_body", "attachments"]);
       expect(item.preview).toBe("A short preview of the message");
+      expect(item.authentication_results?.dmarc).toBe("pass");
     }
     expect(summaries.pagination.next_cursor).toBe("cursor-1");
   });
@@ -102,6 +114,7 @@ describe("shipmail_list_mailbox_inbox_messages", () => {
       expect(item["body_values"]).toBeUndefined();
       expect(item["text_body"]).toBeUndefined();
       expect(item["html_body"]).toBeUndefined();
+      expect(item["authentication_results"]).toEqual(expect.objectContaining({ dmarc: "pass" }));
     }
 
     // 50 messages whose bodies are ~200KB each must not leak into the result.
