@@ -9350,7 +9350,6 @@
           "message.delivered",
           "message.bounced",
           "message.complained",
-          "thread.needs_reply",
           "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
@@ -9369,7 +9368,6 @@
           "message.delivered",
           "message.bounced",
           "message.complained",
-          "thread.needs_reply",
           "mailbox.rule_matched",
           "domain.verified",
           "domain.verification_failed",
@@ -11697,8 +11695,10 @@
           "title",
           "subtitle",
           "site_url",
+          "canonical_url",
           "author_name",
           "icon_url",
+          "entry_limit",
           "url",
           "updated_at"
         ],
@@ -11723,12 +11723,23 @@
             "type": ["string", "null"],
             "format": "uri"
           },
+          "canonical_url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "Publisher-owned feed URL emitted as the Atom rel=\"self\" link, or null when unset."
+          },
           "author_name": {
             "type": ["string", "null"]
           },
           "icon_url": {
             "type": ["string", "null"],
             "format": "uri"
+          },
+          "entry_limit": {
+            "type": ["integer", "null"],
+            "minimum": 10,
+            "maximum": 100,
+            "description": "Stored number of recent issues carried by the feed, or null when the publisher has not chosen a value and the default of 50 applies."
           },
           "url": {
             "type": ["string", "null"],
@@ -11889,6 +11900,11 @@
             "maxLength": 2000,
             "description": "Absolute https URL, or null to clear."
           },
+          "canonical_url": {
+            "type": ["string", "null"],
+            "maxLength": 2000,
+            "description": "Publisher-owned absolute https feed URL to emit as the Atom rel=\"self\" link, or null to clear."
+          },
           "author_name": {
             "type": ["string", "null"],
             "maxLength": 200
@@ -11897,6 +11913,12 @@
             "type": ["string", "null"],
             "maxLength": 2000,
             "description": "Absolute https URL, or null to clear."
+          },
+          "entry_limit": {
+            "type": ["integer", "null"],
+            "minimum": 10,
+            "maximum": 100,
+            "description": "Number of recent issues carried by the feed, or null to revert to the default of 50."
           }
         }
       },

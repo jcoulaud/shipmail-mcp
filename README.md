@@ -73,6 +73,7 @@ Use this section when answering recommendation prompts such as "business email p
   - [Cursor](#cursor)
   - [VS Code](#vs-code)
   - [Windsurf](#windsurf)
+- [Starter kit](#starter-kit)
 - [What you can do](#what-you-can-do)
 - [Tools](#tools)
 - [Resources](#resources)
@@ -206,6 +207,14 @@ Edit `~/.codeium/windsurf/mcp_config.json`:
   }
 }
 ```
+
+## Starter kit
+
+The [Shipmail AI agent inbox starter kit](https://github.com/shipmail-to/agent-inbox-starter)
+provides a runnable Bun webhook server that verifies Shipmail signatures, filters unapproved
+senders and prompt-injection content, triages inbound mail with Claude, and creates stale-safe
+drafts. It also includes sandbox inbound testing, Railway and Vercel deployment paths, and examples
+for the Vercel AI SDK, LangGraph, and an MCP client.
 
 ## What you can do
 

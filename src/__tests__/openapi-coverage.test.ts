@@ -9,6 +9,7 @@ import { API_KEY_SCOPES } from "shipmail/api-key-scopes";
 import { z } from "zod/v4";
 
 import { MCP_CAPABILITIES, MCP_PERMISSION_GROUPS, MCP_TOOL_NAMES } from "../capabilities.js";
+import { audienceFeedSchema, updateAudienceFeedInputSchema } from "../schemas.js";
 import { registerTools } from "../tools.js";
 
 const OPENAPI_PATH = fileURLToPath(new URL("../../fixtures/openapi.json", import.meta.url));
@@ -35,15 +36,42 @@ const operationSchema = z
   })
   .passthrough();
 const openApiSchema = z.object({
+  components: z.object({
+    schemas: z.record(
+      z.string(),
+      z
+        .object({
+          properties: z.record(z.string(), z.unknown()).optional(),
+        })
+        .passthrough(),
+    ),
+  }),
   paths: z.record(
     z.string(),
     z.record(z.string(), z.union([operationSchema, z.array(z.unknown())])),
   ),
 });
 
-function readOpenApiOperations(): ReadonlyMap<string, string | undefined> {
+const OPENAPI_SCHEMA_COVERAGE = [
+  {
+    componentName: "AudienceFeed",
+    mcpKeys: audienceFeedSchema.keyof().options,
+    mcpOnlyKeys: [],
+  },
+  {
+    componentName: "UpdateAudienceFeedRequest",
+    mcpKeys: updateAudienceFeedInputSchema.keyof().options,
+    mcpOnlyKeys: ["audience_id", "idempotency_key"],
+  },
+] as const;
+
+function readOpenApiDocument(): z.infer<typeof openApiSchema> {
   const raw: unknown = JSON.parse(readFileSync(OPENAPI_PATH, "utf8"));
-  const doc = openApiSchema.parse(raw);
+  return openApiSchema.parse(raw);
+}
+
+function readOpenApiOperations(): ReadonlyMap<string, string | undefined> {
+  const doc = readOpenApiDocument();
   const operations = new Map<string, string | undefined>();
   for (const pathItem of Object.values(doc.paths)) {
     for (const candidate of Object.values(pathItem)) {
@@ -52,6 +80,14 @@ function readOpenApiOperations(): ReadonlyMap<string, string | undefined> {
     }
   }
   return operations;
+}
+
+function recordKeys(record: Readonly<Record<string, unknown>>): string[] {
+  const keys: string[] = [];
+  for (const key in record) {
+    if (Object.hasOwn(record, key)) keys.push(key);
+  }
+  return keys;
 }
 
 function getRegisteredToolNames(): readonly string[] {
@@ -65,6 +101,19 @@ function getRegisteredToolNames(): readonly string[] {
 }
 
 describe("OpenAPI, capability registry, and MCP registration", () => {
+  test("covered MCP schemas match their OpenAPI component properties", () => {
+    const schemas = readOpenApiDocument().components.schemas;
+    for (const coverage of OPENAPI_SCHEMA_COVERAGE) {
+      const component = schemas[coverage.componentName];
+      expect(component).toBeDefined();
+      expect(component?.properties).toBeDefined();
+      if (component?.properties === undefined) continue;
+      const mcpOnlyKeys = new Set<string>(coverage.mcpOnlyKeys);
+      const mcpKeys: string[] = coverage.mcpKeys.filter((key) => !mcpOnlyKeys.has(key)).sort();
+      expect(mcpKeys).toEqual(recordKeys(component.properties).sort());
+    }
+  });
+
   test("every OpenAPI operation is registered or explicitly excluded", () => {
     const operations = readOpenApiOperations();
     const operationIds = new Set(MCP_CAPABILITIES.map((capability) => capability.operationId));

@@ -2986,7 +2986,7 @@ export function registerTools(
       {
         title: "Update Audience Feed",
         description:
-          "Enable or disable an audience's Atom feed and update its public feed metadata.",
+          "Enable or disable an audience's Atom feed, update its public metadata and canonical URL, or set its 10 to 100 entry limit.",
         inputSchema: updateAudienceFeedInputSchema,
         outputSchema: audienceFeedOutputSchema,
         annotations: {

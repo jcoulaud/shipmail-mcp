@@ -758,12 +758,16 @@ describe("audience feed schemas", () => {
       title: "Release notes",
       subtitle: null,
       site_url: "https://example.com/",
+      canonical_url: "https://example.com/feed.xml",
       author_name: null,
       icon_url: null,
+      entry_limit: 25,
       url: "https://shipmail.to/f/audfeed_abc/feed.xml",
       updated_at: "2026-07-28T00:00:00.000Z",
     });
     expect(feed.url).toContain("/f/audfeed_abc/feed.xml");
+    expect(feed.canonical_url).toBe("https://example.com/feed.xml");
+    expect(feed.entry_limit).toBe(25);
   });
 
   test("update requires at least one feed setting", () => {
@@ -775,9 +779,11 @@ describe("audience feed schemas", () => {
   test("update accepts a single setting", () => {
     const out = updateAudienceFeedInputSchema.parse({
       audience_id: "aud_123",
-      title: "Release notes",
+      canonical_url: "https://example.com/feed.xml",
+      entry_limit: 25,
     });
-    expect(out.title).toBe("Release notes");
+    expect(out.canonical_url).toBe("https://example.com/feed.xml");
+    expect(out.entry_limit).toBe(25);
   });
 
   // The API caps feed URLs at 2000 characters; the MCP must never accept input the
@@ -787,6 +793,28 @@ describe("audience feed schemas", () => {
     expect(() =>
       updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", site_url: longUrl }),
     ).toThrow("2000 characters or fewer");
+    expect(() =>
+      updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", canonical_url: longUrl }),
+    ).toThrow("2000 characters or fewer");
+  });
+
+  test("accepts null settings and rejects invalid entry limits", () => {
+    expect(
+      updateAudienceFeedInputSchema.parse({
+        audience_id: "aud_123",
+        canonical_url: null,
+        entry_limit: null,
+      }),
+    ).toMatchObject({ canonical_url: null, entry_limit: null });
+    expect(() =>
+      updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", entry_limit: 9 }),
+    ).toThrow();
+    expect(() =>
+      updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", entry_limit: 101 }),
+    ).toThrow();
+    expect(() =>
+      updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", entry_limit: 10.5 }),
+    ).toThrow();
   });
 });
 

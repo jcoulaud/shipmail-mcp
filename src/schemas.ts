@@ -1759,8 +1759,10 @@ export const audienceFeedSchema = z.object({
   title: z.string().nullable(),
   subtitle: z.string().nullable(),
   site_url: z.string().nullable(),
+  canonical_url: z.string().nullable(),
   author_name: z.string().nullable(),
   icon_url: z.string().nullable(),
+  entry_limit: z.number().int().nullable(),
   url: z.string().nullable(),
   updated_at: z.string(),
 });
@@ -1834,8 +1836,18 @@ export const updateAudienceFeedInputSchema = audienceFeedInputSchema
     title: noControlString(200, "title").nullish(),
     subtitle: noControlString(500, "subtitle").nullish(),
     site_url: feedPublicHttpsUrlSchema.nullish(),
+    canonical_url: feedPublicHttpsUrlSchema
+      .nullish()
+      .describe("Publisher-owned https feed URL to emit as the Atom self link, or null to clear."),
     author_name: noControlString(200, "author_name").nullish(),
     icon_url: feedPublicHttpsUrlSchema.nullish(),
+    entry_limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(100)
+      .nullish()
+      .describe("Stored number of recent issues in the feed, from 10 to 100, or null for default."),
     idempotency_key: idempotencyKeySchema,
   })
   .refine(
@@ -1844,8 +1856,10 @@ export const updateAudienceFeedInputSchema = audienceFeedInputSchema
       value.title !== undefined ||
       value.subtitle !== undefined ||
       value.site_url !== undefined ||
+      value.canonical_url !== undefined ||
       value.author_name !== undefined ||
-      value.icon_url !== undefined,
+      value.icon_url !== undefined ||
+      value.entry_limit !== undefined,
     { message: "Provide at least one feed setting to update." },
   );
 

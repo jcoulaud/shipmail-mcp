@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.6.1...shipmail-mcp-v0.6.2) (2026-07-29)
+
+
+### Features
+
+* product-led distribution tools (calculator, migration planner, shareable health reports, agent starter kit) ([#1036](https://github.com/jcoulaud/ShipMail/issues/1036)) ([c7380fc](https://github.com/jcoulaud/ShipMail/commit/c7380fc2aeefb39b6daebfcae713f888803388fe))
+
+## [0.6.1](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.6.0...shipmail-mcp-v0.6.1) (2026-07-29)
+
+
+### Features
+
+* **api:** expose feed canonical URL and entry limit ([#1033](https://github.com/jcoulaud/ShipMail/issues/1033)) ([f425edd](https://github.com/jcoulaud/ShipMail/commit/f425edded1a638e0088d8e96d0a3ac9bc7756f2b))
+
 ## [0.6.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.10...shipmail-mcp-v0.6.0) (2026-07-28)
 
 
