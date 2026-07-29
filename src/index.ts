@@ -1,9 +1,9 @@
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { ShipMailClient } from "shipmail";
 
-import { MCP_CAPABILITY_VERSION, MCP_TOOL_NAMES } from "./capabilities.js";
 import { HELP_TEXT, readConfig } from "./config.js";
 import { createShipMailMcpServer } from "./server.js";
+import { resolveAllowedTools } from "./startup.js";
 import { VERSION } from "./version.js";
 
 type CloseableServer = {
@@ -46,27 +46,7 @@ async function main(): Promise<void> {
       "X-ShipMail-Client-Version": VERSION,
     },
   });
-  const capabilities = await client.capabilities.get();
-  const serverMajor = capabilities.capability_version.split(".")[0];
-  const supportedMajor = MCP_CAPABILITY_VERSION.split(".")[0];
-  if (!serverMajor || serverMajor !== supportedMajor) {
-    throw new Error(
-      `ShipMail capability version ${capabilities.capability_version} is incompatible with this shipmail-mcp version. Upgrade shipmail-mcp before reconnecting.`,
-    );
-  }
-
-  const localTools = new Set<string>(MCP_TOOL_NAMES);
-  const allowedTools = new Set(
-    capabilities.allowed_mcp_tools.filter((toolName) => localTools.has(toolName)),
-  );
-  const missingTools = capabilities.allowed_mcp_tools.filter(
-    (toolName) => !localTools.has(toolName),
-  );
-  if (missingTools.length > 0) {
-    process.stderr.write(
-      `ShipMail allows tools not implemented by this shipmail-mcp version: ${missingTools.join(", ")}. Upgrade to use them.\n`,
-    );
-  }
+  const allowedTools = await resolveAllowedTools(client);
 
   const server = serveStdio(() => createShipMailMcpServer(config, allowedTools), {
     legacy: "reject",

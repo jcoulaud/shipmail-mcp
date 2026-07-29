@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.6](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.5...shipmail-mcp-v0.6.6) (2026-07-29)
+
+
+### Bug Fixes
+
+* **mcp:** start the server when capabilities cannot be fetched ([#1058](https://github.com/shipmail-to/Shipmail/issues/1058)) ([1e060c2](https://github.com/shipmail-to/Shipmail/commit/1e060c29b45c40fe7544298409a61e99a5be854c))
+
 ## [0.6.5](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.4...shipmail-mcp-v0.6.5) (2026-07-29)
 
 
