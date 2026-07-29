@@ -14,6 +14,8 @@
 // test discovery) keeps it in CI.
 import { describe, test } from "bun:test";
 import type {
+  Audience,
+  AudienceFeed,
   BookingPage,
   CreatedMailboxAppPassword,
   Domain,
@@ -49,6 +51,8 @@ import type {
 import type { z } from "zod/v4";
 
 import {
+  audienceFeedSchema,
+  audienceSchema,
   bookingPageSchema,
   createdMailboxAppPasswordSchema,
   domainSchema,
@@ -97,6 +101,8 @@ type AssertTrue<T extends true> = T;
 // One assertion per (SDK type, MCP schema) pair. Adding a field on either
 // side and forgetting to mirror it on the other will fail this typecheck.
 type _DomainKeys = AssertTrue<KeysMatch<Domain, z.infer<typeof domainSchema>>>;
+type _AudienceKeys = AssertTrue<KeysMatch<Audience, z.infer<typeof audienceSchema>>>;
+type _AudienceFeedKeys = AssertTrue<KeysMatch<AudienceFeed, z.infer<typeof audienceFeedSchema>>>;
 type _BookingPageKeys = AssertTrue<KeysMatch<BookingPage, z.infer<typeof bookingPageSchema>>>;
 type _MailboxKeys = AssertTrue<KeysMatch<Mailbox, z.infer<typeof mailboxSchema>>>;
 type _MailboxAppPasswordKeys = AssertTrue<
@@ -167,6 +173,8 @@ type _DomainVerificationKeys = AssertTrue<
 // Suppress unused-type warnings; the existence of the type aliases above is
 // what enforces the assertion at compile time.
 type _AllChecks = [
+  _AudienceKeys,
+  _AudienceFeedKeys,
   _DomainKeys,
   _BookingPageKeys,
   _MailboxKeys,
@@ -236,7 +244,9 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
     ];
-    if (checks.length !== 31) throw new Error("alignment matrix size changed");
+    if (checks.length !== 33) throw new Error("alignment matrix size changed");
   });
 });

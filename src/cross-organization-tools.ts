@@ -1,7 +1,7 @@
 import { performance } from "node:perf_hooks";
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
+import { McpServer } from "@modelcontextprotocol/server";
 import { type ShipMailClient, ShipMailError } from "shipmail";
 import { z } from "zod/v4";
 

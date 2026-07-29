@@ -1,5 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { ShipMailClient } from "shipmail";
 
 import { MCP_CAPABILITY_VERSION, MCP_TOOL_NAMES } from "./capabilities.js";
@@ -7,7 +6,11 @@ import { HELP_TEXT, readConfig } from "./config.js";
 import { createShipMailMcpServer } from "./server.js";
 import { VERSION } from "./version.js";
 
-function installShutdownHandlers(server: McpServer): void {
+type CloseableServer = {
+  close(): Promise<void>;
+};
+
+function installShutdownHandlers(server: CloseableServer): void {
   let shuttingDown = false;
   const shutdown = (signal: NodeJS.Signals): void => {
     if (shuttingDown) return;
@@ -65,9 +68,10 @@ async function main(): Promise<void> {
     );
   }
 
-  const server = createShipMailMcpServer(config, allowedTools);
+  const server = serveStdio(() => createShipMailMcpServer(config, allowedTools), {
+    legacy: "reject",
+  });
   installShutdownHandlers(server);
-  await server.connect(new StdioServerTransport());
 }
 
 main().catch((error: unknown) => {

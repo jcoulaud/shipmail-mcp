@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  audienceFeedSchema,
   bookingPageSchema,
   createBookingPageInputSchema,
   createDomainInputSchema,
@@ -30,6 +31,7 @@ import {
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
   suppressionSchema,
+  updateAudienceFeedInputSchema,
   updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
@@ -747,6 +749,47 @@ describe("sendMessageInputSchema", () => {
   });
 });
 
+describe("audience feed schemas", () => {
+  test("audience feed output accepts the public response shape", () => {
+    const feed = audienceFeedSchema.parse({
+      object: "audience_feed",
+      audience_id: "aud_123",
+      enabled: true,
+      title: "Release notes",
+      subtitle: null,
+      site_url: "https://example.com/",
+      author_name: null,
+      icon_url: null,
+      url: "https://shipmail.to/f/audfeed_abc/feed.xml",
+      updated_at: "2026-07-28T00:00:00.000Z",
+    });
+    expect(feed.url).toContain("/f/audfeed_abc/feed.xml");
+  });
+
+  test("update requires at least one feed setting", () => {
+    expect(() => updateAudienceFeedInputSchema.parse({ audience_id: "aud_123" })).toThrow(
+      "Provide at least one feed setting to update.",
+    );
+  });
+
+  test("update accepts a single setting", () => {
+    const out = updateAudienceFeedInputSchema.parse({
+      audience_id: "aud_123",
+      title: "Release notes",
+    });
+    expect(out.title).toBe("Release notes");
+  });
+
+  // The API caps feed URLs at 2000 characters; the MCP must never accept input the
+  // API would reject.
+  test("rejects feed URLs longer than the API's 2000 character cap", () => {
+    const longUrl = `https://example.com/${"a".repeat(2_000)}`;
+    expect(() =>
+      updateAudienceFeedInputSchema.parse({ audience_id: "aud_123", site_url: longUrl }),
+    ).toThrow("2000 characters or fewer");
+  });
+});
+
 describe("newsletter schemas", () => {
   test("create requires blocks, html, or text", () => {
     const out = createNewsletterInputSchema.parse({
@@ -892,6 +935,8 @@ describe("newsletter schemas", () => {
         reply_to_mailbox_id: null,
         name: "July Update",
         subject: "What shipped in July",
+        published_at: null,
+        archive_url: null,
         preview_text: null,
         from_name: "ShipMail",
         from_address: "updates@example.com",

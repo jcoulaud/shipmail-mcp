@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
 import { ShipMailClient } from "shipmail";
 
@@ -102,6 +102,10 @@ describe("registerTools", () => {
       "shipmail_create_audience",
       "shipmail_update_audience",
       "shipmail_delete_audience",
+      "shipmail_get_audience_feed",
+      "shipmail_update_audience_feed",
+      "shipmail_rotate_audience_feed",
+      "shipmail_revoke_audience_feed",
       "shipmail_list_subscribers",
       "shipmail_get_subscriber",
       "shipmail_get_subscriber_by_email",

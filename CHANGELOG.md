@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.10...shipmail-mcp-v0.6.0) (2026-07-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** MCP clients must support protocol version 2026-07-28; legacy initialize traffic is rejected.
+
+### Features
+
+* **mcp:** adopt protocol 2026-07-28 ([#1021](https://github.com/jcoulaud/ShipMail/issues/1021)) ([7e64035](https://github.com/jcoulaud/ShipMail/commit/7e64035808b89ffdb5a750e78de84a30c3d061d3))
+* **newsletters:** add safe feed token lifecycle ([#1017](https://github.com/jcoulaud/ShipMail/issues/1017)) ([59035bb](https://github.com/jcoulaud/ShipMail/commit/59035bb133c35b47383511cda8f87212cb90bd50))
+
 ## [0.5.10](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.5.9...shipmail-mcp-v0.5.10) (2026-07-28)
 
 

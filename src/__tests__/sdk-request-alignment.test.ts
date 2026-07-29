@@ -29,6 +29,7 @@ import type {
   SearchDomainsParams,
   SendMessageParams,
   SendNewsletterTestParams,
+  UpdateAudienceFeedParams,
   UpdateAutoReplyParams,
   UpdateBookingPageParams,
   UpdateDomainParams,
@@ -64,6 +65,7 @@ import type {
   sendMessageInputSchema,
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
+  updateAudienceFeedInputSchema,
   updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
@@ -84,6 +86,7 @@ import type {
 type StripMcpOnly<T> = Omit<T, "idempotency_key" | "id" | "folder_id" | "message_id">;
 type StripMcpOnlyKeepFolderId<T> = Omit<T, "idempotency_key" | "id">;
 type StripPartnerGrantPath<T> = Omit<T, "idempotency_key" | "grant_id">;
+type StripAudienceFeedPath<T> = Omit<T, "idempotency_key" | "audience_id">;
 
 // SDK fields that the MCP intentionally does not expose. Keep this list
 // honest: every entry should match a documented design choice. If the list
@@ -110,6 +113,12 @@ type _CreateBookingPage = AssertTrue<
 >;
 type _UpdateBookingPage = AssertTrue<
   KeysMatch<UpdateBookingPageParams, StripMcpOnly<z.infer<typeof updateBookingPageInputSchema>>>
+>;
+type _UpdateAudienceFeed = AssertTrue<
+  KeysMatch<
+    UpdateAudienceFeedParams,
+    StripAudienceFeedPath<z.infer<typeof updateAudienceFeedInputSchema>>
+  >
 >;
 type _UpdateDomain = AssertTrue<
   KeysMatch<UpdateDomainParams, StripMcpOnly<z.infer<typeof updateDomainInputSchema>>>
@@ -211,6 +220,7 @@ type _UpdateWebhook = AssertTrue<
 // Suppress unused-type warnings; the type aliases above are what enforce the
 // assertion at compile time.
 type _AllChecks = [
+  _UpdateAudienceFeed,
   _CreateBookingPage,
   _UpdateBookingPage,
   _CreateDomain,
@@ -274,7 +284,8 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
+      true,
     ];
-    if (checks.length !== 29) throw new Error("alignment matrix size changed");
+    if (checks.length !== 30) throw new Error("alignment matrix size changed");
   });
 });

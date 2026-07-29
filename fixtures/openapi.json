@@ -4837,6 +4837,164 @@
         }
       }
     },
+    "/audiences/{id}/feed": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "operationId": "getAudienceFeed",
+        "summary": "Get audience feed settings",
+        "description": "Fetch the Atom feed state, metadata, and resolved URL for an audience.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "audiences:read",
+        "responses": {
+          "200": {
+            "description": "Audience feed settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceFeed"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAudienceFeed",
+        "summary": "Update audience feed settings",
+        "description": "Enable or disable an audience Atom feed and update its public metadata.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAudienceFeedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated audience feed settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceFeed"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/feed/rotate": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "operationId": "rotateAudienceFeedToken",
+        "summary": "Rotate an audience feed URL",
+        "description": "Generate a replacement URL while keeping the current URL as a temporary redirect. A later rotation permanently breaks the oldest URL.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "responses": {
+          "200": {
+            "description": "Audience feed settings with the replacement URL, or null URL when disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceFeed"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/audiences/{id}/feed/revoke": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "operationId": "revokeAudienceFeedToken",
+        "summary": "Revoke leaked audience feed URLs",
+        "description": "Immediately invalidate the current and every previous URL, then return a replacement URL when the feed is enabled. Existing readers must subscribe again.",
+        "tags": ["Audiences"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "audiences:write",
+        "responses": {
+          "200": {
+            "description": "Audience feed settings with the replacement URL, or null URL when disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceFeed"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/audiences/{id}/subscribers": {
       "parameters": [
         {
@@ -11518,11 +11676,64 @@
           "feed_url": {
             "type": "string",
             "nullable": true,
-            "description": "Atom feed URL, or null when the feed is disabled. Anyone with this URL can read the feed."
+            "description": "Unguessable ShipMail Atom feed URL, or null when the feed is disabled."
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AudienceFeed": {
+        "type": "object",
+        "required": [
+          "object",
+          "audience_id",
+          "enabled",
+          "title",
+          "subtitle",
+          "site_url",
+          "author_name",
+          "icon_url",
+          "url",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "audience_feed"
+          },
+          "audience_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": ["string", "null"]
+          },
+          "subtitle": {
+            "type": ["string", "null"]
+          },
+          "site_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "author_name": {
+            "type": ["string", "null"]
+          },
+          "icon_url": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "Resolved Atom feed URL, or null while the feed is disabled. Anyone with a tokenized URL can read it."
           },
           "updated_at": {
             "type": "string",
@@ -11655,6 +11866,37 @@
             "type": "string",
             "maxLength": 2000,
             "nullable": true
+          }
+        }
+      },
+      "UpdateAudienceFeedRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": ["string", "null"],
+            "maxLength": 200
+          },
+          "subtitle": {
+            "type": ["string", "null"],
+            "maxLength": 500
+          },
+          "site_url": {
+            "type": ["string", "null"],
+            "maxLength": 2000,
+            "description": "Absolute https URL, or null to clear."
+          },
+          "author_name": {
+            "type": ["string", "null"],
+            "maxLength": 200
+          },
+          "icon_url": {
+            "type": ["string", "null"],
+            "maxLength": 2000,
+            "description": "Absolute https URL, or null to clear."
           }
         }
       },
@@ -11819,6 +12061,8 @@
           "archive_visibility",
           "styling_mode",
           "preflight_status",
+          "published_at",
+          "archive_url",
           "created_at",
           "updated_at"
         ],
@@ -11942,6 +12186,16 @@
           "started_at": {
             "type": ["string", "null"],
             "format": "date-time"
+          },
+          "published_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Stable first-publication timestamp."
+          },
+          "archive_url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "Canonical ShipMail public archive URL."
           },
           "completed_at": {
             "type": ["string", "null"],

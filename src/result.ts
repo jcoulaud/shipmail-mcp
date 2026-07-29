@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import { ShipMailError, ValidationError } from "shipmail";
 
 import { sanitizeRecord, sanitizeString, sanitizeValue } from "./sanitize.js";

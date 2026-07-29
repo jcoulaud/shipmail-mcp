@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import {
-  McpServer,
-  type RegisteredTool,
-  type ToolCallback,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { AnySchema, ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  RegisteredTool,
+  StandardSchemaWithJSON,
+  ToolAnnotations,
+  ToolCallback,
+} from "@modelcontextprotocol/server";
+import { McpServer } from "@modelcontextprotocol/server";
 import {
   type CreateMailboxParams,
   type ListMessagesParams,
@@ -31,6 +32,9 @@ import {
   addSubscriberInputSchema,
   addSubscribersBatchInputSchema,
   attachmentComposerOutputSchema,
+  audienceFeedInputSchema,
+  audienceFeedMutationInputSchema,
+  audienceFeedOutputSchema,
   audienceOutputSchema,
   audiencesOutputSchema,
   autoReplyInputSchema,
@@ -170,6 +174,7 @@ import {
   suppressionsOutputSchema,
   threadMessagesOutputSchema,
   threadsOutputSchema,
+  updateAudienceFeedInputSchema,
   updateAudienceInputSchema,
   updateBookingPageInputSchema,
   updateCalendarEventInputSchema,
@@ -262,6 +267,9 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_create_audience: 20,
   shipmail_update_audience: 20,
   shipmail_delete_audience: 5,
+  shipmail_update_audience_feed: 20,
+  shipmail_rotate_audience_feed: 20,
+  shipmail_revoke_audience_feed: 20,
   shipmail_add_subscriber: 200,
   shipmail_add_subscribers_batch: 20,
   shipmail_update_subscriber: 100,
@@ -414,8 +422,8 @@ export function registerTools(
 
   const server = {
     registerTool<
-      OutputArgs extends ZodRawShapeCompat | AnySchema,
-      InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
+      OutputArgs extends StandardSchemaWithJSON,
+      InputArgs extends undefined | StandardSchemaWithJSON = undefined,
     >(
       name: string,
       config: {
@@ -2951,6 +2959,95 @@ export function registerTools(
           await client.audiences.delete(args.id, mutationOptions(args));
           return { result: { ok: true, id: args.id } };
         }),
+    );
+  });
+
+  registerIfAllowed("shipmail_get_audience_feed", () => {
+    server.registerTool(
+      "shipmail_get_audience_feed",
+      {
+        title: "Get Audience Feed",
+        description:
+          "Fetch an audience's Atom feed settings and current URL. Anyone with the URL can read the feed.",
+        inputSchema: audienceFeedInputSchema,
+        outputSchema: audienceFeedOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ audience_id }) =>
+        runTool("shipmail_get_audience_feed", audienceFeedOutputSchema, async () => ({
+          feed: await client.audiences.feeds.get(audience_id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_update_audience_feed", () => {
+    server.registerTool(
+      "shipmail_update_audience_feed",
+      {
+        title: "Update Audience Feed",
+        description:
+          "Enable or disable an audience's Atom feed and update its public feed metadata.",
+        inputSchema: updateAudienceFeedInputSchema,
+        outputSchema: audienceFeedOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) => {
+        const { audience_id, ...rest } = stripIdempotencyKey(args);
+        return runTool("shipmail_update_audience_feed", audienceFeedOutputSchema, async () => ({
+          feed: await client.audiences.feeds.update(audience_id, rest, mutationOptions(args)),
+        }));
+      },
+    );
+  });
+
+  registerIfAllowed("shipmail_rotate_audience_feed", () => {
+    server.registerTool(
+      "shipmail_rotate_audience_feed",
+      {
+        title: "Rotate Audience Feed URL",
+        description:
+          "Generate a replacement feed URL. The current URL redirects to it until the next rotation, which permanently breaks the oldest URL.",
+        inputSchema: audienceFeedMutationInputSchema,
+        outputSchema: audienceFeedOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_rotate_audience_feed", audienceFeedOutputSchema, async () => ({
+          feed: await client.audiences.feeds.rotate(args.audience_id, mutationOptions(args)),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_revoke_audience_feed", () => {
+    server.registerTool(
+      "shipmail_revoke_audience_feed",
+      {
+        title: "Revoke Audience Feed URLs",
+        description:
+          "Immediately disable the current and every previous feed URL, then return a replacement. Existing readers must subscribe again.",
+        inputSchema: audienceFeedMutationInputSchema,
+        outputSchema: audienceFeedOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_revoke_audience_feed", audienceFeedOutputSchema, async () => ({
+          feed: await client.audiences.feeds.revoke(args.audience_id, mutationOptions(args)),
+        })),
     );
   });
 

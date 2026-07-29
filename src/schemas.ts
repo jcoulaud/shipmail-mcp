@@ -1752,6 +1752,19 @@ export const audienceSchema = z.object({
   updated_at: z.string(),
 });
 
+export const audienceFeedSchema = z.object({
+  object: z.literal("audience_feed"),
+  audience_id: z.string(),
+  enabled: z.boolean(),
+  title: z.string().nullable(),
+  subtitle: z.string().nullable(),
+  site_url: z.string().nullable(),
+  author_name: z.string().nullable(),
+  icon_url: z.string().nullable(),
+  url: z.string().nullable(),
+  updated_at: z.string(),
+});
+
 export const subscriberSchema = z.object({
   object: z.literal("subscriber"),
   id: z.string(),
@@ -1771,6 +1784,7 @@ export const subscriberResultSchema = z.object({
 });
 
 export const audienceOutputSchema = z.object({ audience: audienceSchema });
+export const audienceFeedOutputSchema = z.object({ feed: audienceFeedSchema });
 export const audiencesOutputSchema = z.object({
   data: z.array(audienceSchema),
   pagination: paginationSchema,
@@ -1800,6 +1814,42 @@ export const updateAudienceInputSchema = z.object({
   id: idSchema,
   name: noControlString(200, "name").min(1).optional(),
   description: noControlString(2000, "description").nullish(),
+  idempotency_key: idempotencyKeySchema,
+});
+
+export const audienceFeedInputSchema = z.object({
+  audience_id: idSchema.describe("Audience ID."),
+});
+
+// The API caps feed URLs at 2000 characters (updateAudienceFeedApiSchema); mirror it so
+// the MCP never accepts a URL the API would reject with 422.
+const feedPublicHttpsUrlSchema = publicHttpsUrlSchema.refine(
+  (value) => value.length <= 2_000,
+  "URL must be 2000 characters or fewer.",
+);
+
+export const updateAudienceFeedInputSchema = audienceFeedInputSchema
+  .extend({
+    enabled: z.boolean().optional(),
+    title: noControlString(200, "title").nullish(),
+    subtitle: noControlString(500, "subtitle").nullish(),
+    site_url: feedPublicHttpsUrlSchema.nullish(),
+    author_name: noControlString(200, "author_name").nullish(),
+    icon_url: feedPublicHttpsUrlSchema.nullish(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine(
+    (value) =>
+      value.enabled !== undefined ||
+      value.title !== undefined ||
+      value.subtitle !== undefined ||
+      value.site_url !== undefined ||
+      value.author_name !== undefined ||
+      value.icon_url !== undefined,
+    { message: "Provide at least one feed setting to update." },
+  );
+
+export const audienceFeedMutationInputSchema = audienceFeedInputSchema.extend({
   idempotency_key: idempotencyKeySchema,
 });
 
@@ -1918,6 +1968,8 @@ export const newsletterSchema = z.object({
   scheduled_at: z.string().nullable(),
   approved_at: z.string().nullable(),
   started_at: z.string().nullable(),
+  published_at: z.string().nullable(),
+  archive_url: z.string().nullable(),
   completed_at: z.string().nullable(),
   cancelled_at: z.string().nullable(),
   created_at: z.string(),

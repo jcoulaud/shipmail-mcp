@@ -40,6 +40,16 @@ describe("MCP transport capability derivation", () => {
     });
   });
 
+  test("marks irreversible feed lifecycle operations as destructive", () => {
+    for (const toolName of ["shipmail_rotate_audience_feed", "shipmail_revoke_audience_feed"]) {
+      expect(MCP_CAPABILITIES.find((capability) => capability.toolName === toolName)).toMatchObject(
+        {
+          effect: "destructive",
+        },
+      );
+    }
+  });
+
   test("derives hosted OAuth permission groups from the hosted tool catalog", () => {
     expect(MCP_HOSTED_OAUTH_PERMISSION_GROUP_NAMES).not.toContain("partner_admin");
     for (const group of MCP_HOSTED_OAUTH_PERMISSION_GROUP_NAMES) {

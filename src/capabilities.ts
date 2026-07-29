@@ -290,6 +290,10 @@ const CAPABILITY_ROWS = [
   ["shipmail_get_audience", "getAudience", "audiences:read"],
   ["shipmail_update_audience", "updateAudience", "audiences:write"],
   ["shipmail_delete_audience", "deleteAudience", "audiences:write"],
+  ["shipmail_get_audience_feed", "getAudienceFeed", "audiences:read"],
+  ["shipmail_update_audience_feed", "updateAudienceFeed", "audiences:write"],
+  ["shipmail_rotate_audience_feed", "rotateAudienceFeedToken", "audiences:write"],
+  ["shipmail_revoke_audience_feed", "revokeAudienceFeedToken", "audiences:write"],
   ["shipmail_add_subscriber", "addSubscriber", "audiences:write"],
   ["shipmail_add_subscribers_batch", "addSubscribersBatch", "audiences:write"],
   ["shipmail_list_subscribers", "listSubscribers", "audiences:read"],
@@ -416,6 +420,8 @@ const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   "shipmail_rotate_webhook_secret",
   "shipmail_consume_partner_mailbox_credential_grant",
   "shipmail_set_mailbox_rules",
+  "shipmail_rotate_audience_feed",
+  "shipmail_revoke_audience_feed",
 ]);
 
 const EXTERNAL_WRITE_TOOLS: ReadonlySet<string> = new Set([
