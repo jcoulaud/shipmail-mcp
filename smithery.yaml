@@ -3,7 +3,7 @@ name: shipmail-mcp
 version: 0.6.2
 description: Official Shipmail MCP server for AI-agent custom-domain business email inboxes with REST API and webhooks.
 author: ShipMail
-repository: https://github.com/jcoulaud/shipmail-mcp
+repository: https://github.com/shipmail-to/shipmail-mcp
 homepage: https://shipmail.to/docs/mcp
 license: MIT
 category: productivity
