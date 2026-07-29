@@ -25,9 +25,9 @@ const NO_CONTROL_CHARS = /^[^\x00-\x1F\x7F]*$/;
 // `z.string().min(1).max(253)` so prompt-injection bytes cannot pass.
 const DOMAIN_NAME_REGEX =
   /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
-// Cursor tokens are opaque base64-ish; restrict character set to prevent header
-// injection or LLM-driven smuggling through pagination state.
-const CURSOR_REGEX = /^[A-Za-z0-9_\-=.+/]{1,512}$/;
+// Cursor tokens are opaque base64-ish. The server caps signed cursors at 8 KiB;
+// mirror that bound while restricting the character set to prevent injection.
+const CURSOR_REGEX = /^[A-Za-z0-9_\-=.+/]+$/;
 // SUPPRESSION_REASONS is not exported by the SDK; mirror the OpenAPI enum here.
 const SUPPRESSION_REASONS = ["hard_bounce", "complaint", "manual"] as const;
 const SYSTEM_FOLDER_NAMES = [
@@ -188,7 +188,8 @@ export const domainNameSchema = z
 export const paginationInputSchema = z.object({
   cursor: z
     .string()
-    .regex(CURSOR_REGEX, "Cursor must be 1-512 characters of [A-Za-z0-9_\\-=.+/].")
+    .max(8_192, "Cursor must not exceed 8192 characters.")
+    .regex(CURSOR_REGEX, "Cursor must contain only [A-Za-z0-9_\\-=.+/].")
     .optional()
     .describe("Pagination cursor returned by the previous call."),
   limit: z.number().int().min(1).max(100).default(25).describe("Maximum results to return."),
@@ -777,6 +778,24 @@ export const messageSchema = z.object({
   updated_at: z.string(),
 });
 
+export const messageAnalyticsSchema = z.object({
+  object: z.literal("message_analytics"),
+  id: z.string(),
+  mailbox_id: z.string(),
+  thread_id: z.string().nullable(),
+  client_reference: z.string().nullable(),
+  direction: z.enum(["inbound", "outbound"] as const),
+  contact_addresses: z.array(z.string().email()),
+  recipient_count: z.number().int().nonnegative(),
+  attachment_count: z.number().int().nonnegative(),
+  source: z.enum(MESSAGE_SOURCES),
+  mode: z.enum(["live", "test"] as const),
+  status: z.enum(MESSAGE_STATUSES),
+  scheduled_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const scheduledMessageSchema = z.object({
   object: z.literal("scheduled_message"),
   id: z.string(),
@@ -1008,6 +1027,12 @@ export const mailboxesOutputSchema = z.object({
 export const messagesOutputSchema = z.object({
   data: z.array(messageSchema),
   pagination: paginationSchema,
+});
+export const messageAnalyticsOutputSchema = z.object({
+  data: z.array(messageAnalyticsSchema),
+  pagination: paginationSchema.extend({
+    snapshot_at: z.string(),
+  }),
 });
 export const scheduledMessageOutputSchema = z.object({
   scheduled_message: scheduledMessageSchema,
@@ -1460,6 +1485,20 @@ export const listMessagesInputSchema = paginationInputSchema
   .refine((value) => Boolean(value.mailbox_id || value.client_reference), {
     message: "Provide mailbox_id or client_reference.",
   });
+export const listMessageAnalyticsInputSchema = paginationInputSchema
+  .extend({
+    updated_after: z.iso.datetime({ offset: true }).optional(),
+    updated_before: z.iso.datetime({ offset: true }).optional(),
+  })
+  .refine(
+    (value) =>
+      !(value.updated_after && value.updated_before) ||
+      new Date(value.updated_after).getTime() < new Date(value.updated_before).getTime(),
+    {
+      message: "updated_after must be earlier than updated_before.",
+      path: ["updated_after"],
+    },
+  );
 export const openAiFileInputSchema = z
   .object({
     // The component prefers a freshly minted host download URL and only falls back to this one.

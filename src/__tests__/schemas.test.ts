@@ -15,6 +15,7 @@ import {
   idempotencyKeySchema,
   injectSandboxInboundInputSchema,
   listMailboxInboxMessagesInputSchema,
+  listMessageAnalyticsInputSchema,
   listWebhookDeliveriesInputSchema,
   mailboxFoldersSchema,
   mailboxIdentitiesSchema,
@@ -75,6 +76,47 @@ describe("messageSchema", () => {
       matched_rule_ids: ["rule_invoices", "rule_priority"],
       stop_rule_id: "rule_priority",
     });
+  });
+});
+
+describe("listMessageAnalyticsInputSchema", () => {
+  test("accepts a realistically sized signed v2 analytics cursor", () => {
+    const body = Buffer.from(
+      JSON.stringify({
+        version: "2",
+        api_key_id: "key_01K1B7M3W1Q2R3S4T5U6V7W8X9",
+        access_scope: "x".repeat(43),
+        organization_id: "org_01K1B7M3W1Q2R3S4T5U6V7W8X9",
+        mode: "live",
+        updated_after: "2026-07-01T00:00:00.000Z",
+        updated_before: "2026-07-29T12:00:00.000Z",
+        position_at: "2026-07-28T09:00:05.123456",
+        id: `msg_${"a".repeat(96)}`,
+      }),
+    ).toString("base64url");
+    const cursor = `${body}.${"s".repeat(43)}`;
+
+    expect(cursor.length).toBeGreaterThan(512);
+    expect(listMessageAnalyticsInputSchema.parse({ cursor }).cursor).toBe(cursor);
+  });
+
+  test("accepts ISO timestamps with non-UTC offsets", () => {
+    const input = listMessageAnalyticsInputSchema.parse({
+      updated_after: "2026-07-28T09:00:00+01:00",
+      updated_before: "2026-07-29T09:00:00+01:00",
+    });
+
+    expect(input.updated_after).toBe("2026-07-28T09:00:00+01:00");
+    expect(input.updated_before).toBe("2026-07-29T09:00:00+01:00");
+  });
+
+  test("rejects inverted timestamp windows with offsets", () => {
+    expect(() =>
+      listMessageAnalyticsInputSchema.parse({
+        updated_after: "2026-07-29T09:00:00+01:00",
+        updated_before: "2026-07-28T09:00:00+01:00",
+      }),
+    ).toThrow();
   });
 });
 

@@ -2483,6 +2483,74 @@
         }
       }
     },
+    "/messages/analytics": {
+      "get": {
+        "operationId": "listMessageAnalytics",
+        "summary": "List message analytics",
+        "description": "List an organization-wide, analytics-safe message projection in stable ascending (updated_at, id) order. The first page is bounded by updated_before, which cannot be later than the server's current time, or by the server's current time when omitted; subsequent pages retain that snapshot in the signed cursor. The projection excludes subjects, BCC addresses, headers, free-form metadata, attachment filenames, auto-reply content, and message bodies. contact_addresses contains personal data. client_reference is caller-defined and may contain personal or customer data.",
+        "tags": ["Messages"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "messages:read",
+        "parameters": [
+          {
+            "name": "updated_after",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive lower bound for updated_at. Use the previous completed sync's snapshot_at to begin the next sync.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "updated_before",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive upper bound for updated_at. Must not be later than the server's current time and defaults to the server time captured for the first page.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A bounded page of analytics-safe messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MessageAnalytics"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/MessageAnalyticsPagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/messages/{id}": {
       "parameters": [
         {
@@ -9221,6 +9289,100 @@
           }
         }
       },
+      "MessageAnalytics": {
+        "type": "object",
+        "description": "A deliberately limited message projection for analytics connectors. Email addresses are personal data, and caller-defined client_reference values may contain personal or customer data. Content and sensitive delivery fields are excluded.",
+        "required": [
+          "object",
+          "id",
+          "mailbox_id",
+          "thread_id",
+          "client_reference",
+          "direction",
+          "contact_addresses",
+          "recipient_count",
+          "attachment_count",
+          "source",
+          "mode",
+          "status",
+          "scheduled_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "message_analytics"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mailbox_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": ["string", "null"]
+          },
+          "client_reference": {
+            "type": ["string", "null"],
+            "description": "Caller-defined organization-scoped reference. May contain personal or customer data."
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["inbound", "outbound"]
+          },
+          "contact_addresses": {
+            "type": "array",
+            "description": "Normalized unique sender address for inbound messages or To/Cc addresses for outbound messages. BCC addresses are never included. Contains personal data.",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "recipient_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total To, Cc, and Bcc recipients. BCC addresses are counted but never returned."
+          },
+          "attachment_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string",
+            "enum": ["api", "dashboard", "newsletter", "inbound", "smtp", "assistant"]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/DataMode"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "queued",
+              "sent",
+              "delivered",
+              "bounced",
+              "complained",
+              "failed",
+              "suppressed",
+              "cancelled"
+            ]
+          },
+          "scheduled_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Thread": {
         "type": "object",
         "required": [
@@ -9653,6 +9815,29 @@
           "limit": {
             "type": "integer",
             "description": "Number of items per page."
+          }
+        }
+      },
+      "MessageAnalyticsPagination": {
+        "type": "object",
+        "required": ["next_cursor", "has_more", "limit", "snapshot_at"],
+        "properties": {
+          "next_cursor": {
+            "type": ["string", "null"],
+            "description": "Signed cursor for the next page. Null when the bounded snapshot is complete."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether more results exist in this bounded snapshot."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of items in this page."
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive upper bound retained across every page. Use it as updated_after for the next incremental sync."
           }
         }
       },

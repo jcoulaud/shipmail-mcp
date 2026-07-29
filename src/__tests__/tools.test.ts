@@ -75,6 +75,7 @@ describe("registerTools", () => {
       "shipmail_undo_mailbox_import",
       "shipmail_inject_sandbox_inbound",
       "shipmail_list_messages",
+      "shipmail_list_message_analytics",
       "shipmail_get_message",
       "shipmail_compose_message_with_file",
       "shipmail_prepare_staged_attachment_upload",

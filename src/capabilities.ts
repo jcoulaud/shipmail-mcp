@@ -258,6 +258,7 @@ const CAPABILITY_ROWS = [
   ["shipmail_undo_mailbox_import", "undoMailboxImport", "mailboxes:write"],
   ["shipmail_inject_sandbox_inbound", "injectSandboxInbound", "messages:write"],
   ["shipmail_list_messages", "listMessages", "messages:read"],
+  ["shipmail_list_message_analytics", "listMessageAnalytics", "messages:read"],
   ["shipmail_compose_message_with_file", "prepareStagedAttachmentUpload", "messages:send"],
   ["shipmail_prepare_staged_attachment_upload", "prepareStagedAttachmentUpload", "messages:send"],
   ["shipmail_send_message", "sendMessage", "messages:send"],

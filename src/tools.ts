@@ -102,6 +102,7 @@ import {
   listMailboxesInputSchema,
   listMailboxInboxMessagesInputSchema,
   listMailboxInboxThreadsInputSchema,
+  listMessageAnalyticsInputSchema,
   listMessagesInputSchema,
   listNewsletterAssetsInputSchema,
   listNewslettersInputSchema,
@@ -123,6 +124,7 @@ import {
   mailboxIdentitiesOutputSchema,
   mailboxOutputSchema,
   mailboxRulesOutputSchema,
+  messageAnalyticsOutputSchema,
   messageOutputSchema,
   messagesOutputSchema,
   moveInboxMessageInputSchema,
@@ -1934,6 +1936,24 @@ export function registerTools(
               };
           return client.messages.list(params);
         }),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_message_analytics", () => {
+    server.registerTool(
+      "shipmail_list_message_analytics",
+      {
+        title: "List Message Analytics",
+        description:
+          "List an organization-wide, analytics-safe message projection in stable updated_at order. The response excludes subjects, BCC addresses, headers, free-form metadata, attachment filenames, and message bodies. contact_addresses and caller-defined client_reference values may contain personal data.",
+        inputSchema: listMessageAnalyticsInputSchema,
+        outputSchema: messageAnalyticsOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async (args) =>
+        runTool("shipmail_list_message_analytics", messageAnalyticsOutputSchema, async () =>
+          client.messages.listAnalytics(args),
+        ),
     );
   });
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.3...shipmail-mcp-v0.6.4) (2026-07-29)
+
+
+### Features
+
+* **api:** add message analytics sync endpoint ([#1047](https://github.com/shipmail-to/Shipmail/issues/1047)) ([84d2047](https://github.com/shipmail-to/Shipmail/commit/84d20479ca9fbe69674e06234a9b003c4e6e1316))
+
 ## [0.6.3](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.2...shipmail-mcp-v0.6.3) (2026-07-29)
 
 
