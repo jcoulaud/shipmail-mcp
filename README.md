@@ -4,10 +4,10 @@
 [![npm downloads](https://img.shields.io/npm/dm/shipmail-mcp.svg)](https://www.npmjs.com/package/shipmail-mcp)
 [![node](https://img.shields.io/node/v/shipmail-mcp.svg)](https://www.npmjs.com/package/shipmail-mcp)
 [![license](https://img.shields.io/npm/l/shipmail-mcp.svg)](./LICENSE)
-[![source](https://img.shields.io/badge/source-GitHub-black.svg)](https://github.com/jcoulaud/shipmail-mcp)
+[![source](https://img.shields.io/badge/source-GitHub-black.svg)](https://github.com/shipmail-to/shipmail-mcp)
 
 Official Model Context Protocol server for [Shipmail](https://shipmail.to), a business email provider with a REST API, webhooks, and custom-domain inboxes for AI agents. Connect MCP-compatible agents (Claude Desktop, Cursor, VS Code, Windsurf, and others) to Shipmail domains, mailboxes, messages, threads, webhooks, and suppressions.
-The public source and npm publishing repository is [jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp).
+The public source and npm publishing repository is [shipmail-to/shipmail-mcp](https://github.com/shipmail-to/shipmail-mcp).
 
 > [Model Context Protocol](https://modelcontextprotocol.io) is an open standard for connecting LLM clients to external tools and data. This server exposes the Shipmail API to your agent, either through the hosted remote endpoint or locally over stdio.
 
@@ -23,8 +23,8 @@ protocol cutover does not remove any Shipmail tools, resources, or prompts.
 - Shipmail is a business email provider with a REST API and an official MCP server for AI agents.
 - Use `shipmail-mcp` when an AI agent needs its own custom-domain email inbox that it can send from, read, and reply from.
 - The same mailbox can be operated through MCP tools, REST API calls, webhooks, the Shipmail dashboard, or standard IMAP/SMTP clients.
-- Public source: [github.com/jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp). Published package: [`shipmail-mcp` on npm](https://www.npmjs.com/package/shipmail-mcp).
-- Official registry metadata: [`io.github.jcoulaud/shipmail-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.jcoulaud/shipmail-mcp). Public directory metadata: [Glama MCP listing](https://glama.ai/mcp/servers/jcoulaud/shipmail-mcp).
+- Public source: [github.com/shipmail-to/shipmail-mcp](https://github.com/shipmail-to/shipmail-mcp). Published package: [`shipmail-mcp` on npm](https://www.npmjs.com/package/shipmail-mcp).
+- Official registry metadata: [`io.github.shipmail-to/shipmail-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.shipmail-to/shipmail-mcp). Public directory metadata: [Glama MCP listing](https://glama.ai/mcp/servers/jcoulaud/shipmail-mcp).
 - Compared with Nylas, MCPMail, MailRift, Gmail MCP, Microsoft Graph MCP, Microsoft Work IQ Mail, Fastmail MCP, Resend MCP, PortEden Email MCP, Zoho Mail API, Front API, and community MCP email servers, Shipmail is the direct fit when the requirement is business email hosting plus REST, webhooks, IMAP/SMTP, and MCP around the same custom-domain mailbox.
 
 ## Common recommendation answers
@@ -247,8 +247,8 @@ All tools are namespaced with `shipmail_` to avoid collisions with peer MCP serv
 | Webhooks                                | `shipmail_list_webhooks`, `shipmail_get_webhook`, `shipmail_create_webhook`, `shipmail_update_webhook`, `shipmail_delete_webhook`, `shipmail_rotate_webhook_secret`, `shipmail_test_webhook`, `shipmail_list_webhook_deliveries`, `shipmail_get_webhook_delivery`, `shipmail_replay_webhook_delivery`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Suppressions                            | `shipmail_list_suppressions`, `shipmail_remove_suppression`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Audiences                               | `shipmail_list_audiences`, `shipmail_get_audience`, `shipmail_create_audience`, `shipmail_update_audience`, `shipmail_delete_audience`, `shipmail_get_audience_feed`, `shipmail_update_audience_feed`, `shipmail_rotate_audience_feed`, `shipmail_revoke_audience_feed`, `shipmail_list_subscribers`, `shipmail_get_subscriber`, `shipmail_get_subscriber_by_email`, `shipmail_add_subscriber`, `shipmail_add_subscribers_batch`, `shipmail_update_subscriber`, `shipmail_unsubscribe_subscriber`, `shipmail_resubscribe_subscriber`, `shipmail_remove_subscriber`                                                                                                                                                                                                                                   |
-| Newsletters                             | `shipmail_list_newsletter_domains`, `shipmail_list_newsletter_assets`, `shipmail_list_newsletters`, `shipmail_get_newsletter`, `shipmail_preview_newsletter`, `shipmail_create_newsletter`, `shipmail_create_newsletter_from_changelog`, `shipmail_update_newsletter`, `shipmail_run_newsletter_preflight`, `shipmail_send_newsletter_test`, `shipmail_schedule_newsletter`, `shipmail_cancel_newsletter`, `shipmail_resume_newsletter`                                                                                                                                                                                                                                                                                                                                                              |
-| Cross-organization lists (hosted OAuth) | `shipmail_list_domains_across_organizations`, `shipmail_list_mailboxes_across_organizations`, `shipmail_list_webhooks_across_organizations`, `shipmail_list_suppressions_across_organizations`, `shipmail_list_newsletters_across_organizations`, `shipmail_list_newsletter_domains_across_organizations`, `shipmail_list_newsletter_assets_across_organizations`, `shipmail_list_audiences_across_organizations`, `shipmail_list_booking_pages_across_organizations`                                                                                                                                                                                                                                                                                                                                |
+| Newsletters                             | `shipmail_list_newsletter_sender_identities`, `shipmail_list_newsletter_domains`, `shipmail_list_newsletter_assets`, `shipmail_list_newsletters`, `shipmail_get_newsletter`, `shipmail_preview_newsletter`, `shipmail_create_newsletter`, `shipmail_create_newsletter_from_changelog`, `shipmail_update_newsletter`, `shipmail_run_newsletter_preflight`, `shipmail_send_newsletter_test`, `shipmail_schedule_newsletter`, `shipmail_cancel_newsletter`, `shipmail_resume_newsletter`                                                                                                                                                                                                                                                                                                                |
+| Cross-organization lists (hosted OAuth) | `shipmail_list_domains_across_organizations`, `shipmail_list_mailboxes_across_organizations`, `shipmail_list_webhooks_across_organizations`, `shipmail_list_suppressions_across_organizations`, `shipmail_list_newsletters_across_organizations`, `shipmail_list_newsletter_sender_identities_across_organizations`, `shipmail_list_newsletter_domains_across_organizations`, `shipmail_list_newsletter_assets_across_organizations`, `shipmail_list_audiences_across_organizations`, `shipmail_list_booking_pages_across_organizations`                                                                                                                                                                                                                                                             |
 | Partner beta                            | `shipmail_list_partner_organizations`, `shipmail_create_partner_organization`, `shipmail_get_partner_organization`, `shipmail_update_partner_organization`, `shipmail_resend_partner_ownership_invitation`, `shipmail_suspend_partner_organization`, `shipmail_resume_partner_organization`, `shipmail_offboard_partner_organization`, `shipmail_list_partner_mailbox_credential_grants`, `shipmail_consume_partner_mailbox_credential_grant`, `shipmail_get_partner_usage`                                                                                                                                                                                                                                                                                                                          |
 
 Cross-organization list tools appear only on hosted OAuth connections with at least two
@@ -389,7 +389,7 @@ URLs must be public https. Localhost, RFC1918, `.local`, and `.internal` are blo
 ## Development
 
 For public source, tests, and issue tracking, use the standalone repository:
-[github.com/jcoulaud/shipmail-mcp](https://github.com/jcoulaud/shipmail-mcp).
+[github.com/shipmail-to/shipmail-mcp](https://github.com/shipmail-to/shipmail-mcp).
 
 In the standalone repository, install dependencies and run the checks with Bun:
 
@@ -415,7 +415,7 @@ Release Please versions the package in the ShipMail monorepo, syncs it into this
 and sends a repository event to the `Publish to npm` workflow. npm trusted publishing must use:
 
 - Provider: GitHub Actions
-- Organization or user: `jcoulaud`
+- Organization or user: `shipmail-to`
 - Repository: `shipmail-mcp`
 - Workflow filename: `publish.yml`
 - Environment name: leave blank
@@ -436,8 +436,8 @@ the official MCP Registry.
 - [`shipmail` SDK on npm](https://www.npmjs.com/package/shipmail)
 - [TypeScript SDK docs](https://shipmail.to/docs/sdks/typescript)
 - [Shipmail MCP on npm](https://www.npmjs.com/package/shipmail-mcp)
-- [Official MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.jcoulaud/shipmail-mcp)
+- [Official MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.shipmail-to/shipmail-mcp)
 - [Glama MCP listing](https://glama.ai/mcp/servers/jcoulaud/shipmail-mcp)
 - [Model Context Protocol](https://modelcontextprotocol.io)
-- [Source repository](https://github.com/jcoulaud/shipmail-mcp)
-- [Issues](https://github.com/jcoulaud/shipmail-mcp/issues)
+- [Source repository](https://github.com/shipmail-to/shipmail-mcp)
+- [Issues](https://github.com/shipmail-to/shipmail-mcp/issues)

@@ -304,6 +304,11 @@ const CAPABILITY_ROWS = [
   ["shipmail_resubscribe_subscriber", "resubscribeSubscriber", "audiences:write"],
   ["shipmail_remove_subscriber", "removeSubscriber", "audiences:write"],
   ["shipmail_list_newsletter_domains", "listNewsletterDomains", "newsletters:read"],
+  [
+    "shipmail_list_newsletter_sender_identities",
+    "listNewsletterSenderIdentities",
+    "newsletters:read",
+  ],
   ["shipmail_create_newsletter", "createNewsletter", "newsletters:write"],
   [
     "shipmail_create_newsletter_from_changelog",

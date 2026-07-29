@@ -132,6 +132,7 @@ import {
   newsletterOutputSchema,
   newsletterPreflightOutputSchema,
   newsletterPreviewOutputSchema,
+  newsletterSenderIdentitiesOutputSchema,
   newslettersOutputSchema,
   newsletterTestSendOutputSchema,
   partnerInvitationOutputSchema,
@@ -2542,7 +2543,7 @@ export function registerTools(
       {
         title: "List Newsletter Domains",
         description:
-          "List configured newsletter sending domains in the authenticated ShipMail organization. Use this to find newsletter_domain_id values before creating a newsletter.",
+          "List configured newsletter sending domains and their verification status in the authenticated ShipMail organization.",
         inputSchema: listNewslettersInputSchema,
         outputSchema: newsletterDomainsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -2550,6 +2551,26 @@ export function registerTools(
       async (args) =>
         runTool("shipmail_list_newsletter_domains", newsletterDomainsOutputSchema, async () =>
           client.newsletters.domains.list(args),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_newsletter_sender_identities", () => {
+    server.registerTool(
+      "shipmail_list_newsletter_sender_identities",
+      {
+        title: "List Newsletter Sender Identities",
+        description:
+          "List configured newsletter sender identities. Use this to find sender_identity_id values before creating a newsletter.",
+        inputSchema: listNewslettersInputSchema,
+        outputSchema: newsletterSenderIdentitiesOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async (args) =>
+        runTool(
+          "shipmail_list_newsletter_sender_identities",
+          newsletterSenderIdentitiesOutputSchema,
+          async () => client.newsletters.senderIdentities.list(args),
         ),
     );
   });
@@ -2640,7 +2661,7 @@ export function registerTools(
       {
         title: "Create Newsletter",
         description:
-          "Create a newsletter draft for an audience and sending domain. Prefer blocks for body content; Shipmail renders them to email-safe HTML and text. Provide at least one of blocks, body_html, or body_text. Drafts must pass preflight before scheduling. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
+          "Create a newsletter draft for an audience and sender identity. Prefer blocks for body content; Shipmail renders them to email-safe HTML and text. Provide at least one of blocks, body_html, or body_text. Drafts must pass preflight before scheduling. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
         inputSchema: createNewsletterInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {
@@ -2709,13 +2730,12 @@ export function registerTools(
             id,
             {
               ...(rest.audience_id !== undefined ? { audience_id: rest.audience_id } : {}),
-              ...(rest.newsletter_domain_id !== undefined
-                ? { newsletter_domain_id: rest.newsletter_domain_id }
+              ...(rest.sender_identity_id !== undefined
+                ? { sender_identity_id: rest.sender_identity_id }
                 : {}),
               ...(rest.name !== undefined ? { name: rest.name } : {}),
               ...(rest.subject !== undefined ? { subject: rest.subject } : {}),
               ...(rest.preview_text !== undefined ? { preview_text: rest.preview_text } : {}),
-              ...(rest.from_name !== undefined ? { from_name: rest.from_name } : {}),
               ...(rest.body_html !== undefined ? { body_html: rest.body_html } : {}),
               ...(rest.body_text !== undefined ? { body_text: rest.body_text } : {}),
               ...(rest.blocks !== undefined ? { blocks: rest.blocks } : {}),

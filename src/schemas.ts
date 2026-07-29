@@ -1943,10 +1943,26 @@ export const newsletterDomainSchema = z.object({
   updated_at: z.string(),
 });
 
+export const newsletterSenderIdentitySchema = z.object({
+  object: z.literal("newsletter_sender_identity"),
+  id: z.string(),
+  newsletter_domain_id: z.string(),
+  from_name: z.string(),
+  from_address: z.string(),
+  business_name: z.string(),
+  postal_address: z.string().nullable(),
+  footer_text: z.string().nullable(),
+  domain_status: z.enum(NEWSLETTER_DOMAIN_STATUSES),
+  is_default: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const newsletterSchema = z.object({
   object: z.literal("newsletter"),
   id: z.string(),
   audience_id: z.string().nullable(),
+  sender_identity_id: z.string(),
   newsletter_domain_id: z.string(),
   reply_to_mailbox_id: z.string().nullable(),
   name: z.string(),
@@ -2095,6 +2111,10 @@ export const newsletterDomainsOutputSchema = z.object({
   data: z.array(newsletterDomainSchema),
   pagination: paginationSchema,
 });
+export const newsletterSenderIdentitiesOutputSchema = z.object({
+  data: z.array(newsletterSenderIdentitySchema),
+  pagination: paginationSchema,
+});
 export const newslettersOutputSchema = z.object({
   data: z.array(newsletterSchema),
   pagination: paginationSchema,
@@ -2212,11 +2232,10 @@ const newsletterBlockInputSchema: z.ZodType<NewsletterBlock> = z.discriminatedUn
 
 const newsletterDraftFieldsInputSchema = {
   audience_id: idSchema.describe("Audience ID."),
-  newsletter_domain_id: idSchema.describe("Newsletter sending domain ID."),
+  sender_identity_id: idSchema.describe("Newsletter sender identity ID."),
   name: noControlString(160, "name").min(1).describe("Internal newsletter draft name."),
   subject: noControlString(200, "subject").min(1).describe("Email subject line."),
   preview_text: noControlString(240, "preview_text").nullish(),
-  from_name: noControlString(120, "from_name").nullish(),
   body_html: z.string().max(250_000).nullish(),
   body_text: z.string().max(250_000).nullish(),
   blocks: z.array(newsletterBlockInputSchema).min(1).max(200).optional(),
@@ -2260,11 +2279,10 @@ const newsletterChangelogMediaInputSchema = z.discriminatedUnion("kind", [
 
 export const createNewsletterFromChangelogInputSchema = z.object({
   audience_id: idSchema.describe("Audience ID."),
-  newsletter_domain_id: idSchema.describe("Newsletter sending domain ID."),
+  sender_identity_id: idSchema.describe("Newsletter sender identity ID."),
   name: noControlString(160, "name").min(1).describe("Internal newsletter draft name."),
   subject: noControlString(200, "subject").min(1).describe("Email subject line."),
   preview_text: noControlString(240, "preview_text").nullish(),
-  from_name: noControlString(120, "from_name").nullish(),
   tone: z.enum(["concise", "friendly", "technical"]).default("concise"),
   entries: z
     .array(
@@ -2301,11 +2319,10 @@ export const updateNewsletterInputSchema = z
   .object({
     id: idSchema.describe("Newsletter ID."),
     audience_id: newsletterDraftFieldsInputSchema.audience_id.optional(),
-    newsletter_domain_id: newsletterDraftFieldsInputSchema.newsletter_domain_id.optional(),
+    sender_identity_id: newsletterDraftFieldsInputSchema.sender_identity_id.optional(),
     name: newsletterDraftFieldsInputSchema.name.optional(),
     subject: newsletterDraftFieldsInputSchema.subject.optional(),
     preview_text: newsletterDraftFieldsInputSchema.preview_text,
-    from_name: newsletterDraftFieldsInputSchema.from_name,
     body_html: newsletterDraftFieldsInputSchema.body_html,
     body_text: newsletterDraftFieldsInputSchema.body_text,
     blocks: newsletterDraftFieldsInputSchema.blocks,
@@ -2317,11 +2334,10 @@ export const updateNewsletterInputSchema = z
   .refine(
     (value) =>
       value.audience_id !== undefined ||
-      value.newsletter_domain_id !== undefined ||
+      value.sender_identity_id !== undefined ||
       value.name !== undefined ||
       value.subject !== undefined ||
       value.preview_text !== undefined ||
-      value.from_name !== undefined ||
       value.body_html !== undefined ||
       value.body_text !== undefined ||
       value.blocks !== undefined ||

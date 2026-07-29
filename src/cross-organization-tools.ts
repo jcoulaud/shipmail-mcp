@@ -16,6 +16,7 @@ import {
   newsletterAssetSchema,
   newsletterDomainSchema,
   newsletterSchema,
+  newsletterSenderIdentitySchema,
   paginationSchema,
   suppressionSchema,
   webhookSchema,
@@ -163,6 +164,15 @@ export const CROSS_ORGANIZATION_LIST_BEHAVIORS = [
       "List newsletter sending domains in every organization on this connection. Returns one independently paginated success or failure section per organization.",
     itemSchema: newsletterDomainSchema,
     list: (client, params) => client.newsletters.domains.list(params),
+  },
+  {
+    toolName: "shipmail_list_newsletter_sender_identities_across_organizations",
+    baseToolName: "shipmail_list_newsletter_sender_identities",
+    title: "List Newsletter Sender Identities Across Organizations",
+    description:
+      "List newsletter sender identities in every organization on this connection. Returns one independently paginated success or failure section per organization.",
+    itemSchema: newsletterSenderIdentitySchema,
+    list: (client, params) => client.newsletters.senderIdentities.list(params),
   },
   {
     toolName: "shipmail_list_newsletter_assets_across_organizations",

@@ -116,6 +116,7 @@ describe("registerTools", () => {
       "shipmail_resubscribe_subscriber",
       "shipmail_remove_subscriber",
       "shipmail_list_newsletter_domains",
+      "shipmail_list_newsletter_sender_identities",
       "shipmail_list_newsletter_assets",
       "shipmail_register_newsletter_asset",
       "shipmail_list_newsletters",

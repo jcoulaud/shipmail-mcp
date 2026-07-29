@@ -822,7 +822,7 @@ describe("newsletter schemas", () => {
   test("create requires blocks, html, or text", () => {
     const out = createNewsletterInputSchema.parse({
       audience_id: "aud_123",
-      newsletter_domain_id: "nwsdom_123",
+      sender_identity_id: "nwsid_123",
       name: "July Update",
       subject: "What shipped in July",
       body_html: "<p>Updates</p>",
@@ -834,7 +834,7 @@ describe("newsletter schemas", () => {
     expect(() =>
       createNewsletterInputSchema.parse({
         audience_id: "aud_123",
-        newsletter_domain_id: "nwsdom_123",
+        sender_identity_id: "nwsid_123",
         name: "July Update",
         subject: "What shipped in July",
       }),
@@ -855,7 +855,7 @@ describe("newsletter schemas", () => {
     ] as const;
     const out = createNewsletterInputSchema.parse({
       audience_id: "aud_123",
-      newsletter_domain_id: "nwsdom_123",
+      sender_identity_id: "nwsid_123",
       name: "July Update",
       subject: "What shipped in July",
       blocks,
@@ -865,7 +865,7 @@ describe("newsletter schemas", () => {
     expect(() =>
       createNewsletterInputSchema.parse({
         audience_id: "aud_123",
-        newsletter_domain_id: "nwsdom_123",
+        sender_identity_id: "nwsid_123",
         name: "July Update",
         subject: "What shipped in July",
         blocks: Array.from({ length: 201 }, () => ({
@@ -879,7 +879,7 @@ describe("newsletter schemas", () => {
   test("create from changelog accepts entries and media", () => {
     const out = createNewsletterFromChangelogInputSchema.parse({
       audience_id: "aud_123",
-      newsletter_domain_id: "nwsdom_123",
+      sender_identity_id: "nwsid_123",
       name: "July Update",
       subject: "What shipped in July",
       tone: "technical",
@@ -921,7 +921,7 @@ describe("newsletter schemas", () => {
     expect(() =>
       createNewsletterInputSchema.parse({
         audience_id: "aud_123",
-        newsletter_domain_id: "nwsdom_123",
+        sender_identity_id: "nwsid_123",
         name: "July Update",
         subject: "What shipped in July",
         body_text: "Updates",
@@ -959,6 +959,7 @@ describe("newsletter schemas", () => {
         object: "newsletter",
         id: "nws_123",
         audience_id: "aud_123",
+        sender_identity_id: "nwsid_123",
         newsletter_domain_id: "nwsdom_123",
         reply_to_mailbox_id: null,
         name: "July Update",

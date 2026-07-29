@@ -5490,11 +5490,59 @@
         }
       }
     },
+    "/newsletter-sender-identities": {
+      "get": {
+        "operationId": "listNewsletterSenderIdentities",
+        "summary": "List newsletter sender identities",
+        "description": "List reusable newsletter sender identities. Use these IDs as sender_identity_id when creating newsletter drafts.",
+        "tags": ["Newsletters"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "newsletters:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of newsletter sender identities.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "pagination"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NewsletterSenderIdentity"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
     "/newsletter-domains": {
       "get": {
         "operationId": "listNewsletterDomains",
         "summary": "List newsletter domains",
-        "description": "List configured newsletter sending domains. Use these IDs as newsletter_domain_id when creating newsletter drafts.",
+        "description": "List configured newsletter sending domains and their verification status.",
         "tags": ["Newsletters"],
         "x-rate-limit-tier": "read",
         "x-scope": "newsletters:read",
@@ -12071,12 +12119,75 @@
           }
         }
       },
+      "NewsletterSenderIdentity": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "newsletter_domain_id",
+          "from_name",
+          "from_address",
+          "business_name",
+          "postal_address",
+          "footer_text",
+          "domain_status",
+          "is_default",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "newsletter_sender_identity"
+          },
+          "id": {
+            "type": "string"
+          },
+          "newsletter_domain_id": {
+            "type": "string"
+          },
+          "from_name": {
+            "type": "string",
+            "description": "Display name shown in the recipient's email client."
+          },
+          "from_address": {
+            "type": "string",
+            "format": "email"
+          },
+          "business_name": {
+            "type": "string",
+            "description": "Business or brand name shown in the newsletter footer."
+          },
+          "postal_address": {
+            "type": ["string", "null"]
+          },
+          "footer_text": {
+            "type": ["string", "null"]
+          },
+          "domain_status": {
+            "type": "string",
+            "enum": ["pending", "verifying", "verified", "failed", "disabled"]
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Newsletter": {
         "type": "object",
         "required": [
           "object",
           "id",
           "audience_id",
+          "sender_identity_id",
           "newsletter_domain_id",
           "name",
           "status",
@@ -12098,6 +12209,9 @@
           },
           "audience_id": {
             "type": ["string", "null"]
+          },
+          "sender_identity_id": {
+            "type": "string"
           },
           "newsletter_domain_id": {
             "type": "string"
@@ -12249,12 +12363,12 @@
       },
       "CreateNewsletterRequest": {
         "type": "object",
-        "required": ["audience_id", "newsletter_domain_id", "name", "subject"],
+        "required": ["audience_id", "sender_identity_id", "name", "subject"],
         "properties": {
           "audience_id": {
             "type": "string"
           },
-          "newsletter_domain_id": {
+          "sender_identity_id": {
             "type": "string"
           },
           "name": {
@@ -12266,9 +12380,6 @@
             "maxLength": 200
           },
           "preview_text": {
-            "type": ["string", "null"]
-          },
-          "from_name": {
             "type": ["string", "null"]
           },
           "body_html": {
@@ -12312,7 +12423,7 @@
           "audience_id": {
             "type": "string"
           },
-          "newsletter_domain_id": {
+          "sender_identity_id": {
             "type": "string"
           },
           "name": {
@@ -12324,9 +12435,6 @@
             "maxLength": 200
           },
           "preview_text": {
-            "type": ["string", "null"]
-          },
-          "from_name": {
             "type": ["string", "null"]
           },
           "body_html": {
@@ -13209,12 +13317,12 @@
       },
       "CreateNewsletterFromChangelogRequest": {
         "type": "object",
-        "required": ["audience_id", "newsletter_domain_id", "name", "subject", "entries"],
+        "required": ["audience_id", "sender_identity_id", "name", "subject", "entries"],
         "properties": {
           "audience_id": {
             "type": "string"
           },
-          "newsletter_domain_id": {
+          "sender_identity_id": {
             "type": "string"
           },
           "name": {
@@ -13228,10 +13336,6 @@
           "preview_text": {
             "type": ["string", "null"],
             "maxLength": 240
-          },
-          "from_name": {
-            "type": ["string", "null"],
-            "maxLength": 120
           },
           "tone": {
             "type": "string",

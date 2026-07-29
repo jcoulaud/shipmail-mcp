@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.2...shipmail-mcp-v0.6.3) (2026-07-29)
+
+
+### Features
+
+* **sdk:** support multiple newsletter sender identities ([a87b176](https://github.com/shipmail-to/Shipmail/commit/a87b176934efbdb623a0c215d2f75a578cceac35))
+
 ## [0.6.2](https://github.com/jcoulaud/ShipMail/compare/shipmail-mcp-v0.6.1...shipmail-mcp-v0.6.2) (2026-07-29)
 
 

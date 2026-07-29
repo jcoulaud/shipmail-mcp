@@ -119,6 +119,7 @@ describe("cross-organization tool allowlist", () => {
       "shipmail_list_suppressions_across_organizations",
       "shipmail_list_newsletters_across_organizations",
       "shipmail_list_newsletter_domains_across_organizations",
+      "shipmail_list_newsletter_sender_identities_across_organizations",
       "shipmail_list_newsletter_assets_across_organizations",
       "shipmail_list_audiences_across_organizations",
       "shipmail_list_booking_pages_across_organizations",
