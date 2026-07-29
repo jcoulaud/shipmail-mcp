@@ -9,7 +9,7 @@ import { VERSION } from "../version.js";
 const PACKAGE_JSON_PATH = fileURLToPath(new URL("../../package.json", import.meta.url));
 const SERVER_JSON_PATH = fileURLToPath(new URL("../../server.json", import.meta.url));
 const SMITHERY_YAML_PATH = fileURLToPath(new URL("../../smithery.yaml", import.meta.url));
-const PUBLIC_REPO_URL = "https://github.com/jcoulaud/shipmail-mcp";
+const PUBLIC_REPO_URL = "https://github.com/shipmail-to/shipmail-mcp";
 
 const packageJsonSchema = z.object({
   mcpName: z.string(),
@@ -41,7 +41,7 @@ describe("server metadata", () => {
 
     expect(pkg.files).toContain("server.json");
     expect(pkg.files).toContain("smithery.yaml");
-    expect(pkg.mcpName).toBe("io.github.jcoulaud/shipmail-mcp");
+    expect(pkg.mcpName).toBe("io.github.shipmail-to/shipmail-mcp");
     expect(VERSION).toBe(pkg.version);
     expect(server.name).toBe(pkg.mcpName);
     expect(server.version).toBe(pkg.version);

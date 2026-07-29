@@ -45,11 +45,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jcoulaud/shipmail-mcp.git"
+    "url": "git+https://github.com/shipmail-to/shipmail-mcp.git"
   },
   "homepage": "https://shipmail.to/docs/mcp",
   "bugs": {
-    "url": "https://github.com/jcoulaud/shipmail-mcp/issues"
+    "url": "https://github.com/shipmail-to/shipmail-mcp/issues"
   },
   "engines": {
     "node": ">=20"

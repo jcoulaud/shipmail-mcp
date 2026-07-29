@@ -3,7 +3,7 @@
   "name": "io.github.shipmail-to/shipmail-mcp",
   "description": "Shipmail MCP server for AI agent custom-domain email inboxes with REST API and webhooks.",
   "repository": {
-    "url": "https://github.com/jcoulaud/shipmail-mcp",
+    "url": "https://github.com/shipmail-to/shipmail-mcp",
     "source": "github"
   },
   "version": "0.6.2",
