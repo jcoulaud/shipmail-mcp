@@ -49,7 +49,7 @@ async function main(): Promise<void> {
   const allowedTools = await resolveAllowedTools(client);
 
   const server = serveStdio(() => createShipMailMcpServer(config, allowedTools), {
-    legacy: "reject",
+    legacy: "serve",
   });
   installShutdownHandlers(server);
 }

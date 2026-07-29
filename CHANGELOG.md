@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.6...shipmail-mcp-v0.7.0) (2026-07-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** serve legacy clients again over stdio ([#1065](https://github.com/shipmail-to/Shipmail/issues/1065))
+
+### Bug Fixes
+
+* **mcp:** serve legacy clients again over stdio ([#1065](https://github.com/shipmail-to/Shipmail/issues/1065)) ([f1962a5](https://github.com/shipmail-to/Shipmail/commit/f1962a59f366238b0babcc1a0c4039fe2a76e3e8))
+
 ## [0.6.6](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.5...shipmail-mcp-v0.6.6) (2026-07-29)
 
 
