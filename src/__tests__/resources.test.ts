@@ -1,14 +1,14 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { registerResources } from "../resources.js";
 
 type StubFetch = (...args: Parameters<typeof fetch>) => Promise<Response>;
 
 function buildPair(fetchImpl: StubFetch) {
-  const shipmail = new ShipMailClient({
+  const shipmail = new ShipmailClient({
     apiKey: "sk_test",
     baseUrl: "https://api.test/v1",
     maxRetries: 0,
@@ -51,7 +51,7 @@ describe("MCP resources", () => {
       "shipmail_prepare_staged_attachment_upload",
     );
     expect(content && "text" in content ? content.text : "").toContain(
-      "This host cannot call ShipMail tools from the review card.",
+      "This host cannot call Shipmail tools from the review card.",
     );
     expect(content && "text" in content ? content.text : "").toContain(
       'typeof bridge.getFileDownloadUrl === "function"',

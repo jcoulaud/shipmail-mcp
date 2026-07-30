@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { registerTools } from "../tools.js";
 
@@ -11,7 +11,7 @@ import { registerTools } from "../tools.js";
 // real tools/list over a transport caught it, so this asserts against the advertised schema.
 async function listTools(organizationIds: readonly string[]) {
   const orgs = organizationIds.map((id) => ({ id, name: `Org ${id}` }));
-  const shipmail = new ShipMailClient({
+  const shipmail = new ShipmailClient({
     apiKey: "sk_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,

@@ -153,7 +153,7 @@ const noControlString = (max: number, fieldName: string) =>
 export const idSchema = z
   .string()
   .regex(ID_REGEX, "ID must be 1-100 characters of [A-Za-z0-9_-].")
-  .describe("ShipMail resource ID.");
+  .describe("Shipmail resource ID.");
 
 const calendarIdInputSchema = z
   .string()
@@ -1225,7 +1225,7 @@ export const importsOutputSchema = z.object({
   }),
 });
 export const createDomainInputSchema = z.object({
-  name: domainNameSchema.describe("Domain name to add to ShipMail."),
+  name: domainNameSchema.describe("Domain name to add to Shipmail."),
   idempotency_key: idempotencyKeySchema,
 });
 export const updateDomainInputSchema = z.object({
@@ -1619,7 +1619,7 @@ export const sendMessageInputSchema = z
       .max(20)
       .optional()
       .describe(
-        "Staged attachment IDs returned by the ShipMail raw upload flow. Base64 is intentionally not accepted by MCP.",
+        "Staged attachment IDs returned by the Shipmail raw upload flow. Base64 is intentionally not accepted by MCP.",
       ),
     client_reference: noControlString(255, "client_reference").min(1).optional(),
     metadata: messageMetadataSchema.optional(),

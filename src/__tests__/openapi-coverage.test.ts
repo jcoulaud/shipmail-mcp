@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 import { API_KEY_SCOPES } from "shipmail/api-key-scopes";
 import { z } from "zod/v4";
 
@@ -91,7 +91,7 @@ function recordKeys(record: Readonly<Record<string, unknown>>): string[] {
 }
 
 function getRegisteredToolNames(): readonly string[] {
-  const client = new ShipMailClient({
+  const client = new ShipmailClient({
     apiKey: "sm_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,
@@ -158,7 +158,7 @@ describe("OpenAPI, capability registry, and MCP registration", () => {
   });
 
   test("registered annotations come from the capability registry", async () => {
-    const shipmail = new ShipMailClient({
+    const shipmail = new ShipmailClient({
       apiKey: "sm_test",
       baseUrl: "https://shipmail.to/api/v1",
       maxRetries: 0,

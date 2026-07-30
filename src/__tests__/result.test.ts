@@ -4,7 +4,7 @@ import {
   ConflictError,
   InternalServerError,
   NotFoundError,
-  ShipMailError,
+  ShipmailError,
   ValidationError,
 } from "shipmail";
 
@@ -58,16 +58,16 @@ describe("errorResult", () => {
     const text = getText(errorResult(error));
     expect(text).not.toContain("postgres");
     expect(text).not.toContain("stack");
-    expect(text).toContain("ShipMail support");
+    expect(text).toContain("Shipmail support");
     expect(text).toContain("request_id=req_123");
     expect(text).toContain("type=internal_error");
   });
 
-  test("redacts unknown ShipMailError types", () => {
-    const error = new ShipMailError("something obscure happened", { status: 502 });
+  test("redacts unknown ShipmailError types", () => {
+    const error = new ShipmailError("something obscure happened", { status: 502 });
     const text = getText(errorResult(error));
     expect(text).not.toContain("obscure");
-    expect(text).toContain("ShipMail support");
+    expect(text).toContain("Shipmail support");
   });
 
   test("redacts generic Error messages so they cannot leak to the LLM", () => {

@@ -1,16 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { composeMessageWithFileInputSchema, sendMessageInputSchema } from "../schemas.js";
 import { registerTools, type ToolRegistrationResult } from "../tools.js";
 
 function setup(allowedTools?: ReadonlySet<string>): {
   server: McpServer;
-  client: ShipMailClient;
+  client: ShipmailClient;
   result: ToolRegistrationResult;
 } {
-  const client = new ShipMailClient({
+  const client = new ShipmailClient({
     apiKey: "sk_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,
@@ -169,14 +169,14 @@ describe("registerTools", () => {
   });
 
   test("throws when the effective policy names an unknown tool", () => {
-    expect(() => setup(new Set(["bogus_tool"]))).toThrow(/Unknown ShipMail MCP tool/);
+    expect(() => setup(new Set(["bogus_tool"]))).toThrow(/Unknown Shipmail MCP tool/);
   });
 
   test("rejects bare tool names in the effective policy", () => {
     // Earlier versions used `send_message`; users (and shadow MCP servers) may
     // still refer to the bare names. Make sure they are now rejected so a stale
     // config fails loudly instead of silently registering nothing.
-    expect(() => setup(new Set(["send_message"]))).toThrow(/Unknown ShipMail MCP tool/);
+    expect(() => setup(new Set(["send_message"]))).toThrow(/Unknown Shipmail MCP tool/);
   });
 
   test("keeps base64 attachment bytes out of the send tool schema", () => {

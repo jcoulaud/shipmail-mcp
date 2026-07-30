@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 import { z } from "zod/v4";
 
 import { getMcpCapability } from "../capabilities.js";
@@ -58,7 +58,7 @@ function grant(
     id,
     name: `Organization ${id}`,
     allowedTools,
-    client: new ShipMailClient({
+    client: new ShipmailClient({
       apiKey: `sm_test_${id}`,
       baseUrl: "https://shipmail.test/api/v1",
       maxRetries: 0,
@@ -72,7 +72,7 @@ async function connectedClient(grants: readonly CrossOrganizationGrant[]) {
   registerCrossOrganizationTools(server, grants);
   // McpServer installs the tools/list handler lazily on the first registration. Keep the handler
   // present so a session with no cross-organization tools can still be asserted as an empty
-  // ShipMail catalog.
+  // Shipmail catalog.
   server.registerTool("test_marker", {}, async () => ({
     content: [{ type: "text", text: "test" }],
   }));

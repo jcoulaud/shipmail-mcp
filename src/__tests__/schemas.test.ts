@@ -1009,7 +1009,7 @@ describe("newsletter schemas", () => {
         published_at: null,
         archive_url: null,
         preview_text: null,
-        from_name: "ShipMail",
+        from_name: "Shipmail",
         from_address: "updates@example.com",
         reply_to_address: null,
         blocks: [{ type: "paragraph", body: "<p>Updates</p>" }],

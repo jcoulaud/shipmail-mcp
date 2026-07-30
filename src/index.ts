@@ -1,8 +1,8 @@
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { HELP_TEXT, readConfig } from "./config.js";
-import { createShipMailMcpServer } from "./server.js";
+import { createShipmailMcpServer } from "./server.js";
 import { resolveAllowedTools } from "./startup.js";
 import { VERSION } from "./version.js";
 
@@ -36,19 +36,19 @@ async function main(): Promise<void> {
   }
 
   const config = readConfig();
-  const client = new ShipMailClient({
+  const client = new ShipmailClient({
     apiKey: config.apiKey,
     ...(config.baseUrl ? { baseUrl: config.baseUrl } : {}),
     ...(config.organizationId ? { organizationId: config.organizationId } : {}),
     defaultHeaders: {
       "User-Agent": `shipmail-mcp/${VERSION}`,
-      "X-ShipMail-Client": "mcp",
-      "X-ShipMail-Client-Version": VERSION,
+      "X-Shipmail-Client": "mcp",
+      "X-Shipmail-Client-Version": VERSION,
     },
   });
   const allowedTools = await resolveAllowedTools(client);
 
-  const server = serveStdio(() => createShipMailMcpServer(config, allowedTools), {
+  const server = serveStdio(() => createShipmailMcpServer(config, allowedTools), {
     legacy: "serve",
   });
   installShutdownHandlers(server);

@@ -5,7 +5,7 @@ export const ATTACHMENT_COMPOSER_HTML = String.raw`<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ShipMail attachment</title>
+  <title>Shipmail attachment</title>
   <style>
     :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
     body { margin: 0; padding: 16px; background: transparent; color: CanvasText; }
@@ -114,7 +114,7 @@ export const ATTACHMENT_COMPOSER_HTML = String.raw`<!doctype html>
 
       submit.addEventListener("click", async function () {
         if (!bridge || typeof bridge.callTool !== "function") {
-          setStatus("This host cannot call ShipMail tools from the review card. Use the raw staged upload workflow instead.", "error");
+          setStatus("This host cannot call Shipmail tools from the review card. Use the raw staged upload workflow instead.", "error");
           return;
         }
         if (!selectedFile || !(selectedFile.file_id || selectedFile.fileId)) {
@@ -151,7 +151,7 @@ export const ATTACHMENT_COMPOSER_HTML = String.raw`<!doctype html>
             fileResponse.headers.get("content-type") || "application/octet-stream";
           var filename = fileName(selectedFile);
 
-          setStatus("Preparing a one-time ShipMail upload...");
+          setStatus("Preparing a one-time Shipmail upload...");
           var prepared = await bridge.callTool("shipmail_prepare_staged_attachment_upload", {
             mailbox_id: input.mailbox_id,
             filename: filename,

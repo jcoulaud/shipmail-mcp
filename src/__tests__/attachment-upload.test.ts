@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { stagedAttachmentUploadPreparationOutputSchema } from "../schemas.js";
 import { registerTools } from "../tools.js";
@@ -12,7 +12,7 @@ function buildPair(testFetch: TestFetch) {
   const fetchImpl = Object.assign(testFetch, {
     preconnect() {},
   });
-  const shipmail = new ShipMailClient({
+  const shipmail = new ShipmailClient({
     apiKey: "sk_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,

@@ -1,10 +1,10 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { describe, expect, spyOn, test } from "bun:test";
-import { type CapabilitiesResponse, ShipMailClient } from "shipmail";
+import { type CapabilitiesResponse, ShipmailClient } from "shipmail";
 
 import { MCP_CAPABILITY_VERSION, MCP_TOOL_NAMES } from "../capabilities.js";
-import { createShipMailMcpServer } from "../server.js";
+import { createShipmailMcpServer } from "../server.js";
 import { resolveAllowedTools } from "../startup.js";
 
 function capabilitiesResponse(
@@ -33,8 +33,8 @@ function capabilitiesResponse(
   };
 }
 
-function clientWithResponse(response: CapabilitiesResponse): ShipMailClient {
-  return new ShipMailClient({
+function clientWithResponse(response: CapabilitiesResponse): ShipmailClient {
+  return new ShipmailClient({
     apiKey: "sm_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,
@@ -59,12 +59,12 @@ describe("MCP startup capability discovery", () => {
 
     expect([...allowedTools]).toEqual(["shipmail_status", "shipmail_list_domains"]);
     expect(warnings).toEqual([
-      "ShipMail allows tools not implemented by this shipmail-mcp version: shipmail_future_tool. Upgrade to use them.",
+      "Shipmail allows tools not implemented by this shipmail-mcp version: shipmail_future_tool. Upgrade to use them.",
     ]);
   });
 
   test("starts with every local tool and warns when capabilities cannot be fetched", async () => {
-    const failingClient = new ShipMailClient({
+    const failingClient = new ShipmailClient({
       apiKey: "invalid",
       baseUrl: "https://shipmail.to/api/v1",
       maxRetries: 0,
@@ -80,10 +80,10 @@ describe("MCP startup capability discovery", () => {
       const allowedTools = await resolveAllowedTools(failingClient);
       expect(stderrWrite).toHaveBeenCalledTimes(1);
       expect(stderrWrite).toHaveBeenCalledWith(
-        "Could not fetch ShipMail capabilities (Invalid or expired API key). The tool list is unverified and calls may fail.\n",
+        "Could not fetch Shipmail capabilities (Invalid or expired API key). The tool list is unverified and calls may fail.\n",
       );
 
-      const server = createShipMailMcpServer(
+      const server = createShipmailMcpServer(
         { apiKey: "invalid", baseUrl: undefined, organizationId: undefined },
         allowedTools,
       );
@@ -106,7 +106,7 @@ describe("MCP startup capability discovery", () => {
     const client = clientWithResponse(capabilitiesResponse("999.0", ["shipmail_status"]));
 
     await expect(resolveAllowedTools(client)).rejects.toThrow(
-      "ShipMail capability version 999.0 is incompatible with this shipmail-mcp version.",
+      "Shipmail capability version 999.0 is incompatible with this shipmail-mcp version.",
     );
   });
 });

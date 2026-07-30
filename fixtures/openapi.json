@@ -2592,7 +2592,7 @@
       "post": {
         "operationId": "replyToMessage",
         "summary": "Reply to a message",
-        "description": "Reply to a stored ShipMail message by its msg_ ID. Looks up the message's thread and sends a reply using the same mailbox. JMAP IDs returned by mailbox inbox endpoints must use the mailbox-scoped inbox reply endpoint.",
+        "description": "Reply to a stored Shipmail message by its msg_ ID. Looks up the message's thread and sends a reply using the same mailbox. JMAP IDs returned by mailbox inbox endpoints must use the mailbox-scoped inbox reply endpoint.",
         "tags": ["Messages"],
         "x-rate-limit-tier": "send",
         "x-scope": "messages:send",
@@ -4192,7 +4192,7 @@
       "post": {
         "operationId": "createMailboxInboxReplyDraft",
         "summary": "Create a recipient-safe inbox reply draft",
-        "description": "ShipMail derives To/Cc from the latest inbound message and binds the draft to expected_reply_version.",
+        "description": "Shipmail derives To/Cc from the latest inbound message and binds the draft to expected_reply_version.",
         "tags": ["Mailboxes", "Messages"],
         "x-rate-limit-tier": "write",
         "x-scope": "drafts:write",
@@ -6059,7 +6059,7 @@
             }
           },
           {
-            "name": "X-ShipMail-Filename",
+            "name": "X-Shipmail-Filename",
             "in": "header",
             "schema": {
               "type": "string"
@@ -6776,7 +6776,7 @@
         }
       },
       "DelegatedOrganizationId": {
-        "name": "X-ShipMail-Organization-Id",
+        "name": "X-Shipmail-Organization-Id",
         "in": "header",
         "required": false,
         "description": "Invite-only partner beta. Selects an active operator organization on paths that include this parameter. Requires partner:organizations:access and the endpoint's normal scope. Message content, credentials, exports, billing, and account routes do not accept delegated access.",
@@ -11215,7 +11215,7 @@
           },
           "latest_message_id": {
             "type": ["string", "null"],
-            "description": "ShipMail tracked message ID."
+            "description": "Shipmail tracked message ID."
           },
           "latest_email_id": {
             "type": ["string", "null"],
@@ -11989,7 +11989,7 @@
           "feed_url": {
             "type": "string",
             "nullable": true,
-            "description": "Unguessable ShipMail Atom feed URL, or null when the feed is disabled."
+            "description": "Unguessable Shipmail Atom feed URL, or null when the feed is disabled."
           },
           "created_at": {
             "type": "string",
@@ -12598,7 +12598,7 @@
           "archive_url": {
             "type": ["string", "null"],
             "format": "uri",
-            "description": "Canonical ShipMail public archive URL."
+            "description": "Canonical Shipmail public archive URL."
           },
           "completed_at": {
             "type": ["string", "null"],
@@ -12679,7 +12679,7 @@
             "items": {
               "$ref": "#/components/schemas/NewsletterBlock"
             },
-            "description": "Preferred body format. ShipMail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
+            "description": "Preferred body format. Shipmail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
           }
         }
       },
@@ -12734,7 +12734,7 @@
             "items": {
               "$ref": "#/components/schemas/NewsletterBlock"
             },
-            "description": "Preferred body format. ShipMail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
+            "description": "Preferred body format. Shipmail stores blocks and renders body_html and body_text from them. Public API block prose fields are plain text on input."
           }
         }
       },
@@ -13255,7 +13255,7 @@
         "discriminator": {
           "propertyName": "type"
         },
-        "description": "Structured newsletter block. Public API block prose fields are plain text on input; ShipMail renders blocks to email-safe HTML and text."
+        "description": "Structured newsletter block. Public API block prose fields are plain text on input; Shipmail renders blocks to email-safe HTML and text."
       },
       "NewsletterCountedUrl": {
         "type": "object",

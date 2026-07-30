@@ -2,7 +2,7 @@ import { performance } from "node:perf_hooks";
 
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { McpServer } from "@modelcontextprotocol/server";
-import { type ShipMailClient, ShipMailError } from "shipmail";
+import { type ShipmailClient, ShipmailError } from "shipmail";
 import { z } from "zod/v4";
 
 import { getMcpCapability } from "./capabilities.js";
@@ -91,7 +91,7 @@ type CrossOrganizationListArgs = z.infer<typeof crossOrganizationListInputSchema
 export type CrossOrganizationGrant = {
   readonly id: string;
   readonly name: string;
-  readonly client: ShipMailClient;
+  readonly client: ShipmailClient;
   readonly allowedTools: ReadonlySet<string>;
 };
 
@@ -102,7 +102,7 @@ type CrossOrganizationListBehavior = {
   readonly description: string;
   readonly itemSchema: z.ZodType;
   readonly list: (
-    client: ShipMailClient,
+    client: ShipmailClient,
     params: { readonly cursor?: string; readonly limit: number },
   ) => Promise<unknown>;
 };
@@ -218,13 +218,13 @@ function permissionError(behavior: CrossOrganizationListBehavior) {
 }
 
 function requestError(error: unknown) {
-  if (error instanceof ShipMailError) {
+  if (error instanceof ShipmailError) {
     const isSafeMessage = error.type !== undefined && SAFE_ERROR_TYPES.has(error.type);
     return {
       type: error.type ?? "api_error",
       message: isSafeMessage
         ? sanitizeString(error.message, 500)
-        : "ShipMail could not list this organization. Contact support with the request_id.",
+        : "Shipmail could not list this organization. Contact support with the request_id.",
       status: error.status ?? null,
       request_id: error.requestId ?? null,
       retryable: error.retryable,
@@ -288,7 +288,7 @@ async function listOneOrganization(
         status: "error" as const,
         error: {
           type: "internal_error",
-          message: "ShipMail returned an unexpected response shape for this organization.",
+          message: "Shipmail returned an unexpected response shape for this organization.",
           status: 500,
           request_id: null,
           retryable: false,
@@ -371,7 +371,7 @@ export function registerCrossOrganizationTools(
             content: [
               {
                 type: "text",
-                text: "ShipMail could not validate the cross-organization list result.",
+                text: "Shipmail could not validate the cross-organization list result.",
               },
             ],
           };

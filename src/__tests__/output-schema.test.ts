@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { registerTools } from "../tools.js";
 
@@ -14,7 +14,7 @@ import { registerTools } from "../tools.js";
 type StubFetch = (...args: Parameters<typeof fetch>) => Promise<Response>;
 
 function buildPair(fetchImpl: StubFetch) {
-  const shipmail = new ShipMailClient({
+  const shipmail = new ShipmailClient({
     apiKey: "sk_test",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,

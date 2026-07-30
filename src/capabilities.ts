@@ -55,7 +55,7 @@ export const MCP_PERMISSION_GROUPS = [
   {
     name: "account_status",
     label: "Account status",
-    description: "Check whether the ShipMail API is available.",
+    description: "Check whether the Shipmail API is available.",
     scopes: [],
     persistent: false,
   },
@@ -69,7 +69,7 @@ export const MCP_PERMISSION_GROUPS = [
   {
     name: "drafts",
     label: "Create drafts",
-    description: "Create reply drafts whose recipients are derived by ShipMail.",
+    description: "Create reply drafts whose recipients are derived by Shipmail.",
     scopes: ["drafts:write"],
     persistent: false,
   },

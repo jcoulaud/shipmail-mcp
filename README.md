@@ -141,7 +141,7 @@ Cursor, VS Code, Windsurf, and other Streamable HTTP clients:
 The tool catalog follows the connection permissions selected in Shipmail Settings. OAuth users
 manage those grants under **Settings → Connections**. Direct API-key and stdio sessions use the
 key's scopes, resource constraints, recipient rules, and recipient budget. Partner accounts can
-target a delegated child organization with the `X-ShipMail-Organization-Id` header.
+target a delegated child organization with the `X-Shipmail-Organization-Id` header.
 
 The sections below configure the same server locally over stdio.
 
@@ -293,7 +293,7 @@ and cancelled before dispatch begins.
 
 In ChatGPT, `shipmail_compose_message_with_file` renders an MCP Apps review card for a
 conversation or library file. The card obtains a fresh ChatGPT download URL, hashes the exact
-bytes, creates a five-minute one-time ShipMail upload URL, uploads without exposing the connection
+bytes, creates a five-minute one-time Shipmail upload URL, uploads without exposing the connection
 credential, and calls `shipmail_send_message` only after the user presses **Upload and send** or
 **Upload and schedule**. The upload endpoint follows no source URL, rejects redirects and metadata
 mismatches, and consumes the signed token once.
@@ -429,12 +429,12 @@ Run the server locally against the published Shipmail SDK:
 SHIPMAIL_API_KEY=sm_live_... bun run dev
 ```
 
-The OpenAPI coverage fixture is synchronized from the ShipMail application repository for each
+The OpenAPI coverage fixture is synchronized from the Shipmail application repository for each
 release.
 
 ### Publishing
 
-Release Please versions the package in the ShipMail monorepo, syncs it into this public repository,
+Release Please versions the package in the Shipmail monorepo, syncs it into this public repository,
 and sends a repository event to the `Publish to npm` workflow. npm trusted publishing must use:
 
 - Provider: GitHub Actions

@@ -15,7 +15,7 @@ Usage:
   shipmail-mcp
 
 Environment:
-  SHIPMAIL_API_KEY      Required ShipMail API key (or use SHIPMAIL_API_KEY_FILE).
+  SHIPMAIL_API_KEY      Required Shipmail API key (or use SHIPMAIL_API_KEY_FILE).
   SHIPMAIL_API_KEY_FILE Optional path to a file containing the API key. Takes precedence over
                         SHIPMAIL_API_KEY when set; reduces env-trace leak surface for hosts that
                         log environment variables.
@@ -25,11 +25,11 @@ Environment:
   SHIPMAIL_ALLOW_INSECURE_BASE_URL=1
                         Permit non-https or non-shipmail.to base URL (development only).
 
-ShipMail discovers tools from the API key's live permissions at startup. Change scopes, resources,
-recipient rules, and send budgets in ShipMail Settings.`;
+Shipmail discovers tools from the API key's live permissions at startup. Change scopes, resources,
+recipient rules, and send budgets in Shipmail Settings.`;
 
 const API_KEY_HELP =
-  "SHIPMAIL_API_KEY (or SHIPMAIL_API_KEY_FILE) is required. Create an API key in ShipMail, then run `SHIPMAIL_API_KEY=sm_live_... shipmail-mcp`.";
+  "SHIPMAIL_API_KEY (or SHIPMAIL_API_KEY_FILE) is required. Create an API key in Shipmail, then run `SHIPMAIL_API_KEY=sm_live_... shipmail-mcp`.";
 
 function readApiKey(): string {
   const filePath = env["SHIPMAIL_API_KEY_FILE"];
@@ -86,7 +86,7 @@ function validateBaseUrl(rawValue: string, allowInsecure: boolean): string {
 export function readConfig(argv: readonly string[] = process.argv.slice(2)): McpConfig {
   if (argv.includes("--tools")) {
     throw new Error(
-      "--tools was removed. ShipMail MCP tools now follow the API key permissions configured in ShipMail Settings.",
+      "--tools was removed. Shipmail MCP tools now follow the API key permissions configured in Shipmail Settings.",
     );
   }
   const unknownArgs = argv.filter((arg) => arg !== "--help" && arg !== "-h");

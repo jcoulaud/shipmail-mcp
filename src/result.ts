@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/server";
-import { ShipMailError, ValidationError } from "shipmail";
+import { ShipmailError, ValidationError } from "shipmail";
 
 import { sanitizeRecord, sanitizeString, sanitizeValue } from "./sanitize.js";
 
@@ -37,13 +37,13 @@ export function jsonResult(structuredContent: Record<string, unknown>): CallTool
   };
 }
 
-function formatShipMailError(error: ShipMailError): string {
+function formatShipmailError(error: ShipmailError): string {
   const parts: string[] = [];
   const isSafeMessage = error.type !== undefined && SAFE_ERROR_TYPES.has(error.type);
   if (isSafeMessage) {
     parts.push(sanitizeString(error.message, MAX_ERROR_MESSAGE_LENGTH));
   } else {
-    parts.push("ShipMail request failed. Contact ShipMail support with the request_id below.");
+    parts.push("Shipmail request failed. Contact Shipmail support with the request_id below.");
   }
   if (error.type) parts.push(`type=${error.type}`);
   if (error.status !== undefined) parts.push(`status=${error.status}`);
@@ -70,8 +70,8 @@ function safeMarkerStrip(message: string): string | null {
 
 export function errorResult(error: unknown): CallToolResult {
   let text: string;
-  if (error instanceof ShipMailError) {
-    text = formatShipMailError(error);
+  if (error instanceof ShipmailError) {
+    text = formatShipmailError(error);
   } else if (error instanceof Error && safeMarkerStrip(error.message) !== null) {
     // Surface our own MCP-constructed error text (rate limits, schema
     // violations) without redaction.

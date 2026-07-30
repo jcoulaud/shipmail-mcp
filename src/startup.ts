@@ -1,4 +1,4 @@
-import type { ShipMailClient } from "shipmail";
+import type { ShipmailClient } from "shipmail";
 
 import { MCP_CAPABILITY_VERSION, MCP_TOOL_NAMES } from "./capabilities.js";
 
@@ -14,7 +14,7 @@ function errorMessage(error: unknown): string {
 }
 
 export async function resolveAllowedTools(
-  client: ShipMailClient,
+  client: ShipmailClient,
   writeWarning: WarningWriter = writeStderrWarning,
 ): Promise<ReadonlySet<string>> {
   let capabilities;
@@ -22,7 +22,7 @@ export async function resolveAllowedTools(
     capabilities = await client.capabilities.get();
   } catch (error) {
     writeWarning(
-      `Could not fetch ShipMail capabilities (${errorMessage(error)}). The tool list is unverified and calls may fail.`,
+      `Could not fetch Shipmail capabilities (${errorMessage(error)}). The tool list is unverified and calls may fail.`,
     );
     return new Set(MCP_TOOL_NAMES);
   }
@@ -31,7 +31,7 @@ export async function resolveAllowedTools(
   const supportedMajor = MCP_CAPABILITY_VERSION.split(".")[0];
   if (!serverMajor || serverMajor !== supportedMajor) {
     throw new Error(
-      `ShipMail capability version ${capabilities.capability_version} is incompatible with this shipmail-mcp version. Upgrade shipmail-mcp before reconnecting.`,
+      `Shipmail capability version ${capabilities.capability_version} is incompatible with this shipmail-mcp version. Upgrade shipmail-mcp before reconnecting.`,
     );
   }
 
@@ -44,7 +44,7 @@ export async function resolveAllowedTools(
   );
   if (missingTools.length > 0) {
     writeWarning(
-      `ShipMail allows tools not implemented by this shipmail-mcp version: ${missingTools.join(", ")}. Upgrade to use them.`,
+      `Shipmail allows tools not implemented by this shipmail-mcp version: ${missingTools.join(", ")}. Upgrade to use them.`,
     );
   }
 

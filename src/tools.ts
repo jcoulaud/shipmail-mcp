@@ -13,8 +13,8 @@ import {
   type CreateMailboxParams,
   type ListMessagesParams,
   type MethodOptions,
-  type ShipMailClient,
-  ShipMailError,
+  type ShipmailClient,
+  ShipmailError,
 } from "shipmail";
 import { z } from "zod/v4";
 
@@ -356,12 +356,12 @@ class OutputSchemaViolation extends Error {
   }
 }
 
-function logToolCall(name: string, durationMs: number, error?: ShipMailError | Error): void {
+function logToolCall(name: string, durationMs: number, error?: ShipmailError | Error): void {
   const entry: Record<string, unknown> = {
     tool: name,
     duration_ms: Math.round(durationMs),
   };
-  if (error instanceof ShipMailError) {
+  if (error instanceof ShipmailError) {
     entry["error_type"] = error.type ?? "unknown";
     if (DEBUG_ENABLED) {
       if (error.requestId) entry["request_id"] = error.requestId;
@@ -413,7 +413,7 @@ function withOrganizationParam<T>(inputSchema: T, organizationIds: readonly stri
 // tool definition. Single-grant connections never see it: there is nothing to disambiguate.
 export function registerTools(
   rawServer: McpServer,
-  client: ShipMailClient,
+  client: ShipmailClient,
   allowedTools?: ReadonlySet<string>,
   grantedOrganizations: readonly GrantedOrganization[] = [],
 ): ToolRegistrationResult {
@@ -562,8 +562,8 @@ export function registerTools(
     server.registerTool(
       "shipmail_status",
       {
-        title: "ShipMail API Status",
-        description: "Check ShipMail API health and version before starting a workflow.",
+        title: "Shipmail API Status",
+        description: "Check Shipmail API health and version before starting a workflow.",
         outputSchema: statusOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
@@ -591,7 +591,7 @@ export function registerTools(
       {
         title: "List Domains",
         description:
-          "List domains in the authenticated ShipMail organization. Use this before creating mailboxes or changing DNS-related settings.",
+          "List domains in the authenticated Shipmail organization. Use this before creating mailboxes or changing DNS-related settings.",
         inputSchema: listDomainsInputSchema,
         outputSchema: domainsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -626,7 +626,7 @@ export function registerTools(
       {
         title: "Get Domain DNS Records",
         description:
-          "Return all six DNS records required by ShipMail and live observed values for propagation diagnostics. This does not update domain state.",
+          "Return all six DNS records required by Shipmail and live observed values for propagation diagnostics. This does not update domain state.",
         inputSchema: getByIdInputSchema,
         outputSchema: domainDnsRecordsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: true },
@@ -644,7 +644,7 @@ export function registerTools(
       {
         title: "Create Domain",
         description:
-          "Add an existing domain to ShipMail. This does not purchase a domain; it creates DNS records and verification state.",
+          "Add an existing domain to Shipmail. This does not purchase a domain; it creates DNS records and verification state.",
         inputSchema: createDomainInputSchema,
         outputSchema: domainOutputSchema,
         annotations: {
@@ -694,7 +694,7 @@ export function registerTools(
       {
         title: "Delete Domain",
         description:
-          "Delete a domain from ShipMail. This is destructive and cascades related mailboxes and settings.",
+          "Delete a domain from Shipmail. This is destructive and cascades related mailboxes and settings.",
         inputSchema: getByIdInputSchema,
         outputSchema: acknowledgmentOutputSchema,
         annotations: {
@@ -718,7 +718,7 @@ export function registerTools(
       {
         title: "Verify Domain",
         description:
-          "Check current DNS and outbound verification for a domain. This may update ShipMail verification state.",
+          "Check current DNS and outbound verification for a domain. This may update Shipmail verification state.",
         inputSchema: idempotentByIdInputSchema,
         outputSchema: verificationOutputSchema,
         annotations: {
@@ -741,7 +741,7 @@ export function registerTools(
       {
         title: "Search Domains",
         description:
-          "Search available domains through ShipMail. This is read-only and does not purchase anything.",
+          "Search available domains through Shipmail. This is read-only and does not purchase anything.",
         inputSchema: searchDomainsInputSchema,
         outputSchema: domainSearchOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: true },
@@ -2181,7 +2181,7 @@ export function registerTools(
       {
         title: "Reply To Message",
         description:
-          "Reply to a stored ShipMail message whose ID starts with msg_. For JMAP inbox IDs, use shipmail_reply_to_inbox_message. Use only after the user approves the exact recipients and content.",
+          "Reply to a stored Shipmail message whose ID starts with msg_. For JMAP inbox IDs, use shipmail_reply_to_inbox_message. Use only after the user approves the exact recipients and content.",
         inputSchema: replyToMessageInputSchema,
         outputSchema: messageOutputSchema,
         annotations: {
@@ -2246,7 +2246,7 @@ export function registerTools(
       {
         title: "Reply To Thread",
         description:
-          "Reply to a stored ShipMail thread within its required mailbox scope. For JMAP inbox thread IDs, use shipmail_reply_to_inbox_thread. Use only after the user approves the exact recipients and content.",
+          "Reply to a stored Shipmail thread within its required mailbox scope. For JMAP inbox thread IDs, use shipmail_reply_to_inbox_thread. Use only after the user approves the exact recipients and content.",
         inputSchema: replyToThreadInputSchema,
         outputSchema: messageOutputSchema,
         annotations: {
@@ -2545,7 +2545,7 @@ export function registerTools(
       "shipmail_list_newsletters",
       {
         title: "List Newsletters",
-        description: "List newsletter drafts and sends in the authenticated ShipMail organization.",
+        description: "List newsletter drafts and sends in the authenticated Shipmail organization.",
         inputSchema: listNewslettersInputSchema,
         outputSchema: newslettersOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -2563,7 +2563,7 @@ export function registerTools(
       {
         title: "List Newsletter Domains",
         description:
-          "List configured newsletter sending domains and their verification status in the authenticated ShipMail organization.",
+          "List configured newsletter sending domains and their verification status in the authenticated Shipmail organization.",
         inputSchema: listNewslettersInputSchema,
         outputSchema: newsletterDomainsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -2707,7 +2707,7 @@ export function registerTools(
       {
         title: "Create Newsletter From Changelog",
         description:
-          "Create a newsletter draft from changelog entries, attached media, tone, and an optional final CTA. ShipMail renders the entries into email-safe blocks. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
+          "Create a newsletter draft from changelog entries, attached media, tone, and an optional final CTA. Shipmail renders the entries into email-safe blocks. styled applies Shipmail's email theme. plain sends your HTML without injected styles, width, or centering, so the reader's email client styles it.",
         inputSchema: createNewsletterFromChangelogInputSchema,
         outputSchema: newsletterOutputSchema,
         annotations: {
@@ -2902,7 +2902,7 @@ export function registerTools(
       {
         title: "List Audiences",
         description:
-          "List newsletter audiences in the authenticated ShipMail organization, with member and subscribed counts.",
+          "List newsletter audiences in the authenticated Shipmail organization, with member and subscribed counts.",
         inputSchema: listAudiencesInputSchema,
         outputSchema: audiencesOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -3779,7 +3779,7 @@ export function registerTools(
   if (allowedTools) {
     const unknown = [...allowedTools].filter((name) => !knownTools.includes(name));
     if (unknown.length > 0) {
-      throw new Error(`Unknown ShipMail MCP tool(s): ${unknown.join(", ")}`);
+      throw new Error(`Unknown Shipmail MCP tool(s): ${unknown.join(", ")}`);
     }
   }
 

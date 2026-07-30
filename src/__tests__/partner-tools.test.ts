@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, test } from "bun:test";
-import { ShipMailClient } from "shipmail";
+import { ShipmailClient } from "shipmail";
 
 import { registerTools } from "../tools.js";
 
@@ -35,7 +35,7 @@ function partnerOrganization() {
 }
 
 async function buildPair(captured: CapturedRequest[]) {
-  const shipmail = new ShipMailClient({
+  const shipmail = new ShipmailClient({
     apiKey: "sm_live_partner",
     baseUrl: "https://shipmail.to/api/v1",
     maxRetries: 0,
