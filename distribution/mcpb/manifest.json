@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
+  "manifest_version": "0.4",
+  "name": "shipmail-mcp",
+  "display_name": "Shipmail",
+  "version": "0.7.1",
+  "description": "Secure custom-domain business email and calendars for AI agents.",
+  "long_description": "Run the official Shipmail MCP server locally. Connect an AI agent to scoped custom-domain mailboxes, messages, threads, calendars, webhooks, and suppressions without routing MCP traffic through a third-party gateway.",
+  "author": {
+    "name": "Shipmail",
+    "email": "ops@shipmail.to",
+    "url": "https://shipmail.to"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shipmail-to/shipmail-mcp"
+  },
+  "homepage": "https://shipmail.to",
+  "documentation": "https://shipmail.to/docs/mcp",
+  "support": "https://github.com/shipmail-to/shipmail-mcp/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "SHIPMAIL_API_KEY": "${user_config.api_key}",
+        "SHIPMAIL_ORGANIZATION_ID": "${user_config.organization_id}"
+      }
+    }
+  },
+  "tools_generated": true,
+  "keywords": [
+    "shipmail",
+    "email",
+    "business-email",
+    "custom-domain",
+    "agent-inbox",
+    "calendar",
+    "mcp"
+  ],
+  "license": "MIT",
+  "privacy_policies": ["https://shipmail.to/privacy"],
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Shipmail API key",
+      "description": "A scoped Shipmail API key beginning with sm_live_.",
+      "required": true,
+      "sensitive": true
+    },
+    "organization_id": {
+      "type": "string",
+      "title": "Delegated organization ID",
+      "description": "Optional child organization ID for partner infrastructure tools.",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}
