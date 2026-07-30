@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.1](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.7.0...shipmail-mcp-v0.7.1) (2026-07-30)
+
+
+### Features
+
+* **mcp:** add cross-platform plugin distribution ([#1087](https://github.com/shipmail-to/Shipmail/issues/1087)) ([40de67e](https://github.com/shipmail-to/Shipmail/commit/40de67eefac308cacc1070dad2ee09b6edb6c9a7))
+
+
+### Bug Fixes
+
+* **mcp:** use Shipmail brand capitalization ([#1090](https://github.com/shipmail-to/Shipmail/issues/1090)) ([ed6e23e](https://github.com/shipmail-to/Shipmail/commit/ed6e23e0cecd9a3cb6116efc1cc43d9398f66d46))
+
 ## [0.7.0](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.6.6...shipmail-mcp-v0.7.0) (2026-07-29)
 
 
