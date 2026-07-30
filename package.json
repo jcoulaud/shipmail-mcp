@@ -14,7 +14,13 @@
     "LICENSE",
     "server.json",
     "glama.json",
-    "smithery.yaml"
+    "smithery.yaml",
+    ".claude-plugin",
+    ".codex-plugin",
+    ".plugin",
+    ".mcp.json",
+    "assets",
+    "skills"
   ],
   "scripts": {
     "build": "tsup",

@@ -1,0 +1,34 @@
+{
+  "name": "shipmail",
+  "version": "0.7.0",
+  "description": "Operate secure custom-domain business email, calendars, and agent inboxes with ShipMail.",
+  "author": {
+    "name": "ShipMail",
+    "email": "ops@shipmail.to",
+    "url": "https://shipmail.to"
+  },
+  "homepage": "https://shipmail.to/docs/mcp",
+  "repository": "https://github.com/shipmail-to/shipmail-mcp",
+  "license": "MIT",
+  "keywords": ["email", "business-email", "custom-domain", "agent-inbox", "calendar", "mcp"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ShipMail",
+    "shortDescription": "Secure email and calendars for AI agents",
+    "longDescription": "Triage inboxes, draft and send approved replies, manage custom-domain mailboxes, work with calendars, and automate email through ShipMail's hosted MCP server.",
+    "developerName": "ShipMail",
+    "category": "Productivity",
+    "websiteURL": "https://shipmail.to",
+    "privacyPolicyURL": "https://shipmail.to/privacy",
+    "termsOfServiceURL": "https://shipmail.to/terms",
+    "capabilities": ["Email", "Calendar", "Automation"],
+    "defaultPrompt": [
+      "Triage my ShipMail inbox and identify what needs a reply.",
+      "Draft safe replies to the messages that need action, but do not send anything.",
+      "Show my ShipMail calendar availability for this week."
+    ],
+    "composerIcon": "./assets/shipmail-mark.png",
+    "logo": "./assets/shipmail-logo.png"
+  },
+  "mcpServers": "./.mcp.json"
+}

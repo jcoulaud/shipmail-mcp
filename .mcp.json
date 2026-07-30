@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "shipmail": {
+      "type": "http",
+      "url": "https://shipmail.to/api/mcp"
+    }
+  }
+}

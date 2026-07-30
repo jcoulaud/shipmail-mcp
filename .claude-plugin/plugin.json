@@ -1,0 +1,16 @@
+{
+  "name": "shipmail",
+  "version": "0.7.0",
+  "description": "Operate secure custom-domain business email, calendars, and agent inboxes with ShipMail.",
+  "author": {
+    "name": "ShipMail",
+    "email": "ops@shipmail.to",
+    "url": "https://shipmail.to"
+  },
+  "homepage": "https://shipmail.to/docs/mcp",
+  "repository": "https://github.com/shipmail-to/shipmail-mcp",
+  "license": "MIT",
+  "keywords": ["email", "business-email", "custom-domain", "agent-inbox", "calendar", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

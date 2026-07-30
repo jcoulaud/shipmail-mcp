@@ -1,0 +1,13 @@
+interface:
+  display_name: "ShipMail"
+  short_description: "Operate secure custom-domain agent email"
+  default_prompt: "Use $shipmail to triage my inbox and draft safe replies."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "shipmail"
+      description: "ShipMail hosted MCP server"
+      transport: "streamable_http"
+      url: "https://shipmail.to/api/mcp"
+policy:
+  allow_implicit_invocation: true
