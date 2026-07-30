@@ -1,13 +1,13 @@
 ---
 name: shipmail
-description: Operate ShipMail custom-domain business email, agent inboxes, calendars, booking pages, newsletters, webhooks, and related account resources through the ShipMail MCP server. Use when the user asks to read or triage a ShipMail inbox, draft or send email, reply to a message or thread, manage a mailbox or domain, check availability, schedule an event, or automate an email workflow.
+description: Operate Shipmail custom-domain business email, agent inboxes, calendars, booking pages, newsletters, webhooks, and related account resources through the Shipmail MCP server. Use when the user asks to read or triage a Shipmail inbox, draft or send email, reply to a message or thread, manage a mailbox or domain, check availability, schedule an event, or automate an email workflow.
 ---
 
-# ShipMail
+# Shipmail
 
 ## Overview
 
-Use ShipMail's hosted MCP server at `https://shipmail.to/api/mcp`. Prefer the narrowest OAuth connection profile that can complete the task. Start with read-and-draft access; request send or administration scopes only when the user asks for those actions.
+Use Shipmail's hosted MCP server at `https://shipmail.to/api/mcp`. Prefer the narrowest OAuth connection profile that can complete the task. Start with read-and-draft access; request send or administration scopes only when the user asks for those actions.
 
 ## Safety rules
 
@@ -61,7 +61,7 @@ Draft and preview before any publication or test send. Confirm the sender identi
 
 ## Connection guidance
 
-If the client asks the user to connect ShipMail:
+If the client asks the user to connect Shipmail:
 
 - Use hosted OAuth whenever available.
 - Recommend read-and-draft access for triage and drafting.
