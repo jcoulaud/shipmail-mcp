@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Publish MCP release
 
 on:
   push:
@@ -24,7 +24,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v7
@@ -47,6 +47,9 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      - name: Build MCPB
+        run: bun run build:mcpb
 
       - name: Install current npm
         run: npm install -g npm@latest
@@ -72,15 +75,41 @@ jobs:
         if: ${{ (github.event_name == 'push' || !inputs.dry_run) && steps.package.outputs.published != 'true' }}
         run: npm publish --access public --provenance
 
-      - name: Install MCP Registry publisher
+      - name: Check MCP Registry version
+        id: registry
         if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          if curl --fail --silent --show-error \
+            "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.shipmail-to%2Fshipmail-mcp&limit=100" |
+            jq --exit-status --arg version "$package_version" \
+              '.servers[] | select(.server.name == "io.github.shipmail-to/shipmail-mcp" and .server.version == $version and ._meta["io.modelcontextprotocol.registry/official"].status == "active")' \
+              >/dev/null; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Registry version already published::Skipping MCP Registry publish for ${package_version}."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install MCP Registry publisher
+        if: ${{ (github.event_name == 'push' || !inputs.dry_run) && steps.registry.outputs.published != 'true' }}
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Authenticate to MCP Registry
-        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        if: ${{ (github.event_name == 'push' || !inputs.dry_run) && steps.registry.outputs.published != 'true' }}
         run: ./mcp-publisher login github-oidc
 
       - name: Publish to MCP Registry
-        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        if: ${{ (github.event_name == 'push' || !inputs.dry_run) && steps.registry.outputs.published != 'true' }}
         run: ./mcp-publisher publish
+
+      - name: Publish hosted server to Smithery
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        env:
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+        run: bunx --bun smithery@latest --json mcp publish "https://shipmail.to/api/mcp" -n shipmail-to/shipmail-mcp
+
+      - name: Verify marketplace release
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        run: bun scripts/verify-marketplace-release.ts
