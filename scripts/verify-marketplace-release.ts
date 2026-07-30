@@ -8,6 +8,7 @@ const SMITHERY_NAME = "shipmail-to/shipmail-mcp";
 const REGISTRY_URL =
   "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.shipmail-to%2Fshipmail-mcp&limit=100";
 const SMITHERY_URL = `https://api.smithery.ai/servers/${encodeURIComponent(SMITHERY_NAME)}`;
+const SERVER_CARD_URL = "https://shipmail.to/.well-known/mcp/server-card.json";
 const MAX_ATTEMPTS = 30;
 const RETRY_DELAY_MS = 10_000;
 
@@ -32,6 +33,12 @@ type SmitheryResponse = {
   resources?: unknown[] | null;
   prompts?: unknown[] | null;
   connections?: Array<{ type?: string; deploymentUrl?: string }>;
+};
+
+type ServerCardResponse = {
+  tools?: unknown[];
+  resources?: unknown[];
+  prompts?: unknown[];
 };
 
 const packageMetadata = JSON.parse(
@@ -72,6 +79,19 @@ async function verifySmithery(): Promise<void> {
   const expectedIcon = await readFile(
     resolve(import.meta.dir, "..", "distribution", "mcpb", "icon.png"),
   );
+  const serverCard = await fetchJson<ServerCardResponse>(SERVER_CARD_URL);
+  if ((serverCard.tools?.length ?? 0) < 100) {
+    throw new Error(
+      `Shipmail's public server card exposes only ${serverCard.tools?.length ?? 0} tools.`,
+    );
+  }
+  if ((serverCard.resources?.length ?? 0) < 1) {
+    throw new Error("Shipmail's public server card exposes no resources.");
+  }
+  if ((serverCard.prompts?.length ?? 0) < 1) {
+    throw new Error("Shipmail's public server card exposes no prompts.");
+  }
+
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -96,10 +116,8 @@ async function verifySmithery(): Promise<void> {
           "Smithery has not activated the hosted HTTP connection yet.",
         );
       }
-      if ((server.tools?.length ?? 0) < 100) {
-        throw new Error(
-          `Smithery exposes only ${server.tools?.length ?? 0} tools.`,
-        );
+      if ((server.tools?.length ?? 0) < 1) {
+        throw new Error("Smithery exposes no tools.");
       }
       if ((server.resources?.length ?? 0) < 1) {
         throw new Error("Smithery exposes no resources.");
