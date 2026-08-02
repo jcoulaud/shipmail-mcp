@@ -2539,6 +2539,218 @@ export const calendarAvailabilitySchema = z.object({
   slots: z.array(calendarAvailabilitySlotSchema),
 });
 
+export const automationTriggerSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("email_received"), mailbox_ids: z.array(idSchema).min(1).max(100) }),
+  z.object({
+    type: z.literal("scheduled"),
+    cron: noControlString(100, "cron").min(9),
+    time_zone: noControlString(100, "time zone").min(1),
+  }),
+  z.object({ type: z.literal("manual"), mailbox_ids: z.array(idSchema).min(1).max(100) }),
+  z.object({
+    type: z.literal("thread_state"),
+    mailbox_ids: z.array(idSchema).min(1).max(100),
+    state: z.literal("no_reply_after"),
+    duration_minutes: z.number().int().min(15).max(525_600),
+  }),
+]);
+
+export const automationConditionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("sender_address"), addresses: z.array(emailSchema).min(1).max(100) }),
+  z.object({
+    type: z.literal("sender_domain"),
+    domains: z.array(noControlString(253, "sender domain").min(1)).min(1).max(100),
+  }),
+  z.object({
+    type: z.literal("subject_contains"),
+    values: z.array(noControlString(200, "subject value").min(1)).min(1).max(100),
+  }),
+  z.object({ type: z.literal("has_attachment"), value: z.boolean() }),
+  z.object({
+    type: z.literal("semantic_positive_match"),
+    instruction: noControlString(1_000, "semantic instruction").min(1),
+    minimum_confidence: z.number().min(0.5).max(1),
+  }),
+]);
+
+export const automationActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("create_reply_draft"),
+    instruction: noControlString(2_000, "draft instruction").min(1),
+  }),
+  z.object({
+    type: z.literal("reply_to_trigger_sender"),
+    instruction: noControlString(2_000, "reply instruction").min(1),
+  }),
+  z.object({ type: z.literal("archive_trigger_message") }),
+  z.object({
+    type: z.literal("move_trigger_message"),
+    mailbox_id: idSchema,
+    destination_folder_id: idSchema,
+  }),
+  z.object({ type: z.literal("set_trigger_read_state"), is_read: z.boolean() }),
+  z.object({ type: z.literal("set_trigger_star_state"), is_starred: z.boolean() }),
+  z.object({
+    type: z.literal("generate_mail_report"),
+    metric: z.enum(["received", "sent", "unread"] as const),
+    lookback_minutes: z.number().int().min(15).max(525_600),
+  }),
+]);
+
+export const automationDefinitionSchema = z
+  .object({
+    trigger: automationTriggerSchema,
+    conditions: z.array(automationConditionSchema).max(20),
+    actions: z.array(automationActionSchema).min(1).max(10),
+    mode: z.enum(["draft", "send"] as const),
+    scope: z.object({
+      mailbox_ids: z.array(idSchema).min(1).max(100),
+      calendar_addresses: z.array(emailSchema).max(100),
+    }),
+  })
+  .superRefine((definition, context) => {
+    const semantic = definition.conditions.some(
+      (condition) => condition.type === "semantic_positive_match",
+    );
+    const placement = definition.actions.some((action) =>
+      [
+        "archive_trigger_message",
+        "move_trigger_message",
+        "set_trigger_read_state",
+        "set_trigger_star_state",
+      ].includes(action.type),
+    );
+    const messageAction = definition.actions.some((action) =>
+      [
+        "create_reply_draft",
+        "reply_to_trigger_sender",
+        "archive_trigger_message",
+        "move_trigger_message",
+        "set_trigger_read_state",
+        "set_trigger_star_state",
+      ].includes(action.type),
+    );
+    if (definition.mode === "send" && definition.trigger.type !== "email_received") {
+      context.addIssue({
+        code: "custom",
+        message: "Send mode requires email_received.",
+        path: ["mode"],
+      });
+    }
+    if (definition.mode === "send" && semantic) {
+      context.addIssue({
+        code: "custom",
+        message: "Send mode cannot use semantic conditions.",
+        path: ["conditions"],
+      });
+    }
+    if (definition.trigger.type === "email_received" && !semantic && placement) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Deterministic placement belongs in mailbox rules unless a semantic condition gates it.",
+        path: ["actions"],
+      });
+    }
+    if (
+      messageAction &&
+      definition.trigger.type !== "email_received" &&
+      definition.trigger.type !== "thread_state"
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Message actions need an email or thread-state trigger.",
+        path: ["actions"],
+      });
+    }
+    if (
+      definition.trigger.type === "email_received" &&
+      definition.actions.some((action) => action.type === "generate_mail_report")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Mail reports need a scheduled or manual trigger.",
+        path: ["actions"],
+      });
+    }
+    if (definition.mode === "send") {
+      const replies = definition.actions.filter(
+        (action) => action.type === "reply_to_trigger_sender",
+      );
+      if (replies.length !== 1 || definition.actions.length !== 1) {
+        context.addIssue({
+          code: "custom",
+          message: "Send mode supports exactly one automatic reply action.",
+          path: ["actions"],
+        });
+      }
+    }
+  });
+
+export const automationRunSummarySchema = z.object({
+  object: z.literal("automation_run"),
+  id: z.string(),
+  status: z.enum([
+    "queued",
+    "running",
+    "completed",
+    "failed",
+    "degraded",
+    "cancelled",
+    "skipped",
+  ] as const),
+  error_code: z.string().nullable(),
+  created_at: z.string(),
+});
+
+export const automationRunSchema = z.object({
+  object: z.literal("automation_run"),
+  id: z.string(),
+  automation_id: z.string(),
+  status: z.literal("queued"),
+});
+
+export const automationSchema = z.object({
+  object: z.literal("automation"),
+  id: z.string(),
+  name: z.string(),
+  status: z.enum(["active", "paused", "disabled"] as const),
+  version_id: z.string(),
+  version: z.number().int(),
+  definition: automationDefinitionSchema,
+  last_run: automationRunSummarySchema.nullable(),
+  next_run_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const automationByIdInputSchema = z.object({ id: idSchema });
+export const createAutomationInputSchema = z.object({
+  name: noControlString(100, "automation name").min(1),
+  definition: automationDefinitionSchema,
+  idempotency_key: idempotencyKeySchema,
+});
+export const updateAutomationInputSchema = z
+  .object({
+    id: idSchema,
+    name: noControlString(100, "automation name").min(1).optional(),
+    definition: automationDefinitionSchema.optional(),
+    status: z.enum(["active", "paused", "disabled"] as const).optional(),
+    idempotency_key: idempotencyKeySchema,
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined || value.definition !== undefined || value.status !== undefined,
+    "Provide name, definition, or status.",
+  );
+export const runAutomationInputSchema = z.object({
+  id: idSchema,
+  idempotency_key: idempotencyKeySchema,
+});
+export const automationOutputSchema = z.object({ automation: automationSchema });
+export const automationsOutputSchema = z.object({ data: z.array(automationSchema) });
+export const automationRunOutputSchema = z.object({ automation_run: automationRunSchema });
+
 export const bookingPageSchema = z.object({
   object: z.literal("booking_page"),
   id: z.string(),

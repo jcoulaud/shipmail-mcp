@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "shipmail-mcp",
   "display_name": "Shipmail",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Secure custom-domain business email and calendars for AI agents.",
   "long_description": "Run the official Shipmail MCP server locally. Connect an AI agent to scoped custom-domain mailboxes, messages, threads, calendars, webhooks, and suppressions without routing MCP traffic through a third-party gateway.",
   "author": {

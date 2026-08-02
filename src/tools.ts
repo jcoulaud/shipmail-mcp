@@ -37,6 +37,10 @@ import {
   audienceFeedOutputSchema,
   audienceOutputSchema,
   audiencesOutputSchema,
+  automationByIdInputSchema,
+  automationOutputSchema,
+  automationRunOutputSchema,
+  automationsOutputSchema,
   autoReplyInputSchema,
   bookingPageByIdInputSchema,
   bookingPageOutputSchema,
@@ -48,6 +52,7 @@ import {
   composeMessageWithFileInputSchema,
   consumePartnerMailboxCredentialGrantInputSchema,
   createAudienceInputSchema,
+  createAutomationInputSchema,
   createBookingPageInputSchema,
   createCalendarEventInputSchema,
   createdMailboxAppPasswordOutputSchema,
@@ -159,6 +164,7 @@ import {
   resetPasswordInputSchema,
   resubscribeSubscriberInputSchema,
   revokeMailboxAppPasswordInputSchema,
+  runAutomationInputSchema,
   scheduledMessageOutputSchema,
   scheduledMessagesOutputSchema,
   scheduleNewsletterInputSchema,
@@ -179,6 +185,7 @@ import {
   threadsOutputSchema,
   updateAudienceFeedInputSchema,
   updateAudienceInputSchema,
+  updateAutomationInputSchema,
   updateBookingPageInputSchema,
   updateCalendarEventInputSchema,
   updateDomainInputSchema,
@@ -296,6 +303,9 @@ const SESSION_LIMITS: Readonly<Record<string, number>> = {
   shipmail_create_booking_page: 20,
   shipmail_update_booking_page: 20,
   shipmail_delete_booking_page: 10,
+  shipmail_create_automation: 20,
+  shipmail_update_automation: 20,
+  shipmail_run_automation: 20,
   shipmail_create_partner_organization: 20,
   shipmail_update_partner_organization: 50,
   shipmail_resend_partner_ownership_invitation: 20,
@@ -3437,6 +3447,113 @@ export function registerTools(
             availability: await client.calendar.availability(args),
           }),
         ),
+    );
+  });
+
+  registerIfAllowed("shipmail_list_automations", () => {
+    server.registerTool(
+      "shipmail_list_automations",
+      {
+        title: "List Automations",
+        description: "List assistant automations visible to this API key's mailbox constraints.",
+        outputSchema: automationsOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () =>
+        runTool("shipmail_list_automations", automationsOutputSchema, () =>
+          client.automations.list(),
+        ),
+    );
+  });
+
+  registerIfAllowed("shipmail_get_automation", () => {
+    server.registerTool(
+      "shipmail_get_automation",
+      {
+        title: "Get Automation",
+        description: "Fetch one assistant automation by ID.",
+        inputSchema: automationByIdInputSchema,
+        outputSchema: automationOutputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ id }) =>
+        runTool("shipmail_get_automation", automationOutputSchema, async () => ({
+          automation: await client.automations.get(id),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_create_automation", () => {
+    server.registerTool(
+      "shipmail_create_automation",
+      {
+        title: "Create Automation",
+        description:
+          "Create and activate an assistant automation from an explicit reviewed definition. This persists behavior until paused or disabled.",
+        inputSchema: createAutomationInputSchema,
+        outputSchema: automationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_create_automation", automationOutputSchema, async () => ({
+          automation: await client.automations.create(
+            stripIdempotencyKey(args),
+            mutationOptions(args),
+          ),
+        })),
+    );
+  });
+
+  registerIfAllowed("shipmail_update_automation", () => {
+    server.registerTool(
+      "shipmail_update_automation",
+      {
+        title: "Update Automation",
+        description:
+          "Change an automation's name, reviewed definition, or status. Definition changes create and activate a new immutable version.",
+        inputSchema: updateAutomationInputSchema,
+        outputSchema: automationOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_update_automation", automationOutputSchema, async () => {
+          const { id, idempotency_key: _key, ...params } = args;
+          return {
+            automation: await client.automations.update(id, params, mutationOptions(args)),
+          };
+        }),
+    );
+  });
+
+  registerIfAllowed("shipmail_run_automation", () => {
+    server.registerTool(
+      "shipmail_run_automation",
+      {
+        title: "Run Automation",
+        description: "Queue one run of a manual automation.",
+        inputSchema: runAutomationInputSchema,
+        outputSchema: automationRunOutputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args) =>
+        runTool("shipmail_run_automation", automationRunOutputSchema, async () => ({
+          automation_run: await client.automations.run(args.id, mutationOptions(args)),
+        })),
     );
   });
 

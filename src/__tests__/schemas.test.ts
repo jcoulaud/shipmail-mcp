@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 
 import {
   audienceFeedSchema,
+  automationSchema,
   bookingPageSchema,
+  createAutomationInputSchema,
   createBookingPageInputSchema,
   createDomainInputSchema,
   createMailboxFolderInputSchema,
@@ -33,6 +35,7 @@ import {
   spamFilterInputSchema,
   suppressionSchema,
   updateAudienceFeedInputSchema,
+  updateAutomationInputSchema,
   updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
@@ -169,6 +172,66 @@ describe("booking page schemas", () => {
         conferencing_provider: "teams",
       }),
     ).toThrow();
+  });
+});
+
+describe("automation schemas", () => {
+  const definition = {
+    trigger: { type: "scheduled" as const, cron: "0 8 * * *", time_zone: "Europe/Lisbon" },
+    conditions: [],
+    actions: [
+      {
+        type: "generate_mail_report" as const,
+        metric: "received" as const,
+        lookback_minutes: 1_440,
+      },
+    ],
+    mode: "draft" as const,
+    scope: { mailbox_ids: ["mbx_1", "mbx_2", "mbx_3"], calendar_addresses: [] },
+  };
+
+  test("accepts a reviewed multi-mailbox daily brief and status updates", () => {
+    expect(
+      createAutomationInputSchema.parse({ name: "Daily brief", definition }).definition.scope
+        .mailbox_ids,
+    ).toHaveLength(3);
+    expect(updateAutomationInputSchema.parse({ id: "aaut_1", status: "paused" }).status).toBe(
+      "paused",
+    );
+  });
+
+  test("rejects unsafe send mode and accepts degraded run summaries", () => {
+    expect(() =>
+      createAutomationInputSchema.parse({
+        name: "Unsafe",
+        definition: {
+          ...definition,
+          trigger: { type: "manual", mailbox_ids: ["mbx_1"] },
+          mode: "send",
+        },
+      }),
+    ).toThrow();
+    expect(
+      automationSchema.parse({
+        object: "automation",
+        id: "aaut_1",
+        name: "Daily brief",
+        status: "active",
+        version_id: "aav_1",
+        version: 1,
+        definition,
+        last_run: {
+          object: "automation_run",
+          id: "aar_1",
+          status: "degraded",
+          error_code: null,
+          created_at: "2026-08-02T08:00:00.000Z",
+        },
+        next_run_at: null,
+        created_at: "2026-08-02T00:00:00.000Z",
+        updated_at: "2026-08-02T08:00:00.000Z",
+      }).last_run?.status,
+    ).toBe("degraded");
   });
 });
 

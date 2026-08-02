@@ -422,6 +422,162 @@
         }
       }
     },
+    "/automations": {
+      "get": {
+        "operationId": "listAutomations",
+        "summary": "List automations",
+        "description": "List up to 100 most recently updated automations owned by the API key creator and fully visible through the key's mailbox constraints.",
+        "tags": ["Automations"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "automations:read",
+        "responses": {
+          "200": {
+            "description": "List of automations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Automation" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      },
+      "post": {
+        "operationId": "createAutomation",
+        "summary": "Create an automation",
+        "description": "Create and atomically activate an automation from an explicit reviewed definition.",
+        "tags": ["Automations"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "automations:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAutomationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Automation created and activated.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Automation" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/automations/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Automation ID.",
+          "schema": { "type": "string", "pattern": "^aaut_[0-9a-z]{24}$" }
+        }
+      ],
+      "get": {
+        "operationId": "getAutomation",
+        "summary": "Get an automation",
+        "tags": ["Automations"],
+        "x-rate-limit-tier": "read",
+        "x-scope": "automations:read",
+        "responses": {
+          "200": {
+            "description": "Automation object.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Automation" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      },
+      "patch": {
+        "operationId": "updateAutomation",
+        "summary": "Update an automation",
+        "description": "Change the name, definition, or status. Definition changes create and atomically activate a new immutable version.",
+        "tags": ["Automations"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "automations:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateAutomationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated automation.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Automation" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
+    "/automations/{id}/run": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Manual automation ID.",
+          "schema": { "type": "string", "pattern": "^aaut_[0-9a-z]{24}$" }
+        }
+      ],
+      "post": {
+        "operationId": "runAutomation",
+        "summary": "Run a manual automation",
+        "description": "Queue one run of an active manual automation.",
+        "tags": ["Automations"],
+        "x-rate-limit-tier": "write",
+        "x-scope": "automations:write",
+        "responses": {
+          "202": {
+            "description": "Automation run queued.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AutomationRun" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/AuthorizationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" }
+        }
+      }
+    },
     "/booking-pages": {
       "get": {
         "operationId": "listBookingPages",
@@ -7646,6 +7802,328 @@
               "$ref": "#/components/schemas/CalendarAvailabilitySlot"
             }
           }
+        }
+      },
+      "AutomationTrigger": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "mailbox_ids"],
+            "properties": {
+              "type": { "type": "string", "enum": ["email_received"] },
+              "mailbox_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string" }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "cron", "time_zone"],
+            "properties": {
+              "type": { "type": "string", "enum": ["scheduled"] },
+              "cron": {
+                "type": "string",
+                "description": "Five-field daily or weekly cron expression."
+              },
+              "time_zone": { "type": "string", "description": "IANA time zone." }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "mailbox_ids"],
+            "properties": {
+              "type": { "type": "string", "enum": ["manual"] },
+              "mailbox_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string" }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "mailbox_ids", "state", "duration_minutes"],
+            "properties": {
+              "type": { "type": "string", "enum": ["thread_state"] },
+              "mailbox_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string" }
+              },
+              "state": { "type": "string", "enum": ["no_reply_after"] },
+              "duration_minutes": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 525600
+              }
+            }
+          }
+        ]
+      },
+      "AutomationCondition": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "addresses"],
+            "properties": {
+              "type": { "type": "string", "enum": ["sender_address"] },
+              "addresses": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string", "format": "email" }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "domains"],
+            "properties": {
+              "type": { "type": "string", "enum": ["sender_domain"] },
+              "domains": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string", "maxLength": 253 }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "values"],
+            "properties": {
+              "type": { "type": "string", "enum": ["subject_contains"] },
+              "values": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string", "maxLength": 200 }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "value"],
+            "properties": {
+              "type": { "type": "string", "enum": ["has_attachment"] },
+              "value": { "type": "boolean" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "instruction", "minimum_confidence"],
+            "properties": {
+              "type": { "type": "string", "enum": ["semantic_positive_match"] },
+              "instruction": { "type": "string", "maxLength": 1000 },
+              "minimum_confidence": { "type": "number", "minimum": 0.5, "maximum": 1 }
+            }
+          }
+        ]
+      },
+      "AutomationAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "instruction"],
+            "properties": {
+              "type": { "type": "string", "enum": ["create_reply_draft"] },
+              "instruction": { "type": "string", "maxLength": 2000 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "instruction"],
+            "properties": {
+              "type": { "type": "string", "enum": ["reply_to_trigger_sender"] },
+              "instruction": { "type": "string", "maxLength": 2000 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["archive_trigger_message"] }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "mailbox_id", "destination_folder_id"],
+            "properties": {
+              "type": { "type": "string", "enum": ["move_trigger_message"] },
+              "mailbox_id": { "type": "string" },
+              "destination_folder_id": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "is_read"],
+            "properties": {
+              "type": { "type": "string", "enum": ["set_trigger_read_state"] },
+              "is_read": { "type": "boolean" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "is_starred"],
+            "properties": {
+              "type": { "type": "string", "enum": ["set_trigger_star_state"] },
+              "is_starred": { "type": "boolean" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "metric", "lookback_minutes"],
+            "properties": {
+              "type": { "type": "string", "enum": ["generate_mail_report"] },
+              "metric": { "type": "string", "enum": ["received", "sent", "unread"] },
+              "lookback_minutes": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 525600
+              }
+            }
+          }
+        ]
+      },
+      "AutomationDefinition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trigger", "conditions", "actions", "mode", "scope"],
+        "properties": {
+          "trigger": { "$ref": "#/components/schemas/AutomationTrigger" },
+          "conditions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": { "$ref": "#/components/schemas/AutomationCondition" }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": { "$ref": "#/components/schemas/AutomationAction" }
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["draft", "send"],
+            "description": "Send mode is allowed only for one deterministic reply action on email_received."
+          },
+          "scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mailbox_ids", "calendar_addresses"],
+            "properties": {
+              "mailbox_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": { "type": "string" }
+              },
+              "calendar_addresses": {
+                "type": "array",
+                "maxItems": 100,
+                "items": { "type": "string", "format": "email" }
+              }
+            }
+          }
+        }
+      },
+      "AutomationRunSummary": {
+        "type": "object",
+        "required": ["object", "id", "status", "error_code", "created_at"],
+        "properties": {
+          "object": { "type": "string", "enum": ["automation_run"] },
+          "id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "running", "completed", "failed", "degraded", "cancelled", "skipped"]
+          },
+          "error_code": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AutomationRun": {
+        "type": "object",
+        "required": ["object", "id", "automation_id", "status"],
+        "properties": {
+          "object": { "type": "string", "enum": ["automation_run"] },
+          "id": { "type": "string" },
+          "automation_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["queued"] }
+        }
+      },
+      "Automation": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "name",
+          "status",
+          "version_id",
+          "version",
+          "definition",
+          "last_run",
+          "next_run_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "object": { "type": "string", "enum": ["automation"] },
+          "id": { "type": "string", "pattern": "^aaut_[0-9a-z]{24}$" },
+          "name": { "type": "string", "maxLength": 100 },
+          "status": { "type": "string", "enum": ["active", "paused", "disabled"] },
+          "version_id": { "type": "string" },
+          "version": { "type": "integer", "minimum": 1 },
+          "definition": { "$ref": "#/components/schemas/AutomationDefinition" },
+          "last_run": {
+            "oneOf": [{ "$ref": "#/components/schemas/AutomationRunSummary" }, { "type": "null" }]
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateAutomationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "definition"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "definition": { "$ref": "#/components/schemas/AutomationDefinition" }
+        }
+      },
+      "UpdateAutomationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "definition": { "$ref": "#/components/schemas/AutomationDefinition" },
+          "status": { "type": "string", "enum": ["active", "paused", "disabled"] }
         }
       },
       "BookingPage": {

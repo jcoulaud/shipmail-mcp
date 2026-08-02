@@ -1,6 +1,6 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config/smithery-yaml
 name: shipmail-mcp
-version: 0.7.2
+version: 0.7.3
 description: Official Shipmail MCP server for AI-agent custom-domain business email inboxes with REST API and webhooks.
 author: Shipmail
 repository: https://github.com/shipmail-to/shipmail-mcp

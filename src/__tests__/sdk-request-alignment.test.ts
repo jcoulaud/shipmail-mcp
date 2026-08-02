@@ -11,6 +11,7 @@
 import { describe, test } from "bun:test";
 import type {
   ConsumePartnerMailboxCredentialGrantParams,
+  CreateAutomationParams,
   CreateBookingPageParams,
   CreateDomainParams,
   CreateMailboxAppPasswordParams,
@@ -30,6 +31,7 @@ import type {
   SendMessageParams,
   SendNewsletterTestParams,
   UpdateAudienceFeedParams,
+  UpdateAutomationParams,
   UpdateAutoReplyParams,
   UpdateBookingPageParams,
   UpdateDomainParams,
@@ -46,6 +48,7 @@ import type { z } from "zod/v4";
 import type {
   autoReplyInputSchema,
   consumePartnerMailboxCredentialGrantInputSchema,
+  createAutomationInputSchema,
   createBookingPageInputSchema,
   createDomainInputSchema,
   createMailboxAppPasswordInputSchema,
@@ -66,6 +69,7 @@ import type {
   sendNewsletterTestInputSchema,
   spamFilterInputSchema,
   updateAudienceFeedInputSchema,
+  updateAutomationInputSchema,
   updateBookingPageInputSchema,
   updateDomainInputSchema,
   updateInboxMessageInputSchema,
@@ -107,6 +111,12 @@ type AssertTrue<T extends true> = T;
 // One assertion per (SDK request type, MCP input schema) pair.
 type _CreateDomain = AssertTrue<
   KeysMatch<CreateDomainParams, StripMcpOnly<z.infer<typeof createDomainInputSchema>>>
+>;
+type _CreateAutomation = AssertTrue<
+  KeysMatch<CreateAutomationParams, StripMcpOnly<z.infer<typeof createAutomationInputSchema>>>
+>;
+type _UpdateAutomation = AssertTrue<
+  KeysMatch<UpdateAutomationParams, StripMcpOnly<z.infer<typeof updateAutomationInputSchema>>>
 >;
 type _CreateBookingPage = AssertTrue<
   KeysMatch<CreateBookingPageParams, StripMcpOnly<z.infer<typeof createBookingPageInputSchema>>>
@@ -220,6 +230,8 @@ type _UpdateWebhook = AssertTrue<
 // Suppress unused-type warnings; the type aliases above are what enforce the
 // assertion at compile time.
 type _AllChecks = [
+  _CreateAutomation,
+  _UpdateAutomation,
   _UpdateAudienceFeed,
   _CreateBookingPage,
   _UpdateBookingPage,
@@ -285,7 +297,9 @@ describe("SDK request params / MCP input schema alignment", () => {
       true,
       true,
       true,
+      true,
+      true,
     ];
-    if (checks.length !== 30) throw new Error("alignment matrix size changed");
+    if (checks.length !== 32) throw new Error("alignment matrix size changed");
   });
 });

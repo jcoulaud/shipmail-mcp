@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.7.2...shipmail-mcp-v0.7.3) (2026-08-02)
+
+
+### Features
+
+* **api:** add public automations API ([#1144](https://github.com/shipmail-to/Shipmail/issues/1144)) ([e1af38e](https://github.com/shipmail-to/Shipmail/commit/e1af38ef03132b7b108caa7a72cb129d9f8605aa))
+
 ## [0.7.2](https://github.com/shipmail-to/Shipmail/compare/shipmail-mcp-v0.7.1...shipmail-mcp-v0.7.2) (2026-07-30)
 
 

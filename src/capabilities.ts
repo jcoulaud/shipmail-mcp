@@ -4,6 +4,7 @@ export const MCP_CAPABILITY_VERSION = "1.0.0";
 
 export const MCP_PERMISSION_GROUP_NAMES = [
   "account_status",
+  "automations",
   "mail_read",
   "drafts",
   "mail_organize",
@@ -35,6 +36,7 @@ export const MCP_MEMBER_PERMISSION_GROUP_NAMES = [
   "send_mail",
   "calendar_read",
   "calendar_write",
+  "automations",
 ] as const satisfies readonly McpPermissionGroupName[];
 
 export type McpRole = "owner" | "member";
@@ -58,6 +60,13 @@ export const MCP_PERMISSION_GROUPS = [
     description: "Check whether the Shipmail API is available.",
     scopes: [],
     persistent: false,
+  },
+  {
+    name: "automations",
+    label: "Automations",
+    description: "Read and manage persistent assistant automations.",
+    scopes: ["automations:read", "automations:write"],
+    persistent: true,
   },
   {
     name: "mail_read",
@@ -202,6 +211,11 @@ type CapabilityRow = readonly [
 
 const CAPABILITY_ROWS = [
   ["shipmail_status", "getStatus", "public"],
+  ["shipmail_list_automations", "listAutomations", "automations:read"],
+  ["shipmail_create_automation", "createAutomation", "automations:write"],
+  ["shipmail_get_automation", "getAutomation", "automations:read"],
+  ["shipmail_update_automation", "updateAutomation", "automations:write"],
+  ["shipmail_run_automation", "runAutomation", "automations:write"],
   ["shipmail_create_domain", "createDomain", "domains:write"],
   ["shipmail_list_domains", "listDomains", "domains:read"],
   ["shipmail_get_domain", "getDomain", "domains:read"],
@@ -492,6 +506,7 @@ function permissionGroupFor(
   if (requiredScope === "calendar:read") return "calendar_read";
   if (requiredScope === "calendar:write") return "calendar_write";
   if (requiredScope.startsWith("booking_pages:")) return "booking_pages";
+  if (requiredScope.startsWith("automations:")) return "automations";
   if (requiredScope.startsWith("webhooks:")) return "webhooks";
   if (requiredScope.startsWith("newsletters:")) return "newsletters";
   if (requiredScope.startsWith("audiences:")) return "audiences";
@@ -526,6 +541,7 @@ function recipientControlFor(toolName: McpToolName): McpRecipientControl {
 }
 
 function durationFor(toolName: McpToolName): McpCapabilityDuration {
+  if (toolName === "shipmail_run_automation") return "one_shot";
   if (
     toolName.includes("app_password") ||
     toolName.includes("credential_grant") ||
@@ -537,7 +553,8 @@ function durationFor(toolName: McpToolName): McpCapabilityDuration {
     toolName.includes("forwarding") ||
     toolName.includes("mailbox_rules") ||
     toolName.includes("webhook") ||
-    toolName.includes("booking_page")
+    toolName.includes("booking_page") ||
+    toolName.includes("automation")
   ) {
     return "persistent";
   }

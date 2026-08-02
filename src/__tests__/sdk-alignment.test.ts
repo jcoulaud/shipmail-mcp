@@ -16,6 +16,7 @@ import { describe, test } from "bun:test";
 import type {
   Audience,
   AudienceFeed,
+  Automation,
   BookingPage,
   CreatedMailboxAppPassword,
   Domain,
@@ -53,6 +54,7 @@ import type { z } from "zod/v4";
 import {
   audienceFeedSchema,
   audienceSchema,
+  automationSchema,
   bookingPageSchema,
   createdMailboxAppPasswordSchema,
   domainSchema,
@@ -103,6 +105,7 @@ type AssertTrue<T extends true> = T;
 type _DomainKeys = AssertTrue<KeysMatch<Domain, z.infer<typeof domainSchema>>>;
 type _AudienceKeys = AssertTrue<KeysMatch<Audience, z.infer<typeof audienceSchema>>>;
 type _AudienceFeedKeys = AssertTrue<KeysMatch<AudienceFeed, z.infer<typeof audienceFeedSchema>>>;
+type _AutomationKeys = AssertTrue<KeysMatch<Automation, z.infer<typeof automationSchema>>>;
 type _BookingPageKeys = AssertTrue<KeysMatch<BookingPage, z.infer<typeof bookingPageSchema>>>;
 type _MailboxKeys = AssertTrue<KeysMatch<Mailbox, z.infer<typeof mailboxSchema>>>;
 type _MailboxAppPasswordKeys = AssertTrue<
@@ -175,6 +178,7 @@ type _DomainVerificationKeys = AssertTrue<
 type _AllChecks = [
   _AudienceKeys,
   _AudienceFeedKeys,
+  _AutomationKeys,
   _DomainKeys,
   _BookingPageKeys,
   _MailboxKeys,
@@ -246,7 +250,8 @@ describe("SDK / MCP schema alignment", () => {
       true,
       true,
       true,
+      true,
     ];
-    if (checks.length !== 33) throw new Error("alignment matrix size changed");
+    if (checks.length !== 34) throw new Error("alignment matrix size changed");
   });
 });
